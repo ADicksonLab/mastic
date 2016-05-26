@@ -174,10 +174,11 @@ class TrackedList(list):
     def __len__(self):
         return len(self._List)
 
-    # returns a deepcopy of the items, so they cannot be modified
+    # think about whether or not a shallow copy is the right thing
+    # here
     def __getitem__(self, index):
-        """ Return a deepcopy of the member so it cannot be modified. """
-        return copy.deepcopy(self._List[index])
+        """ Returns a shallow copy of the List"""
+        return copy.copy(self._List[index])
 
     # Mutable container protocol methods including slicing
     @_changes
@@ -386,7 +387,7 @@ class Selection(object):
             elif isinstance(sel, slice):
                 raise NotImplementedError("Slice not supported yet")
             elif isinstance(sel, list):
-                it = iter(list)
+                it = iter(sel)
                 index = next(it)
                 try:
                     while True:
@@ -428,7 +429,15 @@ class Selection(object):
 
     @property
     def sel(self):
-        return self._container[self._sel]
+        """Returns a TrackedList shallow copy of the Selection indexed members
+of the container TrackedList.
+
+        """
+        if isinstance(self._sel, int) or isinstance(self._sel, slice):
+            return TrackedList(self._container[self._sel])
+        elif isinstance(self._sel, list):
+            return TrackedList([member for member in self._container if member.idx in self._sel])
+
     @property
     def sel_idx(self):
         return self._sel
