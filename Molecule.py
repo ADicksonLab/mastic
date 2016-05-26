@@ -1,3 +1,5 @@
+from copy import copy
+
 from mast.TrackedStructures import TrackedMember, TrackedList, Selection, SelectionList
 import mast.unit as u
 
@@ -79,6 +81,32 @@ class _UnassignedAtomType(object):
 UnassignedAtomType = _UnassignedAtomType()
 # Make sure it's a singleton
 assert UnassignedAtomType is _UnassignedAtomType(), "Not a singleton"
+
+def _delete_from_list(list, item):
+    """
+    Deletes a requested item from a list. If the item does not exist in the
+    list, a ValueError is raised
+
+    Parameters
+    ----------
+    list : ``list``
+        The list from which an item will be deleted
+    item : ``object``
+        The object to delete from the list
+    """
+    list.pop(list.index(item))
+
+def _safe_assigns(dest, source, attrs):
+    """
+    Shallow-copies all requested attributes from `source` to `dest` if they
+    are present. If not present, nothing is done
+    """
+    for attr in attrs:
+        if not hasattr(source, attr): continue
+        myattr = getattr(source, attr)
+        setattr(dest, attr, myattr)
+
+#### End of unkown function ParmEd stuff
 
 
 class Atom(TrackedMember):
@@ -308,73 +336,91 @@ class Atom(TrackedMember):
     """
     #===================================================
 
-    def __init__(self, idx=None, atomic_number=0, name='', type='',
+    def __init__(self, atom=None, idx=None, atomic_number=0, name='', type='',
                  charge=None, mass=0.0, nb_idx=0, solvent_radius=0.0,
                  screen=0.0, tree='BLA', join=0.0, irotat=0.0, occupancy=0.0,
                  bfactor=0.0, altloc='', number=-1, rmin=None, epsilon=None,
                  rmin14=None, epsilon14=None):
 
-        super().__init__(idx=idx)
+        # copy an atom in the arguments if given
+        if atom:
+            self = copy(atom)
+        # otherwise make another fresh one
+        else:
+            super().__init__(idx=idx)
 
-        self.atomic_number = atomic_number
-        self.name = name.strip()
-        try:
-            self.type = type.strip()
-        except AttributeError:
-            self.type = type
-        self._charge = _strip_units(charge, u.elementary_charge)
-        self.mass = _strip_units(mass, u.dalton)
-        self.nb_idx = nb_idx
-        self.solvent_radius = _strip_units(solvent_radius, u.angstrom)
-        self.screen = screen
-        self.tree = tree
-        self.join = join
-        self.irotat = irotat
-        self.bfactor = bfactor
-        self.altloc = altloc
-        self.occupancy = occupancy
-        self._bond_partners = []
-        self._angle_partners = []
-        self._dihedral_partners = []
-        self._tortor_partners = []
-        self._exclusion_partners = [] # For arbitrary/other exclusions
-        self.residue = None
-        self.marked = 0 # For setting molecules
-        self.bonds, self.angles, self.dihedrals = [], [], []
-        self.urey_bradleys, self.impropers, self.cmaps = [], [], []
-        self.tortors = []
-        self.other_locations = {} # A dict of Atom instances
-        self.atom_type = UnassignedAtomType
-        self.number = number
-        self.anisou = None
-        self._rmin = rmin
-        self._epsilon = epsilon
-        self._rmin14 = rmin14
-        self._epsilon14 = epsilon14
-        self.children = []
+            self.atomic_number = atomic_number
+            self.name = name.strip()
+            try:
+                self.type = type.strip()
+            except AttributeError:
+                self.type = type
+            self._charge = _strip_units(charge, u.elementary_charge)
+            self.mass = _strip_units(mass, u.dalton)
+            self.nb_idx = nb_idx
+            self.solvent_radius = _strip_units(solvent_radius, u.angstrom)
+            self.screen = screen
+            self.tree = tree
+            self.join = join
+            self.irotat = irotat
+            self.bfactor = bfactor
+            self.altloc = altloc
+            self.occupancy = occupancy
+            self._bond_partners = []
+            self._angle_partners = []
+            self._dihedral_partners = []
+            self._tortor_partners = []
+            self._exclusion_partners = [] # For arbitrary/other exclusions
+            self.residue = None
+            self.marked = 0 # For setting molecules
+            self.bonds, self.angles, self.dihedrals = [], [], []
+            self.urey_bradleys, self.impropers, self.cmaps = [], [], []
+            self.tortors = []
+            self.other_locations = {} # A dict of Atom instances
+            self.atom_type = UnassignedAtomType
+            self.number = number
+            self.anisou = None
+            self._rmin = rmin
+            self._epsilon = epsilon
+            self._rmin14 = rmin14
+            self._epsilon14 = epsilon14
+            self.children = []
 
     #===================================================
 
-    @classmethod
-    def _copy(cls, item):
-        new = cls(atomic_number=item.atomic_number, name=item.name,
-                  type=item.type, charge=item.charge, mass=item.mass,
-                  nb_idx=item.nb_idx, solvent_radius=item.solvent_radius,
-                  screen=item.screen, tree=item.tree, join=item.join,
-                  irotat=item.irotat, occupancy=item.occupancy,
-                  bfactor=item.bfactor, altloc=item.altloc)
-        new.atom_type = item.atom_type
-        new.anisou = copy(item.anisou)
-        for key in item.other_locations:
-            new.other_locations[key] = copy(item.other_locations[key])
-        _safe_assigns(new, item, ('xx', 'xy', 'xz', 'vx', 'vy', 'vz',
+    def __copy__(self):
+        new_atom = Atom(super().__copy__())
+        print(new_atom)
+        new_atom.atomic_number=self.atomic_number
+        new_atom.name=self.name
+        new_atom.type=self.type
+        new_atom.charge=self.charge
+        new_atom.mass=self.mass
+        new_atom.nb_idx=self.nb_idx
+        new_atom.solvent_radius=self.solvent_radius
+        new_atom.screen=self.screen
+        new_atom.tree=self.tree
+        new_atom.join=self.join
+        new_atom.irotat=self.irotat
+        occupancy=self.occupancy
+        new_atom.bfactor=self.bfactor
+        new_atom.altloc=self.altloc
+        new_atom.atom_type = self.atom_type
+        # is this okay
+        new_atom.anisou = copy(self.anisou)
+        for key in self.other_locations:
+            new_atom.other_locations[key] = copy(self.other_locations[key])
+
+        _safe_assigns(new_atom, self, ('xx', 'xy', 'xz', 'vx', 'vy', 'vz',
                       'type_idx', 'class_idx', 'multipoles', 'polarizability',
                       'vdw_parent', 'vdw_weight'))
-        return new
 
-    def __copy__(self):
-        """ Returns a deep copy of this atom, but not attached to any list """
-        return type(self)._copy(self)
+        return new_atom
+
+    # I implement a shallow copy
+    # def __copy__(self):
+    #     """ Returns a deep copy of this atom, but not attached to any list """
+    #     return type(self)._copy(self)
 
     #===================================================
 
@@ -855,20 +901,40 @@ class Bond(Selection):
     True
     """
 
-    def __init__(self, atom1, atom2, type=None):
+    def __init__(self, sel, atoms=None):
         """ Bond constructor """
-        # Make sure we're not bonding me to myself
-        if atom1 is atom2:
-            raise MoleculeError('Cannot bond atom to itself!')
-        # Order the atoms so the lowest atom # is first
-        self.atom1 = atom1
-        self.atom2 = atom2
-        # Load this struct into the atoms
-        self.atom1.bonds.append(self)
-        self.atom2.bonds.append(self)
-        atom1.bond_to(atom2)
-        self.type = type
-        self.funct = 1
+        # make sure the selection passed is correct for a Bond Selection
+        if not len(sel) == 2:
+            raise ValueError("Bond selections must have two members, given {}".format(len(sel)))
+
+        # if sel is not already a Selection try to make one out of it
+        if not isinstance(sel, Selection):
+            if isinstance(sel, list) or isinstance(sel, int):
+                if isinstance(atoms, AtomList):
+                    sel = Selection(container=AtomList, sel=sel)
+                else:
+                    raise ValueError(
+                        "If sel is indices (not Selection type) must provide, atoms of type AtomList, not {}".format(type(atoms)))
+            else:
+                raise TypeError("Bond selection must be type Selection, list, or int, not {}".format(type(sel)))
+
+        if not (isinstance(sel[0], Atom) and isinstance(sel[1], Atom)):
+            raise TypeError(
+                "Bond selection members must be type Atom, not {}".format(
+                                              [type(atom) for atom in sel]))
+        elif sel[0].idx == sel[1].idx:
+            raise ValueError("Bond selection Atoms cannot be identical")
+
+        else:
+            self = copy.copy(sel)
+
+    @property
+    def atom1(self):
+        return self[0]
+
+    @property
+    def atom2(self):
+        return self[1]
 
     def __contains__(self, thing):
         """ Quick and easy way to see if an Atom is in this Bond """
@@ -978,9 +1044,18 @@ class AtomList(TrackedList):
     """TrackedList of Atoms """
 
     def __init__(self, List=None):
-        if List is None:
+        if not List:
             self._List = []
-        super().__init__(List=None)
+        else:
+            if issubclass(type(List), TrackedList) or isinstance(List, list):
+                if isinstance(List[0], Atom):
+                    super().__init__(List=List)
+                else:
+                    raise TypeError(
+                        "List elements must be type Atom, not {}".format(type(List[0])))
+            else:
+                raise TypeError("List must be type list or TrackedList, not {}".format(type(List)))
+
         self._type = Atom
 
 class BondList(SelectionList):
@@ -1023,7 +1098,8 @@ molecule in space with internal coordinates.
 
         if bonds is None:
             self.bonds = BondList()
-        elif isinstance(atoms, BondList):
+        elif isinstance(bonds, BondList):
+            # check all the bonds are between atoms that are in this molecule
             self.bonds = bonds
         else:
             raise TypeError(
@@ -1031,34 +1107,47 @@ molecule in space with internal coordinates.
 
         if angles is None:
             self.angles = AngleList
-        elif isinstance(atoms, AngleList):
+        elif isinstance(angles, AngleList):
+            # check that all angles are between bonds of this molecule
             self.angles = angles
         else:
             raise TypeError(
                 "Constructor argument for bonds {} is not None or AngleList".format(angles))
-class Topology(object):
-    """ Class to store a molecular topology.
 
-    atoms : AtomList
-    bonds : BondList
+        # construct topology
+        if self._bonds and self._atoms:
+            self._topology = Topology(atoms=self._atoms, bonds=self._bonds)
+            self._top = self._topology
 
-    """
+# class Topology(object):
+#     """ Class to store a molecular topology.
 
-    def __init__(self, atoms=None, bonds=None):
-        if atoms is None:
-            self.atoms = AtomList()
-        elif isinstance(atoms, AtomList):
-            self.atoms = atoms
-        else:
-            raise TypeError(
-                "Constructor argument for atoms {} is not None or AtomList".format(atoms))
+#     atoms : AtomList
+#     bonds : BondList
 
-        if bonds is None:
-            self.bonds = BondList()
-        elif isinstance(atoms, BondList):
-            self.bonds = bonds
-        else:
-            raise TypeError(
-                "Constructor argument for bonds {} is not None or BondList".format(bonds))
+#     """
+
+#     def __init__(self, atoms=None, bonds=None):
+#         if atoms is None:
+#             self.atoms = AtomList()
+#         elif isinstance(atoms, AtomList):
+#             self.atoms = atoms
+#         else:
+#             raise TypeError(
+#                 "Constructor argument for atoms {} is not None or AtomList".format(atoms))
+
+#         if bonds is None:
+#             self.bonds = BondList()
+#         elif isinstance(bonds, BondList):
+#             # check to make sure all atoms in the bonds are in this molecule
+#             try:
+#                 it = iter(bonds)
+#                 bond = next(it)
+#                 while True:
+#                     if 
+#             self.bonds = bonds
+#         else:
+#             raise TypeError(
+#                 "Constructor argument for bonds {} is not None or BondList".format(bonds))
 
     

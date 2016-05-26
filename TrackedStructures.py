@@ -80,6 +80,9 @@ The ids property is a dict {id_type : id} so that members can be
         else:
             raise TypeError("ids in constructor must be type dict, not type {}".format(type(ids)))
 
+    def __copy__(self):
+        return TrackedMember(idx=self._idx, ids=self._ids)
+    
     @property
     def changed(self):
         return self._changed
@@ -145,17 +148,21 @@ class TrackedList(list):
             self._List = []
             self._changed = False
             self._indexed = True
-        elif isinstance(List, list) or isinstance(List, TrackedList):
+        elif isinstance(List, list):
+            # check to make sure the members are inherited from TrackedMembers
+            if issubclass(type(List[0]), TrackedMember):
+                self._type = type(List[0])
+                self._List = List
+                self._changed = True
+                self._indexed = True
+            else:
+                raise TypeError(
+                    "Elements in list constructor must be a subclass of TrackedMember, not type {}".format(type(List[0])))
+
+        elif isinstance(List, TrackedList):
             self._type = type(List[0])
             self._List = List
             self._changed = True
-            # index the new list if it's members have idx is None
-            if List:
-                if List[0].idx is None:
-                    self.index_members()
-                    self._indexed = True
-                else:
-                    self._indexed = False
         else:
             raise TypeError(
               "Must provide List, TrackedList, or None not {} type".format(type(List)))
@@ -178,6 +185,8 @@ class TrackedList(list):
     # here
     def __getitem__(self, index):
         """ Returns a shallow copy of the List"""
+        print("TrackedList __getitem__ no copy", self._List[index])
+        print("TrackedList __getitem__ copy", copy.copy(self._List[index]))
         return copy.copy(self._List[index])
 
     # Mutable container protocol methods including slicing
@@ -385,7 +394,7 @@ class Selection(object):
             if sel is None:
                 self._sel = None
             elif isinstance(sel, slice):
-                raise NotImplementedError("Slice not supported yet")
+                self._sel = sel
             elif isinstance(sel, list):
                 it = iter(sel)
                 index = next(it)
@@ -407,6 +416,8 @@ class Selection(object):
                     self._sel = sel
 
             elif isinstance(sel, int):
+                # TODO should negative indices work like a python
+                # slice with negative numbers?
                 if sel < 0:
                     raise ValueError(
                             "Selection indices cannot be negative, {}".format(index))
@@ -423,6 +434,14 @@ class Selection(object):
             raise TypeError(
                 "container type must be a subclass of TrackedList, not type {}".format(type(container)))
 
+    def __len__(self):
+        return len(self.sel)
+
+    def __getitem__(self, index):
+        selection = self.sel
+        print("Selection __getitem__", selection[0])
+        return self.sel[index]
+
     @property
     def container(self):
         return self._container
@@ -434,8 +453,10 @@ of the container TrackedList.
 
         """
         if isinstance(self._sel, int) or isinstance(self._sel, slice):
-            return TrackedList(self._container[self._sel])
+            print("in sel int/slice", self._container[0])
+            return TrackedList([self._container[self._sel]])
         elif isinstance(self._sel, list):
+            print("in sel list", self._container[0])
             return TrackedList([member for member in self._container if member.idx in self._sel])
 
     @property
