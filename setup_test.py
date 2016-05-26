@@ -1,5 +1,7 @@
 from copy import copy
 
+import networkx as nx
+
 from mast.TrackedStructures import *
 
 print("Making TrackedMember")
@@ -53,7 +55,14 @@ print(bonds)
 bonds_c = copy(bonds)
 
 print("Making Topology")
-top = Topology(bonds=bonds)
+top = Topology(bonds)
 print(Topology)
+
+print("Making bad molecular topologies")
+atoms2 = AtomList([Atom(idx=i) for i in range(2)])
+bond2 = Bond(atoms2, 0, 1)
+bonds2 = BondList([bond, bond2])
+top2 = Topology(bonds2)
+
 
 print("Making Molecule")

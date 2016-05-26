@@ -1,5 +1,7 @@
 from copy import copy
 
+import networkx as nx
+
 from mast.TrackedStructures import TrackedMember, TrackedList, Selection, SelectionList
 import mast.unit as u
 
@@ -1070,6 +1072,21 @@ class BondList(SelectionList):
 
         self._type = Bond
 
+    @property
+    def bonds(self):
+        return self._List
+
+    @property
+    def atoms(self):
+        atoms = []
+        for bond in self.bonds:
+            if not bond.atom1 in atoms:
+                atoms.append(bond.atom1)
+            if not bond.atom2 in atoms:
+                atoms.append(bond.atom2)
+
+        return atoms
+
 
 class AngleList(SelectionList):
     """ TrackedList of Angles"""
@@ -1134,19 +1151,17 @@ bonds.
     def __init__(self, bonds=None):
         super().__init__(bonds)
 
+        # put the bonds in as edges to a graph
+        self._bond_graph = nx.Graph()
+        for bond in self.bonds:
+            self._bond_graph.add_edge(bond.atom1, bond.atom2)
         # check to make sure all the bonds are connected
-        
-    @property
-    def bonds(self):
-        return self._bonds
+        num_components = len(list(nx.connected_component_subgraphs(self._bond_graph, copy=False)))
+        if num_components != 1:
+            raise ValueError(
+                "All bonds must be connected, there are {0} graph components in the BondsList {1}"\
+                   .format(num_components, bonds))
 
     @property
-    def atoms(self):
-        atoms = []
-        for bond in self._bonds:
-            if not bond.atom1 in atoms:
-                atoms.append(bond.atom1)
-            if not bond.atom2 in atoms:
-                atoms.append(bond.atom2)
-
-        return atoms
+    def bond_graph(self):
+        return self._bond_graph
