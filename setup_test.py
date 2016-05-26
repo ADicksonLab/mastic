@@ -4,43 +4,56 @@ from mast.TrackedStructures import *
 
 print("Making TrackedMember")
 tm = TrackedMember(idx=0, ids={'name': 'test'})
-tm
+print(tm)
 tm_c = copy(tm)
 tms = [TrackedMember(idx=i) for i in range(5)]
 
 print("Making TrackedList")
 tl = TrackedList(tms)
-tm
+print(tl)
 tl_c = copy(tl)
 
 print("Making Selections")
 intsel = Selection(container=tl, sel=0)
-intsel
+print(intsel)
 intsel_c = copy(intsel)
 
 selslice = slice(0,3)
 slicesel = Selection(container=tl, sel=selslice)
-
+print(slicesel)
 sellist = [0,1]
 listsel = Selection(container=tl, sel=sellist)
+print(listsel)
+
+print("Making SelectionList")
+selections = SelectionList([intsel, slicesel, listsel])
+print(selections)
 
 
 from mast.Molecule import *
 
 print("Making Atom")
 atom = Atom(idx=0)
-atom
 print(atom)
 atom_c = copy(atom)
 
 print("Making AtomList")
-atoms = AtomList([Atom(idx=i) for i in range(5)])
-atoms
+atoms = AtomList([Atom(idx=i) for i in range(2)])
 print(atoms)
 atoms_c = copy(atoms)
 
 print("Making Bond from atoms")
 bond = Bond(atoms, 0, 1)
-bond
 print(bond)
 bond_c = copy(bond)
+
+print("Making BondList from bond")
+bonds = BondList([bond])
+print(bonds)
+bonds_c = copy(bonds)
+
+print("Making Topology")
+top = Topology(bonds=bonds)
+print(Topology)
+
+print("Making Molecule")

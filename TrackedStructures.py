@@ -1,6 +1,6 @@
 from copy import copy
 
-__all__ = ['TrackedMember', 'TrackedList', 'Selection']
+__all__ = ['TrackedMember', 'TrackedList', 'Selection', 'SelectionList']
 
 # the magic of the TrackedList class, used to decorate functions which
 # should propogate a signal of changes.
@@ -159,7 +159,7 @@ class TrackedList(list):
                 raise TypeError(
                     "Elements in list constructor must be a subclass of TrackedMember, not type {}".format(type(List[0])))
 
-        elif isinstance(List, TrackedList):
+        elif issubclass(type(List), TrackedList):
             self._type = type(List[0])
             self._List = List
             self._changed = True
@@ -183,11 +183,8 @@ class TrackedList(list):
     def __len__(self):
         return len(self._List)
 
-    # think about whether or not a shallow copy is the right thing
-    # here
     def __getitem__(self, index):
-        """ Returns a shallow copy of the List"""
-        return copy(self._List[index])
+        return self._List[index]
 
     # Mutable container protocol methods including slicing
     @_changes
@@ -369,7 +366,7 @@ class TrackedList(list):
         return check_members(self)
 
 
-class Selection(object):
+class Selection(TrackedMember):
     """ Base class for containing a TrackedList and indices for that list. 
 
     container : the container implementing a TrackedList like interface
@@ -475,7 +472,16 @@ class SelectionList(TrackedList):
     """ Collection class for multiple TrackedMembers contains """
 
     def __init__(self, List=None):
-        if List is None:
+        if not List:
             self._List = []
-        super().__init__(List=None)
+        elif isinstance(List, list):
+            if isinstance(List[0], Selection):
+                super().__init__(List=List)
+            else:
+                raise TypeError(
+                    "List elements must be type Selection, not {}".format(type(List[0])))
+        else:
+            raise TypeError("List must be type list, not {}".format(type(List)))
+
         self._type = Selection
+

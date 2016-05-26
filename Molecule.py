@@ -3,7 +3,7 @@ from copy import copy
 from mast.TrackedStructures import TrackedMember, TrackedList, Selection, SelectionList
 import mast.unit as u
 
-__all__ = ['Atom', 'Bond', 'Angle', 'AtomList', 'BondList', 'AngleList', 'Molecule']
+__all__ = ['Atom', 'Bond', 'Angle', 'AtomList', 'BondList', 'AngleList', 'Molecule', 'Topology']
 
 
 ### Directly from ParmEd
@@ -321,8 +321,6 @@ class Atom(TrackedMember):
     >>> a1.bond_to(a2)
     >>> a1 in a2.bond_partners and a2 in a1.bond_partners
     True
-    >>> a1.idx # Not part of a container
-    -1
 
     This object also supports automatic indexing when it is part of a container
 
@@ -1057,9 +1055,19 @@ class BondList(SelectionList):
     """ TrackedList of Bonds"""
 
     def __init__(self, List=None):
-        if List is None:
+        if not List:
             self._List = []
-        super().__init__(List=None)
+        else:
+            if issubclass(type(List), SelectionList) or isinstance(List, list):
+                if isinstance(List[0], Bond):
+                    super().__init__(List=List)
+                else:
+                    raise TypeError(
+                        "List elements must be type Bond, not {}".format(type[List[0]]))
+            else:
+                raise TypeError(
+                    "List must be type list or SelectionList, not {}".format(type(List)))
+
         self._type = Bond
 
 
@@ -1069,7 +1077,7 @@ class AngleList(SelectionList):
     def __init__(self, List=None):
         if List is None:
             self._List = []
-        super().__init__(List=None)
+        super().__init__(List=List)
         self._type = Angle
 
 class Molecule(object):
@@ -1114,35 +1122,31 @@ molecule in space with internal coordinates.
             self._topology = Topology(atoms=self._atoms, bonds=self._bonds)
             self._top = self._topology
 
-# class Topology(object):
-#     """ Class to store a molecular topology.
+class Topology(BondList):
+    """Class to store a molecular topology which is a set of connected
+bonds.
 
-#     atoms : AtomList
-#     bonds : BondList
+    atoms : AtomList
+    bonds : BondList
 
-#     """
+    """
 
-#     def __init__(self, atoms=None, bonds=None):
-#         if atoms is None:
-#             self.atoms = AtomList()
-#         elif isinstance(atoms, AtomList):
-#             self.atoms = atoms
-#         else:
-#             raise TypeError(
-#                 "Constructor argument for atoms {} is not None or AtomList".format(atoms))
+    def __init__(self, bonds=None):
+        super().__init__(bonds)
 
-#         if bonds is None:
-#             self.bonds = BondList()
-#         elif isinstance(bonds, BondList):
-#             # check to make sure all atoms in the bonds are in this molecule
-#             try:
-#                 it = iter(bonds)
-#                 bond = next(it)
-#                 while True:
-#                     if 
-#             self.bonds = bonds
-#         else:
-#             raise TypeError(
-#                 "Constructor argument for bonds {} is not None or BondList".format(bonds))
+        # check to make sure all the bonds are connected
+        
+    @property
+    def bonds(self):
+        return self._bonds
 
-    
+    @property
+    def atoms(self):
+        atoms = []
+        for bond in self._bonds:
+            if not bond.atom1 in atoms:
+                atoms.append(bond.atom1)
+            if not bond.atom2 in atoms:
+                atoms.append(bond.atom2)
+
+        return atoms
