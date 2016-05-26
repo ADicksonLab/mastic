@@ -1,2 +1,4 @@
 *~
 /__pycache__/Molecule.cpython-35.pyc
+__pycache__/*
+/unit/__pycache__/__init__.cpython-35.pyc

@@ -360,18 +360,25 @@ class TrackedList(list):
 
 
 class Selection(object):
-    """ Base class for containing a TrackedList and indices for that list. """
+    """ Base class for containing a TrackedList and indices for that list. 
 
-    def __init__(self, tlist=None, sel=None):
+    container : the container implementing a TrackedList like interface
+    sel : The selection indices for the container
+    container_type : the type of the container
+    member_type : the type of the things in the container
+"""
 
-        if tlist is None:
-            self._tlist = None
+    def __init__(self, container=None, sel=None):
+
+        if container is None:
+            self._container = None
             if sel:
-                raise ValueError("Cannot set selection while tlist is None")
+                raise ValueError("Cannot set selection while container is None")
 
-        elif issubclass(type(tlist), TrackedList):
-            self._tlist = tlist
-            self._type = type(tlist)
+        elif issubclass(type(container), TrackedList):
+            self._container = container
+            self._container_type = type(container)
+            self._member_type = container.type
 
             # set the selection
             if sel is None:
@@ -387,7 +394,7 @@ class Selection(object):
                             if index < 0:
                                 raise ValueError(
                                     "Selection indices cannot be negative, {}".format(index))
-                            elif index >= len(self._tlist):
+                            elif index >= len(self._container):
                                 raise ValueError(
                                     "Selection out of bounds of the Selection's TrackedList")
                             else:
@@ -402,7 +409,7 @@ class Selection(object):
                 if sel < 0:
                     raise ValueError(
                             "Selection indices cannot be negative, {}".format(index))
-                elif sel >= len(self._tlist):
+                elif sel >= len(self._container):
                     raise ValueError(
                         "Selection out of bounds of the Selection's TrackedList")
                 else:
@@ -413,8 +420,26 @@ class Selection(object):
 
         else:
             raise TypeError(
-                "tlist type must be a subclass of TrackedList, not type {}".format(type(tlist)))
+                "container type must be a subclass of TrackedList, not type {}".format(type(container)))
 
+    @property
+    def container(self):
+        return self._container
+
+    @property
+    def sel(self):
+        return self._container[self._sel]
+    @property
+    def sel_idx(self):
+        return self._sel
+
+    @property
+    def container_type(self):
+        return self._container_type
+
+    @property
+    def member_type(self):
+        return self._member_type
 
 class SelectionList(TrackedList):
     """ Collection class for multiple TrackedMembers contains """
