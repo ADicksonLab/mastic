@@ -336,7 +336,7 @@ class Atom(TrackedMember):
     """
     #===================================================
 
-    def __init__(self, atom=None, idx=None, atomic_number=0, name='', type='',
+    def __init__(self, atom=None, idx=None, ids=None, atomic_number=0, name='', type='',
                  charge=None, mass=0.0, nb_idx=0, solvent_radius=0.0,
                  screen=0.0, tree='BLA', join=0.0, irotat=0.0, occupancy=0.0,
                  bfactor=0.0, altloc='', number=-1, rmin=None, epsilon=None,
@@ -347,8 +347,7 @@ class Atom(TrackedMember):
             self = copy(atom)
         # otherwise make another fresh one
         else:
-            super().__init__(idx=idx)
-
+            super().__init__(idx=idx, ids=ids)
             self.atomic_number = atomic_number
             self.name = name.strip()
             try:
@@ -389,8 +388,9 @@ class Atom(TrackedMember):
     #===================================================
 
     def __copy__(self):
-        new_atom = Atom(super().__copy__())
-        print(new_atom)
+        new_atom = Atom()
+        new_atom._idx = self.idx
+        new_atom._ids = self.ids
         new_atom.atomic_number=self.atomic_number
         new_atom.name=self.name
         new_atom.type=self.type
@@ -414,7 +414,6 @@ class Atom(TrackedMember):
         _safe_assigns(new_atom, self, ('xx', 'xy', 'xz', 'vx', 'vy', 'vz',
                       'type_idx', 'class_idx', 'multipoles', 'polarizability',
                       'vdw_parent', 'vdw_weight'))
-
         return new_atom
 
     # I implement a shallow copy
@@ -901,33 +900,29 @@ class Bond(Selection):
     True
     """
 
-    def __init__(self, sel, atoms=None):
+    def __init__(self, atoms, atom1_idx, atom2_idx):
         """ Bond constructor """
-        # make sure the selection passed is correct for a Bond Selection
-        if not len(sel) == 2:
-            raise ValueError("Bond selections must have two members, given {}".format(len(sel)))
 
-        # if sel is not already a Selection try to make one out of it
-        if not isinstance(sel, Selection):
-            if isinstance(sel, list) or isinstance(sel, int):
-                if isinstance(atoms, AtomList):
-                    sel = Selection(container=AtomList, sel=sel)
-                else:
-                    raise ValueError(
-                        "If sel is indices (not Selection type) must provide, atoms of type AtomList, not {}".format(type(atoms)))
-            else:
-                raise TypeError("Bond selection must be type Selection, list, or int, not {}".format(type(sel)))
+        # check to see if container is correct type
+        if not isinstance(atoms, AtomList):
+            raise TypeError("atoms must be type AtomList, not type {}".format(type(atoms)))
 
-        if not (isinstance(sel[0], Atom) and isinstance(sel[1], Atom)):
+        # check that the indices are the correct type and values
+        if not (isinstance(atom1_idx, int) or isinstance(atom2_idx, int) ):
             raise TypeError(
-                "Bond selection members must be type Atom, not {}".format(
-                                              [type(atom) for atom in sel]))
-        elif sel[0].idx == sel[1].idx:
-            raise ValueError("Bond selection Atoms cannot be identical")
+                "atom indices must be type int, not {0} and {1}".format(type(atom1_idx), type(atom2_idx)))
 
-        else:
-            self = copy.copy(sel)
+        elif (atom1_idx < 0 or atom2_idx < 0):
+                raise ValueError(
+                    "atom indices can't be negative, given {0} and {1}".format(atom1_idx, atom2_idx))
 
+        # inherited contructor
+        super().__init__(container=atoms, sel=[atom1_idx, atom2_idx])
+
+
+    def __copy__(self):
+        return Bond(self._container, self.atom1.idx, self.atom2.idx)
+    
     @property
     def atom1(self):
         return self[0]
@@ -954,8 +949,8 @@ class Bond(Selection):
         self.atom1 = self.atom2 = self.type = None
 
     def __repr__(self):
-        return '<%s %r--%r; type=%r>' % (type(self).__name__,
-                self.atom1, self.atom2, self.type)
+        return '<{0} {1}--{2}; type={3}>'.format(type(self).__name__,
+                self.atom1, self.atom2, type(self))
 
 # Angle
 class Angle(Selection):

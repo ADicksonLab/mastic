@@ -1,4 +1,4 @@
-import copy
+from copy import copy
 
 __all__ = ['TrackedMember', 'TrackedList', 'Selection']
 
@@ -82,7 +82,7 @@ The ids property is a dict {id_type : id} so that members can be
 
     def __copy__(self):
         return TrackedMember(idx=self._idx, ids=self._ids)
-    
+
     @property
     def changed(self):
         return self._changed
@@ -175,6 +175,8 @@ class TrackedList(list):
                                                                self.indexed, self.changed, self._List.__repr__(), self.type)
         return str
 
+    def __copy__(self):
+        return TrackedList(self)
 
     # Immutable container protocol methods
 
@@ -185,9 +187,7 @@ class TrackedList(list):
     # here
     def __getitem__(self, index):
         """ Returns a shallow copy of the List"""
-        print("TrackedList __getitem__ no copy", self._List[index])
-        print("TrackedList __getitem__ copy", copy.copy(self._List[index]))
-        return copy.copy(self._List[index])
+        return copy(self._List[index])
 
     # Mutable container protocol methods including slicing
     @_changes
@@ -434,12 +434,14 @@ class Selection(object):
             raise TypeError(
                 "container type must be a subclass of TrackedList, not type {}".format(type(container)))
 
+    def __copy__(self):
+        return Selection(container=self._container, sel=self._sel)
+
     def __len__(self):
         return len(self.sel)
 
     def __getitem__(self, index):
         selection = self.sel
-        print("Selection __getitem__", selection[0])
         return self.sel[index]
 
     @property
@@ -453,10 +455,8 @@ of the container TrackedList.
 
         """
         if isinstance(self._sel, int) or isinstance(self._sel, slice):
-            print("in sel int/slice", self._container[0])
             return TrackedList([self._container[self._sel]])
         elif isinstance(self._sel, list):
-            print("in sel list", self._container[0])
             return TrackedList([member for member in self._container if member.idx in self._sel])
 
     @property
