@@ -2,7 +2,7 @@ from copy import copy
 
 import networkx as nx
 
-from mast.datasstructures import TrackedMember, TrackedList, Selection, SelectionList
+from mast.datastructures import TrackedMember, TrackedList, Selection, SelectionList
 import mast.unit as u
 
 __all__ = ['Atom', 'Bond', 'Angle',
@@ -338,7 +338,9 @@ class Atom(TrackedMember):
     """
     #===================================================
 
-    def __init__(self, atom=None, idx=None, ids=None, atomic_number=0, name='', type='',
+    def __init__(self, atom=None, idx=None, ids=None,
+                 coordinate=None, velocity=None,
+                 atomic_number=0, name='', parmed_type='',
                  charge=None, mass=0.0, nb_idx=0, solvent_radius=0.0,
                  screen=0.0, tree='BLA', join=0.0, irotat=0.0, occupancy=0.0,
                  bfactor=0.0, altloc='', number=-1, rmin=None, epsilon=None,
@@ -351,12 +353,52 @@ class Atom(TrackedMember):
         else:
             super().__init__(idx=idx, ids=ids)
 
+            # Mast defined attributes
+
+            # check to see if coordinate tuple is correct
+            if not coordinate:
+                self._coordinate = None
+            elif isinstance(coordinate, tuple):
+                if len(coordinate) != 3:
+                    raise TypeError(
+                        "Coordinate tuples must be length 3, not {}".format(len(coordinate)))
+                elif not all([isinstance(dim, float) for dim in coordinate]):
+                    raise TypeError(
+                        "Coordinate tuple values must be type float, not {}".format(
+                                                              type(coordinate[0])))
+                else:
+                    self._coordinate = coordinate
+            else:
+                raise TypeError(
+                    "Coordinate tuples must be type tuple, not {}".format(type(coordinate)))
+
+            # check to see if velocity tuple is correct
+            if not velocity:
+                self._velocity = None
+            elif isinstance(velocity, tuple):
+                if len(velocity) == 3:
+                    raise TypeError(
+                        "Velocity tuples must be length 3, not {}".format(len(velocity)))
+                elif not all([isinstance(dim, float) for dim in velocity]):
+                    raise TypeError(
+                        "Velocity tuple values must be type float, not {}".format(
+                                                              type(velocity[0])))
+                else:
+                    self._velocity = velocity
+            else:
+                raise TypeError(
+                    "Velocity tuples must be type tuple, not {}".format(type(velocity)))
+
+
+
+
+            # ParmEd defined attributes
             self.atomic_number = atomic_number
             self.name = name.strip()
             try:
-                self.type = type.strip()
+                self.parmed_type = parmed_type.strip()
             except AttributeError:
-                self.type = type
+                self.parmed_type = parmed_type
             self._charge = _strip_units(charge, u.elementary_charge)
             self.mass = _strip_units(mass, u.dalton)
             self.nb_idx = nb_idx
@@ -394,9 +436,12 @@ class Atom(TrackedMember):
         new_atom = Atom()
         new_atom._idx = self.idx
         new_atom._ids = self.ids
+        new_atom._coordinate = self._coordinate
+        new_atom._velocity = self._velocity
+
         new_atom.atomic_number=self.atomic_number
         new_atom.name=self.name
-        new_atom.type=self.type
+        new_atom.parmed_type=self.parmed_type
         new_atom.charge=self.charge
         new_atom.mass=self.mass
         new_atom.nb_idx=self.nb_idx
@@ -414,9 +459,9 @@ class Atom(TrackedMember):
         for key in self.other_locations:
             new_atom.other_locations[key] = copy(self.other_locations[key])
 
-        _safe_assigns(new_atom, self, ('xx', 'xy', 'xz', 'vx', 'vy', 'vz',
-                      'type_idx', 'class_idx', 'multipoles', 'polarizability',
-                      'vdw_parent', 'vdw_weight'))
+        _safe_assigns(new_atom, self, ('type_idx', 'class_idx',
+                                       'multipoles', 'polarizability',
+                                       'vdw_parent', 'vdw_weight'))
         return new_atom
 
     # I implement a shallow copy
@@ -425,6 +470,53 @@ class Atom(TrackedMember):
     #     return type(self)._copy(self)
 
     #===================================================
+
+    @property
+    def coordinate(self):
+        return self._coordinate
+    self.coord = self.coordinate
+
+    # TODO add setters for these
+    @property
+    def xx(self):
+        if self._coordinate:
+            return self._coordinate[0]
+        else:
+            return None
+    @property
+    def xy(self):
+        if self._coordinate:
+            return self._coordinate[1]
+        else:
+            return None
+    @property
+    def xz(self):
+        if self._coordinate:
+            return self._coordinate[2]
+        else:
+            return None
+
+    @property
+    def velocity(self):
+        return self._velocity
+    @property
+    def vx(self):
+        if self._velocity:
+            return self._velocity[0]
+        else:
+            return None
+    @property
+    def vy(self):
+        if self._velocity:
+            return self._velocity[1]
+        else:
+            return None
+    @property
+    def vz(self):
+        if self._velocity:
+            return self._velocity[2]
+        else:
+            return None
 
     @property
     def bond_partners(self):
@@ -836,7 +928,7 @@ class Atom(TrackedMember):
     # For pickleability
 
     def __getstate__(self):
-        retval = dict(name=self.name, type=self.type, atom_type=self.atom_type,
+        retval = dict(name=self.name, parmed_type=self.parmed_type, atom_type=self.atom_type,
                       _charge=self._charge, mass=self.mass, nb_idx=self.nb_idx,
                       solvent_radius=self.solvent_radius, screen=self.screen,
                       tree=self.tree, join=self.join, irotat=self.irotat,
@@ -884,7 +976,7 @@ class Bond(Selection):
         The first atom involved in the bond
     atom2 : :class:`Atom`
         The other atom involved in the bond
-    type : :class:`BondType`
+    bond_type : :class:`BondType`
         The bond type that defines the parameters for this bond
 
     Notes
@@ -949,10 +1041,10 @@ class Bond(Selection):
         _delete_from_list(self.atom1._bond_partners, self.atom2)
         _delete_from_list(self.atom2._bond_partners, self.atom1)
 
-        self.atom1 = self.atom2 = self.type = None
+        self.atom1 = self.atom2 = self.bond_type = None
 
     def __repr__(self):
-        return '<{0} {1}--{2}; type={3}>'.format(type(self).__name__,
+        return '<{0} {1}--{2}; bond_type={3}>'.format(type(self).__name__,
                 self.atom1, self.atom2, type(self))
 
 # Angle
@@ -968,7 +1060,7 @@ class Angle(Selection):
         The atom in the middle of the valence angle bonded to both other atoms
     atom3 : :class:`Atom`
         An atom on the other end of the valence angle to atom1
-    type : :class:`AngleType`
+    angle_type : :class:`AngleType`
         The AngleType object containing the parameters for this angle
 
     Notes
@@ -988,7 +1080,7 @@ class Angle(Selection):
     False
     """
 
-    def __init__(self, atom1, atom2, atom3, type=None):
+    def __init__(self, atom1, atom2, atom3, angle_type=None):
         # Make sure we're not angling me to myself
         if atom1 is atom2 or atom1 is atom3 or atom2 is atom3:
             raise MoleculeError('Cannot angle atom to itself!')
@@ -1000,7 +1092,7 @@ class Angle(Selection):
         atom2.angles.append(self)
         atom3.angles.append(self)
         # Load the force constant and equilibrium angle
-        self.type = type
+        self.angle_type = angle_type
         atom1.angle_to(atom2)
         atom1.angle_to(atom3)
         atom2.angle_to(atom3)
@@ -1031,11 +1123,11 @@ class Angle(Selection):
         _delete_from_list(self.atom3._angle_partners, self.atom1)
         _delete_from_list(self.atom3._angle_partners, self.atom2)
 
-        self.atom1 = self.atom2 = self.atom3 = self.type = None
+        self.atom1 = self.atom2 = self.atom3 = self.angle_type = None
 
     def __repr__(self):
-        return '<%s %r--%r--%r; type=%r>' % (type(self).__name__,
-                self.atom1, self.atom2, self.atom3, self.type)
+        return '<%s %r--%r--%r; angle_type=%r>' % (type(self).__name__,
+                self.atom1, self.atom2, self.atom3, self.angle_type)
 
 
 
@@ -1091,62 +1183,13 @@ care about parameters
     @property
     def bonds(self):
         return self._bonds
-    
+
     @property
     def topology(self):
         return self._topology
 
     top = topology
 
-class MoleculeTopology(BondList):
-    """Class to store a molecular topology which is a set of connected
-bonds.
-
-    atoms : AtomList
-    bonds : BondList
-    bond_graph : networkx.Graph
-
-    """
-
-    def __init__(self, bonds=None):
-        super().__init__(bonds)
-
-        # put the bonds in as edges to a graph
-        self._bond_graph = nx.Graph()
-        for bond in self.bonds:
-            self._bond_graph.add_edge(bond.atom1, bond.atom2)
-        # check to make sure all the bonds are connected
-        num_components = len(list(nx.connected_component_subgraphs(self._bond_graph, copy=False)))
-        if num_components != 1:
-            raise ValueError(
-                "All bonds must be connected, there are {0} graph components in the BondsList {1}"\
-                   .format(num_components, bonds))
-
-    @property
-    def bond_graph(self):
-        return self._bond_graph
-
-class AtomList(TrackedList):
-    """TrackedList of Atoms """
-
-    def __init__(self, members=None):
-        if not members:
-            self._members = []
-        else:
-            if issubclass(type(members), TrackedList) or isinstance(members, list):
-                if isinstance(members[0], Atom):
-                    super().__init__(members=members)
-                else:
-                    raise TypeError(
-                        "members elements must be type Atom, not {}".format(type(members[0])))
-            else:
-                raise TypeError("members must be type list or TrackedList, not {}".format(type(members)))
-
-        self._member_type = Atom
-
-    @property
-    def atoms(self):
-        return self._members
 
 class BondList(SelectionList):
     """ TrackedList of Bonds"""
@@ -1215,3 +1258,53 @@ class MoleculeList(TrackedList):
         @property
         def molecules(self):
             return self._members
+
+class MoleculeTopology(BondList):
+    """Class to store a molecular topology which is a set of connected
+bonds.
+
+    atoms : AtomList
+    bonds : BondList
+    bond_graph : networkx.Graph
+
+    """
+
+    def __init__(self, bonds=None):
+        super().__init__(bonds)
+
+        # put the bonds in as edges to a graph
+        self._bond_graph = nx.Graph()
+        for bond in self.bonds:
+            self._bond_graph.add_edge(bond.atom1, bond.atom2)
+        # check to make sure all the bonds are connected
+        num_components = len(list(nx.connected_component_subgraphs(self._bond_graph, copy=False)))
+        if num_components != 1:
+            raise ValueError(
+                "All bonds must be connected, there are {0} graph components in the BondsList {1}"\
+                   .format(num_components, bonds))
+
+    @property
+    def bond_graph(self):
+        return self._bond_graph
+
+class AtomList(TrackedList):
+    """TrackedList of Atoms """
+
+    def __init__(self, members=None):
+        if not members:
+            self._members = []
+        else:
+            if issubclass(type(members), TrackedList) or isinstance(members, list):
+                if isinstance(members[0], Atom):
+                    super().__init__(members=members)
+                else:
+                    raise TypeError(
+                        "members elements must be type Atom, not {}".format(type(members[0])))
+            else:
+                raise TypeError("members must be type list or TrackedList, not {}".format(type(members)))
+
+        self._member_type = Atom
+
+    @property
+    def atoms(self):
+        return self._members
