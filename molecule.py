@@ -1038,72 +1038,6 @@ class Angle(Selection):
                 self.atom1, self.atom2, self.atom3, self.type)
 
 
-class AtomList(TrackedList):
-    """TrackedList of Atoms """
-
-    def __init__(self, members=None):
-        if not members:
-            self._members = []
-        else:
-            if issubclass(type(members), TrackedList) or isinstance(members, list):
-                if isinstance(members[0], Atom):
-                    super().__init__(members=members)
-                else:
-                    raise TypeError(
-                        "members elements must be type Atom, not {}".format(type(members[0])))
-            else:
-                raise TypeError("members must be type list or TrackedList, not {}".format(type(members)))
-
-        self._member_type = Atom
-
-    @property
-    def atoms(self):
-        return self._members
-
-class BondList(SelectionList):
-    """ TrackedList of Bonds"""
-
-    def __init__(self, members=None):
-        if not members:
-            self._members = []
-        else:
-            if issubclass(type(members), SelectionList) or isinstance(members, list):
-                if isinstance(members[0], Bond):
-                    super().__init__(members=members)
-                else:
-                    raise TypeError(
-                        "members elements must be type Bond, not {}".format(type[members[0]]))
-            else:
-                raise TypeError(
-                    "members must be type list or SelectionList, not {}".format(type(members)))
-
-        self._member_type = Bond
-
-    @property
-    def bonds(self):
-        return self._members
-
-    @property
-    def atoms(self):
-        atoms = []
-        for bond in self.bonds:
-            if not bond.atom1 in atoms:
-                atoms.append(bond.atom1)
-            if not bond.atom2 in atoms:
-                atoms.append(bond.atom2)
-
-        return atoms
-
-
-class AngleList(SelectionList):
-    """ TrackedList of Angles"""
-
-    def __init__(self, members=None):
-        if members is None:
-            self._members = []
-        super().__init__(members=members)
-
-        self._member_type = Angle
 
 class Molecule(object):
     """An object containing minimum information necessary to specify a 3D
@@ -1191,3 +1125,93 @@ bonds.
     @property
     def bond_graph(self):
         return self._bond_graph
+
+class AtomList(TrackedList):
+    """TrackedList of Atoms """
+
+    def __init__(self, members=None):
+        if not members:
+            self._members = []
+        else:
+            if issubclass(type(members), TrackedList) or isinstance(members, list):
+                if isinstance(members[0], Atom):
+                    super().__init__(members=members)
+                else:
+                    raise TypeError(
+                        "members elements must be type Atom, not {}".format(type(members[0])))
+            else:
+                raise TypeError("members must be type list or TrackedList, not {}".format(type(members)))
+
+        self._member_type = Atom
+
+    @property
+    def atoms(self):
+        return self._members
+
+class BondList(SelectionList):
+    """ TrackedList of Bonds"""
+
+    def __init__(self, members=None):
+        if not members:
+            self._members = []
+        else:
+            if issubclass(type(members), SelectionList) or isinstance(members, list):
+                if isinstance(members[0], Bond):
+                    super().__init__(members=members)
+                else:
+                    raise TypeError(
+                        "members elements must be type Bond, not {}".format(type[members[0]]))
+            else:
+                raise TypeError(
+                    "members must be type list or SelectionList, not {}".format(type(members)))
+
+        self._member_type = Bond
+
+    @property
+    def bonds(self):
+        return self._members
+
+    @property
+    def atoms(self):
+        atoms = []
+        for bond in self.bonds:
+            if not bond.atom1 in atoms:
+                atoms.append(bond.atom1)
+            if not bond.atom2 in atoms:
+                atoms.append(bond.atom2)
+
+        return atoms
+
+
+class AngleList(SelectionList):
+    """ TrackedList of Angles"""
+
+    def __init__(self, members=None):
+        if members is None:
+            self._members = []
+        super().__init__(members=members)
+
+        self._member_type = Angle
+
+class MoleculeList(TrackedList):
+    """ TrackedList of Molecules."""
+
+    def __init__(self, members=None):
+        if not members:
+            self._members = []
+        else:
+            if isinstance(members, list):
+                if isinstance(members[0], Bond):
+                    super().__init__(members=members)
+                else:
+                    raise TypeError(
+                        "members elements must be type {0}, not {1}".format(Molecule, type(members[0])))
+            else:
+                raise TypeError(
+                    "members must be type {0}, not {1}".format(list, type(members)))
+
+        self._member_type = Molecule
+
+        @property
+        def molecules(self):
+            return self._members

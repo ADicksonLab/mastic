@@ -2,7 +2,7 @@ from copy import copy
 
 import networkx as nx
 
-from mast.TrackedStructures import *
+from mast.datastructures import *
 
 print("Making TrackedMember")
 tm = TrackedMember(idx=0, ids={'name': 'test'})
@@ -32,7 +32,7 @@ selections = SelectionList([intsel, slicesel, listsel])
 print(selections)
 
 
-from mast.Molecule import *
+from mast.molecule import *
 
 print("Making Atom")
 atom = Atom(idx=0)
@@ -81,3 +81,8 @@ print(moltop)
 
 print("Molecule constructor")
 mol = Molecule(atoms=molatoms, bonds=molbonds)
+print(mol)
+
+print("Importing the system module")
+import mast.system
+
