@@ -54,15 +54,30 @@ bonds = BondList([bond])
 print(bonds)
 bonds_c = copy(bonds)
 
-print("Making Topology")
-top = Topology(bonds)
-print(Topology)
+print("Making MoleculeTopology")
+top = MoleculeTopology(bonds)
+print(top)
 
-print("Making bad molecular topologies")
+print("Making bad MoleculeTopology")
 atoms2 = AtomList([Atom(idx=i) for i in range(2)])
 bond2 = Bond(atoms2, 0, 1)
 bonds2 = BondList([bond, bond2])
-top2 = Topology(bonds2)
+try:
+    top2 = MoleculeTopology(bonds2)
+except ValueError:
+    print("Bad MoleculeTopology ValueError caught")
 
 
 print("Making Molecule")
+molatoms = atoms + atoms2
+print("atoms")
+print(molatoms)
+molbonds = BondList([Bond(molatoms, 0, 1), Bond(molatoms, 1, 2), Bond(molatoms, 2, 3)])
+print("bonds")
+print(bonds)
+print("test MoleculeTopology")
+moltop = MoleculeTopology(bonds)
+print(moltop)
+
+print("Molecule constructor")
+mol = Molecule(atoms=molatoms, bonds=molbonds)

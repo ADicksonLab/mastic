@@ -5,7 +5,7 @@ import networkx as nx
 from mast.TrackedStructures import TrackedMember, TrackedList, Selection, SelectionList
 import mast.unit as u
 
-__all__ = ['Atom', 'Bond', 'Angle', 'AtomList', 'BondList', 'AngleList', 'Molecule', 'Topology']
+__all__ = ['Atom', 'Bond', 'Angle', 'AtomList', 'BondList', 'AngleList', 'Molecule', 'MoleculeTopology']
 
 
 ### Directly from ParmEd
@@ -348,6 +348,7 @@ class Atom(TrackedMember):
         # otherwise make another fresh one
         else:
             super().__init__(idx=idx, ids=ids)
+
             self.atomic_number = atomic_number
             self.name = name.strip()
             try:
@@ -1051,7 +1052,7 @@ class AtomList(TrackedList):
             else:
                 raise TypeError("List must be type list or TrackedList, not {}".format(type(List)))
 
-        self._type = Atom
+        self._member_type = Atom
 
 class BondList(SelectionList):
     """ TrackedList of Bonds"""
@@ -1070,7 +1071,7 @@ class BondList(SelectionList):
                 raise TypeError(
                     "List must be type list or SelectionList, not {}".format(type(List)))
 
-        self._type = Bond
+        self._member_type = Bond
 
     @property
     def bonds(self):
@@ -1095,56 +1096,62 @@ class AngleList(SelectionList):
         if List is None:
             self._List = []
         super().__init__(List=List)
-        self._type = Angle
+
+        self._member_type = Angle
 
 class Molecule(object):
     """An object containing minimum information necessary to specify a 3D
-molecule in space with internal coordinates.
+molecule in space with internal coordinates. Also contains 3D
+coordinates in each atom.
 
     atoms : AtomList
     bonds : BondList
-    angles : AngleList
+
+    angles : AngleList :: stub, only useful for if atoms don't have coordinates or if you
+care about parameters
+
 
     """
 
     def __init__(self, atoms=None, bonds=None, angles=None):
         if atoms is None:
-            self.atoms = AtomList()
+            self._atoms = AtomList()
         elif isinstance(atoms, AtomList):
-            self.atoms = atoms
+            self._atoms = atoms
         else:
             raise TypeError(
                 "Constructor argument for atoms {} is not None or AtomList".format(atoms))
 
         if bonds is None:
-            self.bonds = BondList()
+            self._bonds = BondList()
         elif isinstance(bonds, BondList):
             # check all the bonds are between atoms that are in this molecule
-            self.bonds = bonds
+            self._bonds = bonds
         else:
             raise TypeError(
                 "Constructor argument for bonds {} is not None or BondList".format(bonds))
 
         if angles is None:
-            self.angles = AngleList
+            self._angles = AngleList
         elif isinstance(angles, AngleList):
             # check that all angles are between bonds of this molecule
-            self.angles = angles
+            self._angles = angles
         else:
             raise TypeError(
                 "Constructor argument for bonds {} is not None or AngleList".format(angles))
 
         # construct topology
         if self._bonds and self._atoms:
-            self._topology = Topology(atoms=self._atoms, bonds=self._bonds)
+            self._topology = MoleculeTopology(bonds=self._bonds)
             self._top = self._topology
 
-class Topology(BondList):
+class MoleculeTopology(BondList):
     """Class to store a molecular topology which is a set of connected
 bonds.
 
     atoms : AtomList
     bonds : BondList
+    bond_graph : networkx.Graph
 
     """
 

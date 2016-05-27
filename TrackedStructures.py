@@ -143,11 +143,13 @@ class TrackedList(list):
             self._List = []
             self._changed = False
             self._indexed = True
+            self._member_type = None
         elif not List:
             self._type = None
             self._List = []
             self._changed = False
             self._indexed = True
+            self._member_type = None
         elif isinstance(List, list):
             # check to make sure the members are inherited from TrackedMembers
             if issubclass(type(List[0]), TrackedMember):
@@ -155,6 +157,7 @@ class TrackedList(list):
                 self._List = List
                 self._changed = True
                 self._indexed = True
+                self._member_type = type(List[0])
             else:
                 raise TypeError(
                     "Elements in list constructor must be a subclass of TrackedMember, not type {}".format(type(List[0])))
@@ -163,6 +166,7 @@ class TrackedList(list):
             self._type = type(List[0])
             self._List = List
             self._changed = True
+            self._member_type = List.member_type
         else:
             raise TypeError(
               "Must provide List, TrackedList, or None not {} type".format(type(List)))
@@ -171,12 +175,12 @@ class TrackedList(list):
         return self._List.__str__()
 
     def __repr__(self):
-        str = "type={3}\nindexed={0}\nchanged={1}\n{2}".format(\
-                                                               self.indexed, self.changed, self._List.__repr__(), self.type)
+        str = "member_type={3}\nindexed={0}\nchanged={1}\n{2}".format(\
+                                                               self.indexed, self.changed, self._List.__repr__(), self.member_type)
         return str
 
     def __copy__(self):
-        return TrackedList(self)
+        return type(self)(self)
 
     # Immutable container protocol methods
 
@@ -262,15 +266,15 @@ class TrackedList(list):
 
     # Descriptor for the type property
     @property
-    def type(self):
-        return self._type
+    def member_type(self):
+        return self._member_type
 
-    @type.setter
-    def type(self, new_type):
-        if self._type is None:
-            self._type = new_type
+    @member_type.setter
+    def member_type(self, new_type):
+        if self._member_type is None:
+            self._member_type = new_type
         else:
-            raise AttributeError("The type is already set to {}".format(self._type))
+            raise AttributeError("The member_type is already set to {}".format(self._member_type))
 
     # List emulation functions
     @_changes
@@ -289,22 +293,21 @@ class TrackedList(list):
             raise TypeError("Must append members of the same type not {}".format(type(thing)))
 
     @_changes
-    def extend(self, tlist):
-        if tlist and isinstance(tlist, TrackedList):
-            if type(tlist[0]) == self.type:
-                if tlist[0].idx is None:
-                    self._List.extend(tlist._List)
+    def extend(self, other):
+        other = copy(other)
+        if len(other) == 0:
+            pass
+        elif isinstance(other, type(self)):
+            if other.member_type is self.member_type:
+                    self._List.extend(other._List)
                     self.index_members()
-                else:
-                    self._List.extend(tlist._List)
             else:
-                raise TypeError("Members of extension list must be type {0}, not {1}".format(self._type, type(tlist)))
-        elif isinstance(tlist, list):
-            if type(tlist[0]) == self.type:
-                self._List.extend(tlist)
+                raise TypeError(
+                    "Members of extension list must be type {0}, not {1}".format(
+                                                   self.member_type, other.member_type))
         else:
             raise TypeError(
-                "Must extend with another TrackedList or list, not {} type".format(type(tlist)))
+                "Must extend with another {0}, not {1} type".format(type(self), type(other)))
 
 
     @_changes
@@ -334,10 +337,14 @@ class TrackedList(list):
     # Methods that return another instance
     def __add__(self, other):
         """ Return new TrackedList instance of the concatenation of two TrackedLists."""
-        tlist = TrackedList()
-        tlist.extend(self)
-        tlist.extend(other)
-        return tlist
+        tlist = copy(self.List)
+        other = copy(other.List)
+        new = type(self)(tlist + other)
+        new.index_members()
+
+        return new
+
+    __radd__ = __add__
 
     def index_members(self):
         """
@@ -345,14 +352,7 @@ class TrackedList(list):
         the list, if the members of this list implement the idx attribute.
         """
         for i, item in enumerate(self):
-            # try to set the private idx property if available.
-            # public idx has no setter.
-            try:
-                item._idx = i
-            # if the object doesn't implement the idx protocol no
-            #action necessary and TrackedList will not fail
-            except AttributeError:
-                pass
+            item._idx = i
         self._indexed = True
 
     def member_idx(self):
@@ -385,7 +385,6 @@ class Selection(TrackedMember):
         elif issubclass(type(container), TrackedList):
             self._container = container
             self._container_type = type(container)
-            self._member_type = container.type
 
             # set the selection
             if sel is None:
@@ -466,7 +465,7 @@ of the container TrackedList.
 
     @property
     def member_type(self):
-        return self._member_type
+        return self.container.member_type
 
 class SelectionList(TrackedList):
     """ Collection class for multiple TrackedMembers contains """
@@ -483,5 +482,5 @@ class SelectionList(TrackedList):
         else:
             raise TypeError("List must be type list, not {}".format(type(List)))
 
-        self._type = Selection
+        self._member_type = Selection
 
