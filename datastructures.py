@@ -35,11 +35,11 @@ def _check(func):
 
 def check_members(tlist):
     # iterate each member until a True one is found for efficiency
-    List_iter = iter(self)
+    members_iter = iter(self)
     try:
-        member = next(List_iter)
+        member = next(members_iter)
         while member.changed == False:
-            member = next(List_iter)
+            member = next(members_iter)
         # if StopIteration not reached set changed = True
         return True
     # if none were found return False
@@ -118,7 +118,7 @@ class TrackedList(list):
         be indexed or not.
     type
         The type of the tracked members in the list.
-    List : ``list[tracked_member_type]``
+    members : ``list[tracked_member_type]``
         The actual list of the TrackedMembers
 
     Examples
@@ -137,46 +137,46 @@ class TrackedList(list):
     (False, False)
 
     """
-    def __init__(self, List=None):
-        if List is None:
+    def __init__(self, members=None):
+        if members is None:
             self._type = None
-            self._List = []
+            self._members = []
             self._changed = False
             self._indexed = True
             self._member_type = None
-        elif not List:
+        elif not members:
             self._type = None
-            self._List = []
+            self._members = []
             self._changed = False
             self._indexed = True
             self._member_type = None
-        elif isinstance(List, list):
+        elif isinstance(members, list):
             # check to make sure the members are inherited from TrackedMembers
-            if issubclass(type(List[0]), TrackedMember):
-                self._type = type(List[0])
-                self._List = List
+            if issubclass(type(members[0]), TrackedMember):
+                self._type = type(members[0])
+                self._members = members
                 self._changed = True
                 self._indexed = True
-                self._member_type = type(List[0])
+                self._member_type = type(members[0])
             else:
                 raise TypeError(
-                    "Elements in list constructor must be a subclass of TrackedMember, not type {}".format(type(List[0])))
+                    "Elements in list constructor must be a subclass of TrackedMember, not type {}".format(type(members[0])))
 
-        elif issubclass(type(List), TrackedList):
-            self._type = type(List[0])
-            self._List = List
+        elif issubclass(type(members), TrackedList):
+            self._type = type(members[0])
+            self._members = members
             self._changed = True
-            self._member_type = List.member_type
+            self._member_type = members.member_type
         else:
             raise TypeError(
-              "Must provide List, TrackedList, or None not {} type".format(type(List)))
+              "Must provide List, TrackedList, or None not {} type".format(type(members)))
 
     def __str__(self):
-        return self._List.__str__()
+        return self._members.__str__()
 
     def __repr__(self):
         str = "member_type={3}\nindexed={0}\nchanged={1}\n{2}".format(\
-                                                               self.indexed, self.changed, self._List.__repr__(), self.member_type)
+                                                               self.indexed, self.changed, self._members.__repr__(), self.member_type)
         return str
 
     def __copy__(self):
@@ -185,10 +185,10 @@ class TrackedList(list):
     # Immutable container protocol methods
 
     def __len__(self):
-        return len(self._List)
+        return len(self._members)
 
     def __getitem__(self, index):
-        return self._List[index]
+        return self._members[index]
 
     # Mutable container protocol methods including slicing
     @_changes
@@ -197,45 +197,45 @@ class TrackedList(list):
             self._type = type(value)
 
         if isinstance(value, self._type):
-            self._List[index] = value
+            self._members[index] = value
         else:
             raise TypeError("Members must be of type {0} not type {1}".format(self.type, type(value)))
 
     @_changes
     def __delitem__(self, index):
-        del self._List[index]
+        del self._members[index]
 
     # iterable protocol
     def __iter__(self):
-        for i in self._List:
+        for i in self._members:
             yield i
 
-    # Descriptor Protocol for the List attribute
+    # Descriptor Protocol for the members attribute
 
-    # useful for if someone manually sets the List attribute instead
+    # useful for if someone manually sets the members attribute instead
     # of just modifying it e.g.:
     # l = TrackedList()
     # l.append('a')
     # p = [1,2,3]
-    # l.List = p
+    # l.members = p
     #
     # in which case you would want to update the flags
     @property
-    def List(self):
-        """The List attribute of the TrackedList"""
-        return self._List
+    def members(self):
+        """The members attribute of the TrackedList"""
+        return self._members
 
 
-    @List.setter
+    @members.setter
     @_changes
-    def List(self, value):
-        self._List = value
+    def members(self, value):
+        self._members = value
         self.type = type(value[0])
 
-    @List.deleter
+    @members.deleter
     @_changes
-    def List(self):
-        del self._List
+    def members(self):
+        del self._members
 
     # Descriptor for the changed property
     @property
@@ -279,16 +279,16 @@ class TrackedList(list):
     # List emulation functions
     @_changes
     def pop(self, idx=-1):
-        return self._List.pop(idx)
+        return self._members.pop(idx)
 
     @_changes
     def remove(self, thing):
-        self._List.remove(thing)
+        self._members.remove(thing)
 
     @_changes
     def append(self, thing):
         if type(thing) == self.type:
-            self._List.append(thing)
+            self._members.append(thing)
         else:
             raise TypeError("Must append members of the same type not {}".format(type(thing)))
 
@@ -299,7 +299,7 @@ class TrackedList(list):
             pass
         elif isinstance(other, type(self)):
             if other.member_type is self.member_type:
-                    self._List.extend(other._List)
+                    self._members.extend(other._members)
                     self.index_members()
             else:
                 raise TypeError(
@@ -312,33 +312,33 @@ class TrackedList(list):
 
     @_changes
     def insert(self, index, thing):
-        self._List.insert(index, thing)
+        self._members.insert(index, thing)
 
     @_changes
     def clear(self):
-        self._List = []
+        self._members = []
 
     @_changes
     def reverse(self):
-        self._List.reverse()
+        self._members.reverse()
 
     @_changes
     def sort(self, key=None, reverse=False):
-        self._List.sort(key=key, reverse=reverse)
+        self._members.sort(key=key, reverse=reverse)
 
     def copy(self):
-        return self._List[:]
+        return self._members[:]
 
     # will have to rethink this one later
     def index(self, value):
-        return self._List.index(value)
+        return self._members.index(value)
 
 
     # Methods that return another instance
     def __add__(self, other):
         """ Return new TrackedList instance of the concatenation of two TrackedLists."""
-        tlist = copy(self.List)
-        other = copy(other.List)
+        tlist = copy(self.members)
+        other = copy(other.members)
         new = type(self)(tlist + other)
         new.index_members()
 
@@ -356,10 +356,10 @@ class TrackedList(list):
         self._indexed = True
 
     def member_idx(self):
-        """Return the indices of the members in List.
+        """Return the indices of the members in members.
 
         """
-        return [member.idx for member in self._List]
+        return [member.idx for member in self._members]
 
     def check_members(self):
         """ Attribute convenience for check_members function. """
@@ -470,17 +470,17 @@ of the container TrackedList.
 class SelectionList(TrackedList):
     """ Collection class for multiple TrackedMembers contains """
 
-    def __init__(self, List=None):
-        if not List:
-            self._List = []
-        elif isinstance(List, list):
-            if isinstance(List[0], Selection):
-                super().__init__(List=List)
+    def __init__(self, members=None):
+        if not members:
+            self._members = []
+        elif isinstance(members, list):
+            if isinstance(members[0], Selection):
+                super().__init__(members=members)
             else:
                 raise TypeError(
-                    "List elements must be type Selection, not {}".format(type(List[0])))
+                    "members elements must be type Selection, not {}".format(type(members[0])))
         else:
-            raise TypeError("List must be type list, not {}".format(type(List)))
+            raise TypeError("members must be type list, not {}".format(type(members)))
 
         self._member_type = Selection
 

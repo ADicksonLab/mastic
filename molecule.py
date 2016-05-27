@@ -2,10 +2,12 @@ from copy import copy
 
 import networkx as nx
 
-from mast.TrackedStructures import TrackedMember, TrackedList, Selection, SelectionList
+from mast.datasstructures import TrackedMember, TrackedList, Selection, SelectionList
 import mast.unit as u
 
-__all__ = ['Atom', 'Bond', 'Angle', 'AtomList', 'BondList', 'AngleList', 'Molecule', 'MoleculeTopology']
+__all__ = ['Atom', 'Bond', 'Angle',
+           'AtomList', 'BondList', 'AngleList',
+           'MoleculeTopology', 'Molecule']
 
 
 ### Directly from ParmEd
@@ -1039,43 +1041,47 @@ class Angle(Selection):
 class AtomList(TrackedList):
     """TrackedList of Atoms """
 
-    def __init__(self, List=None):
-        if not List:
-            self._List = []
+    def __init__(self, members=None):
+        if not members:
+            self._members = []
         else:
-            if issubclass(type(List), TrackedList) or isinstance(List, list):
-                if isinstance(List[0], Atom):
-                    super().__init__(List=List)
+            if issubclass(type(members), TrackedList) or isinstance(members, list):
+                if isinstance(members[0], Atom):
+                    super().__init__(members=members)
                 else:
                     raise TypeError(
-                        "List elements must be type Atom, not {}".format(type(List[0])))
+                        "members elements must be type Atom, not {}".format(type(members[0])))
             else:
-                raise TypeError("List must be type list or TrackedList, not {}".format(type(List)))
+                raise TypeError("members must be type list or TrackedList, not {}".format(type(members)))
 
         self._member_type = Atom
+
+    @property
+    def atoms(self):
+        return self._members
 
 class BondList(SelectionList):
     """ TrackedList of Bonds"""
 
-    def __init__(self, List=None):
-        if not List:
-            self._List = []
+    def __init__(self, members=None):
+        if not members:
+            self._members = []
         else:
-            if issubclass(type(List), SelectionList) or isinstance(List, list):
-                if isinstance(List[0], Bond):
-                    super().__init__(List=List)
+            if issubclass(type(members), SelectionList) or isinstance(members, list):
+                if isinstance(members[0], Bond):
+                    super().__init__(members=members)
                 else:
                     raise TypeError(
-                        "List elements must be type Bond, not {}".format(type[List[0]]))
+                        "members elements must be type Bond, not {}".format(type[members[0]]))
             else:
                 raise TypeError(
-                    "List must be type list or SelectionList, not {}".format(type(List)))
+                    "members must be type list or SelectionList, not {}".format(type(members)))
 
         self._member_type = Bond
 
     @property
     def bonds(self):
-        return self._List
+        return self._members
 
     @property
     def atoms(self):
@@ -1092,10 +1098,10 @@ class BondList(SelectionList):
 class AngleList(SelectionList):
     """ TrackedList of Angles"""
 
-    def __init__(self, List=None):
-        if List is None:
-            self._List = []
-        super().__init__(List=List)
+    def __init__(self, members=None):
+        if members is None:
+            self._members = []
+        super().__init__(members=members)
 
         self._member_type = Angle
 
@@ -1143,7 +1149,20 @@ care about parameters
         # construct topology
         if self._bonds and self._atoms:
             self._topology = MoleculeTopology(bonds=self._bonds)
-            self._top = self._topology
+
+    @property
+    def atoms(self):
+        return self._atoms
+
+    @property
+    def bonds(self):
+        return self._bonds
+    
+    @property
+    def topology(self):
+        return self._topology
+
+    top = topology
 
 class MoleculeTopology(BondList):
     """Class to store a molecular topology which is a set of connected
