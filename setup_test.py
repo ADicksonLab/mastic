@@ -35,12 +35,12 @@ print(selections)
 from mast.molecule import *
 
 print("Making Atom")
-atom = Atom(idx=0)
+atom = Atom(idx=0, coordinate=(1.0,1.0,1.0), velocity=(0.0,0.0,0.0))
 print(atom)
 atom_c = copy(atom)
 
 print("Making AtomList")
-atoms = AtomList([Atom(idx=i) for i in range(2)])
+atoms = AtomList([Atom(idx=i, coordinate=(float(i),float(i),float(i))) for i in range(2)])
 print(atoms)
 atoms_c = copy(atoms)
 

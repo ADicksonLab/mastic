@@ -355,42 +355,9 @@ class Atom(TrackedMember):
 
             # Mast defined attributes
 
-            # check to see if coordinate tuple is correct
-            if not coordinate:
-                self._coordinate = None
-            elif isinstance(coordinate, tuple):
-                if len(coordinate) != 3:
-                    raise TypeError(
-                        "Coordinate tuples must be length 3, not {}".format(len(coordinate)))
-                elif not all([isinstance(dim, float) for dim in coordinate]):
-                    raise TypeError(
-                        "Coordinate tuple values must be type float, not {}".format(
-                                                              type(coordinate[0])))
-                else:
-                    self._coordinate = coordinate
-            else:
-                raise TypeError(
-                    "Coordinate tuples must be type tuple, not {}".format(type(coordinate)))
-
+            self.coordinate = coordinate
             # check to see if velocity tuple is correct
-            if not velocity:
-                self._velocity = None
-            elif isinstance(velocity, tuple):
-                if len(velocity) == 3:
-                    raise TypeError(
-                        "Velocity tuples must be length 3, not {}".format(len(velocity)))
-                elif not all([isinstance(dim, float) for dim in velocity]):
-                    raise TypeError(
-                        "Velocity tuple values must be type float, not {}".format(
-                                                              type(velocity[0])))
-                else:
-                    self._velocity = velocity
-            else:
-                raise TypeError(
-                    "Velocity tuples must be type tuple, not {}".format(type(velocity)))
-
-
-
+            self.velocity = velocity
 
             # ParmEd defined attributes
             self.atomic_number = atomic_number
@@ -474,9 +441,25 @@ class Atom(TrackedMember):
     @property
     def coordinate(self):
         return self._coordinate
-    self.coord = self.coordinate
 
-    # TODO add setters for these
+    @coordinate.setter
+    def coordinate(self, coordinate):
+        if not coordinate:
+            self._coordinate = None
+        elif isinstance(coordinate, tuple):
+            if len(coordinate) != 3:
+                raise TypeError(
+                    "Coordinate tuples must be length 3, not {}".format(len(coordinate)))
+            elif not all([isinstance(dim, float) for dim in coordinate]):
+                raise TypeError(
+                    "Coordinate tuple values must be type float, not {}".format(
+                                                          type(coordinate[0])))
+            else:
+                self._coordinate = coordinate
+        else:
+            raise TypeError(
+                "Coordinate tuples must be type tuple, not {}".format(type(coordinate)))
+
     @property
     def xx(self):
         if self._coordinate:
@@ -499,6 +482,25 @@ class Atom(TrackedMember):
     @property
     def velocity(self):
         return self._velocity
+
+    @velocity.setter
+    def velocity(self, velocity):
+        if not velocity:
+            self._velocity = None
+        elif isinstance(velocity, tuple):
+            if len(velocity) != 3:
+                raise TypeError(
+                    "Velocity tuples must be length 3, not {}".format(len(velocity)))
+            elif not all([isinstance(dim, float) for dim in velocity]):
+                raise TypeError(
+                    "Velocity tuple values must be type float, not {}".format(
+                                                          type(velocity[0])))
+            else:
+                self._velocity = velocity
+        else:
+            raise TypeError(
+                "Velocity tuples must be type tuple, not {}".format(type(velocity)))
+
     @property
     def vx(self):
         if self._velocity:
