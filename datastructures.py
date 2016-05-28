@@ -102,7 +102,7 @@ The ids property is a dict {id_type : id} so that members can be
     def ids(self):
         return self._ids
 
-class TrackedList(list):
+class TrackedList(TrackedMember):
     """This creates a list with members of a single type that allows you
     to see if anything has changed in those members implementing the
     TrackedMember template.
@@ -137,7 +137,8 @@ class TrackedList(list):
     (False, False)
 
     """
-    def __init__(self, members=None):
+    def __init__(self, members=None, idx=None, ids=None):
+        super().__init__(idx=idx, ids=ids)
         if members is None:
             self._type = None
             self._members = []
@@ -473,7 +474,7 @@ class SelectionList(TrackedList):
     def __init__(self, members=None):
         if not members:
             self._members = []
-        elif isinstance(members, list):
+        elif isinstance(members, list) or issubclass(type(members), SelectionList):
             if isinstance(members[0], Selection):
                 super().__init__(members=members)
             else:

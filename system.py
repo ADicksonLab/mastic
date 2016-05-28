@@ -1,9 +1,12 @@
 """ The system module. """
+from itertools import product, combinations
 
 from mast.datastructures import TrackedMember, TrackedList, Selection, SelectionList
 from mast.molecule import Molecule, MoleculeList
 
-def overlap(members):
+__all__ = ['System']
+
+def overlaps(members):
     """Check to see if members overlap.
 
     STUB: just check to make sure that no two molecules have any atoms
@@ -11,36 +14,21 @@ def overlap(members):
 
     """
 
-    it1 = iter(members)
-    it2 = iter(members)
-    # if one is empty return False as they couldn't possibly overlap
-    # TODO maybe should raise an error, SystemError
+    pairs = combinations(members, 2)
     try:
-        member1 = next(it)
+        pair = next(pairs)
+    # if it is empty no overlaps
     except StopIteration:
         return False
-    try:
-        member2 = next(it)
-    except StopIteration:
-        return False
-
     flag = True
     while flag:
-        while flag:
-            
-            if overlap([member1, member2]):
-                return True
-            else:
-                try:
-                    next(it2)
-                except StopIteration:
-                    flag = False
-        try:
-            next(it)
-        except StopIteration:
-            flag = False
-
-        return True
+        if pair[0].overlaps(pair[1]):
+            return True
+        else:
+            try:
+                pair = next(pairs)
+            except StopIteration:
+                flag = False
     return False
 
 class System(MoleculeList):
@@ -51,10 +39,15 @@ the same coordinate system.
 
     """
 
-    def __init__(self, members=members):
+    def __init__(self, members=None):
+
+        try:
+            iter(members)
+        except TypeError:
+            members = [members]
 
         # check to make sure none of the atoms are overlapping
-        if overlap(members):
+        if overlaps(members):
             raise ValueError("molecule system members cannot be overlapping")
 
         super().__init__(members=members)

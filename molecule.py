@@ -1,4 +1,5 @@
 from copy import copy
+from itertools import product
 
 import networkx as nx
 
@@ -7,7 +8,7 @@ import mast.unit as u
 
 __all__ = ['Atom', 'Bond', 'Angle',
            'AtomList', 'BondList', 'AngleList',
-           'MoleculeTopology', 'Molecule']
+           'MoleculeTopology', 'Molecule', 'MoleculeList']
 
 
 ### Directly from ParmEd
@@ -444,7 +445,7 @@ class Atom(TrackedMember):
 
     @coordinate.setter
     def coordinate(self, coordinate):
-        if not coordinate:
+        if not coordinate or not all(coordinate):
             self._coordinate = None
         elif isinstance(coordinate, tuple):
             if len(coordinate) != 3:
@@ -459,6 +460,9 @@ class Atom(TrackedMember):
         else:
             raise TypeError(
                 "Coordinate tuples must be type tuple, not {}".format(type(coordinate)))
+
+    # convenience names
+    coord = x = coordinate
 
     @property
     def xx(self):
@@ -500,6 +504,9 @@ class Atom(TrackedMember):
         else:
             raise TypeError(
                 "Velocity tuples must be type tuple, not {}".format(type(velocity)))
+
+    # convenience names
+    vel = v = velocity
 
     @property
     def vx(self):
@@ -1133,7 +1140,7 @@ class Angle(Selection):
 
 
 
-class Molecule(object):
+class Molecule(TrackedMember):
     """An object containing minimum information necessary to specify a 3D
 molecule in space with internal coordinates. Also contains 3D
 coordinates in each atom.
@@ -1147,7 +1154,9 @@ care about parameters
 
     """
 
-    def __init__(self, atoms=None, bonds=None, angles=None):
+    def __init__(self, atoms=None, bonds=None, angles=None,
+                 idx=None, ids=None):
+        super().__init__(idx=idx, ids=ids)
         if atoms is None:
             self._atoms = AtomList()
         elif isinstance(atoms, AtomList):
@@ -1165,8 +1174,8 @@ care about parameters
             raise TypeError(
                 "Constructor argument for bonds {} is not None or BondList".format(bonds))
 
-        if angles is None:
-            self._angles = AngleList
+        if not angles:
+            self._angles = None
         elif isinstance(angles, AngleList):
             # check that all angles are between bonds of this molecule
             self._angles = angles
@@ -1178,6 +1187,10 @@ care about parameters
         if self._bonds and self._atoms:
             self._topology = MoleculeTopology(bonds=self._bonds)
 
+    def __copy__(self):
+        return Molecule(atoms=self.atoms, bonds=self.bonds,
+                        angles=self.angles, idx=self.idx, ids=self.ids)
+
     @property
     def atoms(self):
         return self._atoms
@@ -1187,10 +1200,45 @@ care about parameters
         return self._bonds
 
     @property
+    def angles(self):
+        return self._angles
+
+    @property
     def topology(self):
         return self._topology
 
     top = topology
+
+    def overlaps(self, other):
+        """Check whether this molecule overlaps with another.
+        Checks whether any two atoms in each molecule have the same coordinates.
+
+        bool : returns True if any overlaps detected
+
+        """
+        # TODO replace with assert?? Then you would lose the Error types
+        if __debug__:
+            if not isinstance(other, Molecule):
+                raise TypeError("Other must be type Molecule, not {}".format(type(other)))
+
+        pairs = product(self.atoms, other.atoms)
+        try:
+            pair = next(pairs)
+        # if it is empty no overlaps
+        except StopIteration:
+            return False
+        flag = True
+        while flag:
+            if pair[0] == pair[1]:
+                return True
+            else:
+                try:
+                    pair = next(pairs)
+                except StopIteration:
+                    flag = False
+        return False
+
+
 
 
 class BondList(SelectionList):
@@ -1246,7 +1294,7 @@ class MoleculeList(TrackedList):
             self._members = []
         else:
             if isinstance(members, list):
-                if isinstance(members[0], Bond):
+                if isinstance(members[0], Molecule):
                     super().__init__(members=members)
                 else:
                     raise TypeError(

@@ -83,6 +83,28 @@ print("Molecule constructor")
 mol = Molecule(atoms=molatoms, bonds=molbonds)
 print(mol)
 
-print("Importing the system module")
-import mast.system
+print("copying Molecule, got type:", type(copy(mol)))
 
+print("testing molecule overlap")
+print("overlapping molecules:", mol.overlaps(copy(mol)))
+mol2 = Molecule(atoms=AtomList([Atom(coordinate=(3.0,3.0,3.0))]))
+print("non-overlapping molecules:", mol.overlaps(mol2))
+
+print("Making MoleculeList")
+mollist = MoleculeList([mol])
+mols = MoleculeList([mol, mol2])
+
+print("Importing the system module")
+from mast.system import *
+
+print("Single molecule System constructor")
+sys1 = System(mol)
+
+print("overlapping molecules")
+try:
+    overlap_sys = System([mol, copy(mol)])
+except ValueError:
+    print("Overlapping Molecules caught in constructor")
+
+print("multi-molecule system, non-overlapping")
+sys2 = System([mol, mol2])

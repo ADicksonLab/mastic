@@ -1,0 +1,24 @@
+
+
+* TODO
+
+** TODO Assertion type checking
+
+Might want to replace most of my type checks with assert statements or
+something similar to 
+
+#+BEGIN_SRC python
+  if __debug__:
+      if not isinstance(other, Molecule):
+          raise TypeError("Other must be type Molecule, not {}".format(type(other)))
+#+END_SRC
+
+Both will be removed when the number of checks in the code when using the
+optimize option like ~python -O code.py~.
+
+This allows us to make it faster when we know the code runs and
+doesn't need the checks.
+
+Also using asserts could clean up the code a lot. Keeping the full
+__debug__ business would allow for using my own exception types if I
+really wanted it.
