@@ -1,10 +1,10 @@
 """ The system module. """
 from itertools import product, combinations
 
-from mast.datastructures import TrackedMember, TrackedList, Selection, SelectionList
+from mast.datastructures import TrackedMember, TrackedList, Selection, SelectionList, Association
 from mast.molecule import Molecule, MoleculeList
 
-__all__ = ['System']
+__all__ = ['System', 'SystemAssociation']
 
 def overlaps(members):
     """Check to see if members overlap.
@@ -52,4 +52,11 @@ the same coordinate system.
 
         super().__init__(members=members)
 
+class SystemAssociation(Association):
+    """ Class for associations which only occur within a System. """
 
+    def __init__(self, members=None, association=None, system=None):
+        if not members or set(members) <= set(system.members):
+            super().__init__(members=members, association=association)
+        else:
+            raise ValueError("Members of a SystemAssociation must all be in the same system")

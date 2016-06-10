@@ -3,7 +3,7 @@ from itertools import product
 
 import networkx as nx
 
-from mast.datastructures import TrackedMember, TrackedList, Selection, SelectionList
+from mast.datastructures import TrackedMember, TrackedList, TrackedDict, Selection, SelectionList
 import mast.unit as u
 
 __all__ = ['Atom', 'Bond', 'Angle',
@@ -1004,7 +1004,7 @@ class Bond(Selection):
     True
     """
 
-    def __init__(self, atoms, atom1_idx, atom2_idx):
+    def __init__(self, atoms, atom1_idx, atom2_idx, idx=None, ids=None):
         """ Bond constructor """
 
         # check to see if container is correct type
@@ -1021,12 +1021,12 @@ class Bond(Selection):
                     "atom indices can't be negative, given {0} and {1}".format(atom1_idx, atom2_idx))
 
         # inherited contructor
-        super().__init__(container=atoms, sel=[atom1_idx, atom2_idx])
+        super().__init__(container=atoms, sel=[atom1_idx, atom2_idx], idx=idx, ids=ids)
 
 
     def __copy__(self):
         return Bond(self._container, self.atom1.idx, self.atom2.idx)
-    
+
     @property
     def atom1(self):
         return self[0]
@@ -1089,23 +1089,50 @@ class Angle(Selection):
     False
     """
 
-    def __init__(self, atom1, atom2, atom3, angle_type=None):
+    def __init__(self, atoms=None, atom_idx=None, angle_type=None, idx=None, ids=None):
+        # if any atom is type None make a None angle
+        if not atoms:
+            atoms = TrackedList([Atom(None) for atom in range(3)])
+            self.atom1 = atoms[0]
+            self.atom2 = atoms[1]
+            self.atom3 = atoms[2]
+        elif None in atoms:
+            atoms = [Atom(None) for atom in range(3)]
+            self.atom1 = atoms[0]
+            self.atom2 = atoms[1]
+            self.atom3 = atoms[2]
+        elif not len(atoms) >= 3:
+            raise ValueError(
+                "atoms must have at least 3 indices to make an angle, not {}".format(
+                    len(atoms)))
+        elif not len(atom_idx) >= 3:
+            raise ValueError(
+                "atom_idx must have at least 3 indices to make an angle, not {}".format(
+                    len(atom_idx)))
+        elif len(atom_idx) <= len(atoms):
+            raise ValueError(
+                "atom_idx must have less indices than are in atoms ({0}), not {1}".format(
+                    len(atoms), len(atom_idx)))
         # Make sure we're not angling me to myself
-        if atom1 is atom2 or atom1 is atom3 or atom2 is atom3:
+        elif atom1 is atom2 or atom1 is atom3 or atom2 is atom3:
             raise MoleculeError('Cannot angle atom to itself!')
-        self.atom1 = atom1
-        self.atom2 = atom2
-        self.atom3 = atom3
-        # Log these angles in each atom
-        atom1.angles.append(self)
-        atom2.angles.append(self)
-        atom3.angles.append(self)
-        # Load the force constant and equilibrium angle
-        self.angle_type = angle_type
-        atom1.angle_to(atom2)
-        atom1.angle_to(atom3)
-        atom2.angle_to(atom3)
-        self.funct = 1
+        else:
+            self.atom1 = atoms[atom_idx[0]]
+            self.atom2 = atoms[atom_idx[1]]
+            self.atom3 = atoms[atom_idx[2]]
+            # Log these angles in each atom
+            atom1.angles.append(self)
+            atom2.angles.append(self)
+            atom3.angles.append(self)
+            # Load the force constant and equilibrium angle
+            self.angle_type = angle_type
+            atom1.angle_to(atom2)
+            atom1.angle_to(atom3)
+            atom2.angle_to(atom3)
+            self.funct = 1
+            
+        self.angle_type=angle_type
+        super().__init__(container=atoms, sel=atom_idx, idx=idx, ids=ids)
 
     def __contains__(self, thing):
         """ Quick and easy way to see if an Atom or a Bond is in this Angle """
@@ -1140,7 +1167,7 @@ class Angle(Selection):
 
 
 
-class Molecule(TrackedMember):
+class Molecule(SelectionList):
     """An object containing minimum information necessary to specify a 3D
 molecule in space with internal coordinates. Also contains 3D
 coordinates in each atom.
@@ -1154,42 +1181,55 @@ care about parameters
 
     """
 
-    def __init__(self, atoms=None, bonds=None, angles=None,
-                 idx=None, ids=None):
-        super().__init__(idx=idx, ids=ids)
-        if atoms is None:
-            self._atoms = AtomList()
-        elif isinstance(atoms, AtomList):
-            self._atoms = atoms
-        else:
+    def __init__(self, atoms=None, bonds=None, angles=None, idx=None, ids=None):
+
+        # if selection is None than assume we want all of the atoms,
+        # bonds, and angles in each argument
+
+        # should atoms attribute return an AtomList Selection or just
+        # an AtomList?  I'm leaning towards AtomList as it is more
+        # intuitive, while the underlying data structure here is a
+        # Selection because Molecule is a SelectionList. Then I should
+        # make the atoms an attribute that accesses the members and
+        # returns an AtomList.
+
+        if not atoms:
+            atoms = AtomList()
+
+        if not isinstance(atoms, AtomList):
             raise TypeError(
                 "Constructor argument for atoms {} is not None or AtomList".format(atoms))
 
-        if bonds is None:
-            self._bonds = BondList()
-        elif isinstance(bonds, BondList):
-            # check all the bonds are between atoms that are in this molecule
-            self._bonds = bonds
-        else:
+        if not bonds:
+            bonds = BondList()
+        if not isinstance(bonds, BondList):
             raise TypeError(
                 "Constructor argument for bonds {} is not None or BondList".format(bonds))
 
         if not angles:
-            self._angles = None
-        elif isinstance(angles, AngleList):
-            # check that all angles are between bonds of this molecule
-            self._angles = angles
-        else:
-            raise TypeError(
-                "Constructor argument for bonds {} is not None or AngleList".format(angles))
+            angles = AngleList()
 
-        # construct topology
+        if not isinstance(angles, AngleList):
+            raise TypeError(
+                "Constructor argument for Angles {0} should be None or AngleList, not {1}".format(angles, type(angles)))
+
+        super().__init__(members=[Selection(container=atoms, sel=None, idx=0, ids=None),
+                                  bonds, angles],
+                         idx=idx, ids=ids)
+        # set the attributes
+        self._atoms = AtomList(members=self.members[0].sel)
+        self._bonds = self.members[1]
+        self._angles = self.members[2]
+
         if self._bonds and self._atoms:
             self._topology = MoleculeTopology(bonds=self._bonds)
 
     def __copy__(self):
         return Molecule(atoms=self.atoms, bonds=self.bonds,
                         angles=self.angles, idx=self.idx, ids=self.ids)
+
+    def __len__(self):
+        return len(self.atoms)
 
     @property
     def atoms(self):
@@ -1249,15 +1289,14 @@ class BondList(SelectionList):
             self._members = []
         else:
             if issubclass(type(members), SelectionList) or isinstance(members, list):
-                if isinstance(members[0], Bond):
-                    super().__init__(members=members)
-                else:
+                if not isinstance(members[0], Bond):
                     raise TypeError(
                         "members elements must be type Bond, not {}".format(type[members[0]]))
             else:
                 raise TypeError(
                     "members must be type list or SelectionList, not {}".format(type(members)))
 
+        super().__init__(members=members)
         self._member_type = Bond
 
     @property
@@ -1286,6 +1325,7 @@ class AngleList(SelectionList):
 
         self._member_type = Angle
 
+# TODO convert to SelectionList
 class MoleculeList(TrackedList):
     """ TrackedList of Molecules."""
 
@@ -1305,9 +1345,9 @@ class MoleculeList(TrackedList):
 
         self._member_type = Molecule
 
-        @property
-        def molecules(self):
-            return self._members
+    @property
+    def molecules(self):
+        return self._members
 
 class MoleculeTopology(BondList):
     """Class to store a molecular topology which is a set of connected
@@ -1320,7 +1360,7 @@ bonds.
     """
 
     def __init__(self, bonds=None):
-        super().__init__(bonds)
+        super().__init__(members=bonds)
 
         # put the bonds in as edges to a graph
         self._bond_graph = nx.Graph()

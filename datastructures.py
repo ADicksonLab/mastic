@@ -1,6 +1,6 @@
 from copy import copy
 
-__all__ = ['TrackedMember', 'TrackedList', 'Selection', 'SelectionList']
+__all__ = ['TrackedMember', 'TrackedList', 'TrackedDict', 'Selection', 'SelectionList', 'Association', 'AssociationType']
 
 # the magic of the TrackedList class, used to decorate functions which
 # should propogate a signal of changes.
@@ -167,6 +167,7 @@ class TrackedList(TrackedMember):
             self._type = type(members[0])
             self._members = members
             self._changed = True
+            self._indexed = False
             self._member_type = members.member_type
         else:
             raise TypeError(
@@ -366,9 +367,23 @@ class TrackedList(TrackedMember):
         """ Attribute convenience for check_members function. """
         return check_members(self)
 
+class TrackedDict(TrackedMember):
+    """ Class to contain a dict of TrackedMembers. """
+    def __init__(self, tdict):
+        # check to see if values in the dict are TrackedMembers
+        for key, value in tdict.items():
+            if not issubclass(type(value), TrackedMember):
+                raise TypeError(
+                    "Values in dictionary must be of type TrackedMember, not {0} for key {1}".format(
+                        type(value), key))
+
+        self._dict = tdict
+
+    def __len__(self):
+        return len(self._dict)
 
 class Selection(TrackedMember):
-    """ Base class for containing a TrackedList and indices for that list. 
+    """ Base class for containing a TrackedList and indices for that list.
 
     container : the container implementing a TrackedList like interface
     sel : The selection indices for the container
@@ -376,7 +391,9 @@ class Selection(TrackedMember):
     member_type : the type of the things in the container
 """
 
-    def __init__(self, container=None, sel=None):
+    def __init__(self, container=None, sel=None, idx=None, ids=None):
+
+        super().__init__(idx=idx, ids=ids)
 
         if container is None:
             self._container = None
@@ -386,7 +403,6 @@ class Selection(TrackedMember):
         elif issubclass(type(container), TrackedList):
             self._container = container
             self._container_type = type(container)
-
             # set the selection
             if sel is None:
                 self._sel = None
@@ -451,8 +467,10 @@ class Selection(TrackedMember):
 of the container TrackedList.
 
         """
-        if isinstance(self._sel, int) or isinstance(self._sel, slice):
+        if isinstance(self._sel, int):
             return TrackedList([self._container[self._sel]])
+        elif isinstance(self._sel, slice):
+            return TrackedList(self._container[self._sel])
         elif isinstance(self._sel, list):
             return TrackedList([member for member in self._container if member.idx in self._sel])
 
@@ -469,19 +487,40 @@ of the container TrackedList.
         return self.container.member_type
 
 class SelectionList(TrackedList):
-    """ Collection class for multiple TrackedMembers contains """
+    """ Collection class for multiple Selection objects contains """
 
-    def __init__(self, members=None):
+    def __init__(self, members=None, idx=None, ids=None):
         if not members:
             self._members = []
         elif isinstance(members, list) or issubclass(type(members), SelectionList):
-            if isinstance(members[0], Selection):
-                super().__init__(members=members)
-            else:
+            if not issubclass(type(members[0]), Selection):
                 raise TypeError(
-                    "members elements must be type Selection, not {}".format(type(members[0])))
+                    "members elements must inherit from Selection, not {}".format(type(members[0])))
         else:
             raise TypeError("members must be type list, not {}".format(type(members)))
 
+        super().__init__(members=members, idx=idx, ids=ids)
         self._member_type = Selection
 
+class SelectionDict(TrackedDict):
+    def __init__(self, tdict):
+        # check to make sure values are either inherited from
+        # Selection or SelectionList
+        pass
+
+class Association(SelectionList):
+    """Base class for associating data to a SelectionList.  """
+
+    def __init__(self, members=None, association=None):
+        super().__init__(members=members)
+        self._association = association
+
+    @property
+    def association(self):
+        return self._association
+
+class AssociationType(object):
+    """ Base class for association attributes. """
+
+    def __init__(self):
+        pass

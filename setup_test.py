@@ -16,7 +16,7 @@ print(tl)
 tl_c = copy(tl)
 
 print("Making Selections")
-intsel = Selection(container=tl, sel=0)
+intsel = Selection(container=tl, sel=0, idx=0)
 print(intsel)
 intsel_c = copy(intsel)
 
@@ -31,6 +31,13 @@ print("Making SelectionList")
 selections = SelectionList([intsel, slicesel, listsel])
 print(selections)
 
+print("Making AssociationType")
+association_type = AssociationType()
+print(association_type)
+
+print("Making Association")
+association = Association(members=selections, association=AssociationType())
+print(association)
 
 from mast.molecule import *
 
@@ -45,7 +52,7 @@ print(atoms)
 atoms_c = copy(atoms)
 
 print("Making Bond from atoms")
-bond = Bond(atoms, 0, 1)
+bond = Bond(atoms, 0, 1, idx=0)
 print(bond)
 bond_c = copy(bond)
 
@@ -53,6 +60,13 @@ print("Making BondList from bond")
 bonds = BondList([bond])
 print(bonds)
 bonds_c = copy(bonds)
+
+print("Making Angle from None")
+none_angle = Angle()
+print(none_angle)
+
+print("Making AngleList from none_angle")
+none_angles = AngleList(members=[none_angle])
 
 print("Making MoleculeTopology")
 top = MoleculeTopology(bonds)
@@ -80,7 +94,7 @@ moltop = MoleculeTopology(bonds)
 print(moltop)
 
 print("Molecule constructor")
-mol = Molecule(atoms=molatoms, bonds=molbonds)
+mol = Molecule(atoms=molatoms, bonds=molbonds, angles=none_angles, idx=0)
 print(mol)
 
 print("copying Molecule, got type:", type(copy(mol)))
@@ -108,3 +122,20 @@ except ValueError:
 
 print("multi-molecule system, non-overlapping")
 sys2 = System([mol, mol2])
+print("get molecules")
+print(sys2[:])
+print(sys2.molecules)
+      
+print("making an empty SystemAssociation")
+sys_assoc = SystemAssociation(members=None, association=None, system=None)
+print("making empty SystemAssociation of sys1")
+sys1_empty_assoc = SystemAssociation(members=None, association=None, system=sys1)
+print("making SystemAssociation of sys2 molecules, with type AssociationType")
+sys2_mol_assoc = SystemAssociation(members=sys2.molecules, association=AssociationType(), system=sys2)
+
+
+print("importing the interaction.py module")
+from mast.interaction import Interaction
+
+print("Interaction constructor")
+int1 = Interaction()
