@@ -1394,3 +1394,21 @@ class AtomList(TrackedList):
     @property
     def atoms(self):
         return self._members
+
+# TODO do I need this?
+class AtomSelection(Selection):
+    """Convenience wrapper for an AtomList so that it inherits from
+Selection."""
+
+    def __init__(self, container=None, sel=None, idx=None, ids=None):
+        # make sure the container is an atoms list
+        if not isinstance(container, AtomList):
+            raise TypeError("container should be type AtomList, not {}".format(type(container)))
+        # set the slice to all if sel is None
+        if sel is None:
+            sel = slice(None)
+
+        super().__init__(container=container, sel=sel, idx=idx, ids=ids)
+
+class AtomSelectionList(SelectionList):
+    """ Convenience wrapper for AtomSelection for 

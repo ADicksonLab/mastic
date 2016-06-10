@@ -508,10 +508,10 @@ class SelectionDict(TrackedDict):
         # Selection or SelectionList
         pass
 
-class Association(SelectionList):
+class Association(TrackedList):
     """Base class for associating data to a SelectionList.  """
 
-    def __init__(self, members=None, association=None):
+    def __init__(self, members=None, association=None, idx=None, ids=None):
         super().__init__(members=members)
         self._association = association
 
