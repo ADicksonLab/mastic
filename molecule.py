@@ -1334,15 +1334,13 @@ class MoleculeList(TrackedList):
             self._members = []
         else:
             if isinstance(members, list):
-                if isinstance(members[0], Molecule):
-                    super().__init__(members=members)
-                else:
+                if not isinstance(members[0], Molecule):
                     raise TypeError(
                         "members elements must be type {0}, not {1}".format(Molecule, type(members[0])))
             else:
                 raise TypeError(
                     "members must be type {0}, not {1}".format(list, type(members)))
-
+        super().__init__(members=members)
         self._member_type = Molecule
 
     @property
@@ -1385,14 +1383,12 @@ class AtomList(TrackedList):
             self._members = []
         else:
             if issubclass(type(members), TrackedList) or isinstance(members, list):
-                if isinstance(members[0], Atom):
-                    super().__init__(members=members)
-                else:
+                if not isinstance(members[0], Atom):
                     raise TypeError(
                         "members elements must be type Atom, not {}".format(type(members[0])))
             else:
                 raise TypeError("members must be type list or TrackedList, not {}".format(type(members)))
-
+        super().__init__(members=members)
         self._member_type = Atom
 
     @property
