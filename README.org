@@ -30,7 +30,7 @@ really wanted it.
 def __init__(self, idx=None, ids=None)
 
 *** Atom
-**** PseudoAtom
+*** PseudoAtom
 
 
 *** TrackedList
@@ -84,3 +84,4 @@ Implementation not ready
 **** SaltBridgeType
 **** PiStackingType
 **** HalogenBondType
+
