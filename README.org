@@ -32,27 +32,34 @@ def __init__(self, idx=None, ids=None)
 *** Atom
 **** PseudoAtom
 
-*** Molecule
-def __init__(self, atoms=None, bonds=None, angles=None, idx=None, ids=None)
+
 *** TrackedList
 def __init__(self, members=None, idx=None, ids=None)
 **** AtomList
 
 **** SelectionList
+def __init__(self, members=None, idx=None, ids=None)
+***** Molecule
+  def __init__(self, atoms=None, bonds=None, angles=None, idx=None, ids=None)
 ***** MoleculeList
 ****** System
 ***** AngleList
 ***** BondList
 ****** MoleculeTopology
-***** Association
+
+**** Association
 ****** SystemAssociation
-******* Interaction
+
+
+
 *** Selection
 def __init__(self, container=None, sel=None, idx=None, ids=None)
 **** Bond
 def __init__(self, atoms, atom1_idx, atom2_idx, idx=None, ids=None)
 **** Angle
 Implementation not ready
+
+
 
 ** AssociationType
 *** InteractionType

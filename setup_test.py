@@ -51,6 +51,13 @@ atoms = AtomList([Atom(idx=i, coordinate=(float(i),float(i),float(i))) for i in 
 print(atoms)
 atoms_c = copy(atoms)
 
+# print("Making AtomSelection")
+# atomsel = AtomSelection(atoms)
+# print(atomsel)
+
+# print("Making AtomSelectionList")
+# atomsellist = 
+
 print("Making Bond from atoms")
 bond = Bond(atoms, 0, 1, idx=0)
 print(bond)
@@ -112,7 +119,7 @@ print("Importing the system module")
 from mast.system import *
 
 print("Single molecule System constructor")
-sys1 = System(mol)
+sys1 = System([mol])
 
 print("overlapping molecules")
 try:
@@ -125,7 +132,7 @@ sys2 = System([mol, mol2])
 print("get molecules")
 print(sys2[:])
 print(sys2.molecules)
-      
+
 print("making an empty SystemAssociation")
 sys_assoc = SystemAssociation(members=None, association=None, system=None)
 print("making empty SystemAssociation of sys1")
@@ -135,7 +142,8 @@ sys2_mol_assoc = SystemAssociation(members=sys2.molecules, association=Associati
 
 
 print("importing the interaction.py module")
-from mast.interaction import Interaction
+from mast.interactions import Interaction
 
 print("Interaction constructor")
 int1 = Interaction()
+print(int1)

@@ -1213,16 +1213,15 @@ care about parameters
             raise TypeError(
                 "Constructor argument for Angles {0} should be None or AngleList, not {1}".format(angles, type(angles)))
 
-        super().__init__(members=[Selection(container=atoms, sel=None, idx=0, ids=None),
+        # TODO the arguments here for the AtomList Selection object
+        # need to be updated
+        super().__init__(members=[Selection(container=atoms, sel=slice(None), idx=0, ids=None),
                                   bonds, angles],
                          idx=idx, ids=ids)
-        # set the attributes
-        self._atoms = AtomList(members=self.members[0].sel)
-        self._bonds = self.members[1]
-        self._angles = self.members[2]
 
-        if self._bonds and self._atoms:
-            self._topology = MoleculeTopology(bonds=self._bonds)
+        # set the attributes
+        if self.bonds and self.atoms:
+            self._topology = MoleculeTopology(bonds=self.bonds)
 
     def __copy__(self):
         return Molecule(atoms=self.atoms, bonds=self.bonds,
@@ -1233,15 +1232,15 @@ care about parameters
 
     @property
     def atoms(self):
-        return self._atoms
+        return AtomList(members=self.members[0].sel)
 
     @property
     def bonds(self):
-        return self._bonds
+        return self.members[1]
 
     @property
     def angles(self):
-        return self._angles
+        return self.members[2]
 
     @property
     def topology(self):
@@ -1396,19 +1395,33 @@ class AtomList(TrackedList):
         return self._members
 
 # TODO do I need this?
-class AtomSelection(Selection):
-    """Convenience wrapper for an AtomList so that it inherits from
-Selection."""
+# class AtomSelection(Selection):
+#     """Convenience wrapper for an AtomList so that it inherits from
+# Selection."""
 
-    def __init__(self, container=None, sel=None, idx=None, ids=None):
-        # make sure the container is an atoms list
-        if not isinstance(container, AtomList):
-            raise TypeError("container should be type AtomList, not {}".format(type(container)))
-        # set the slice to all if sel is None
-        if sel is None:
-            sel = slice(None)
+#     def __init__(self, container=None, sel=None, idx=None, ids=None):
+#         # make sure the container is an atoms list
+#         if not isinstance(container, AtomList):
+#             raise TypeError("container should be type AtomList, not {}".format(type(container)))
+#         # set the slice to all if sel is None
+#         if sel is None:
+#             sel = slice(None)
 
-        super().__init__(container=container, sel=sel, idx=idx, ids=ids)
+#         super().__init__(container=container, sel=sel, idx=idx, ids=ids)
 
-class AtomSelectionList(SelectionList):
-    """ Convenience wrapper for AtomSelection for 
+# class AtomSelectionList(SelectionList):
+#     """Convenience wrapper for AtomSelections into a list to match the
+# type of BondList and AngleList.
+
+#     """
+
+#     def __init__(self, members=None, idx=None, ids=None):
+#         if not members:
+#             self._members = []
+#         else:
+#             if not (issubclass(type(members), AtomList) or isinstance(members, list)):
+#                 raise TypeError("members must be type AtomList or list, not {}".format(
+#                     type(members))
+#             elif not isinstance(members[0], AtomSelection):
+#             raise TypeError("members must be type AtomSelection, not {}".format(type(members[0]))
+#         super().__init__(members=None, idx=None, ids=None)

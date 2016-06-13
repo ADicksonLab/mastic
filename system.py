@@ -55,8 +55,15 @@ the same coordinate system.
 class SystemAssociation(Association):
     """ Class for associations which only occur within a System. """
 
-    def __init__(self, members=None, association=None, system=None):
+    def __init__(self, members=None, association=None, system=None, idx=None, ids=None):
+
         if not members or set(members) <= set(system.members):
             super().__init__(members=members, association=association)
         else:
             raise ValueError("Members of a SystemAssociation must all be in the same system")
+
+        self._system = system
+
+    @property
+    def system(self):
+        return self._system
