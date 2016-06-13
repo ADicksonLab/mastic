@@ -42,14 +42,28 @@ def __init__(self, members=None, idx=None, ids=None)
 ***** Molecule
   def __init__(self, atoms=None, bonds=None, angles=None, idx=None, ids=None)
 ***** MoleculeList
+
 ****** System
+def __init__(self, members=None)
 ***** AngleList
 ***** BondList
 ****** MoleculeTopology
 
 **** Association
+def __init__(self, members=None, idx=None, ids=None) 
 ****** SystemAssociation
+def __init__(self, members=None, association=None, system=None, idx=None, ids=None)
+******* Interaction
+def __init__(self, members=None, interaction_type=None)
 
+******** HydrogenBondInx
+def __init__(self, donor=None, acceptor=None, distance=None, angle=None)
+
+******** PiCationInx
+******** HydrophobicInx
+******** SaltBridgeInx
+******** PiStackingInx
+******** HalogenBondInx
 
 
 *** Selection
@@ -62,11 +76,11 @@ Implementation not ready
 
 
 ** AssociationType
-*** InteractionType
-**** HydrogenBondInx
-**** PiCationInx
-**** HydrophobicInx
-**** SaltBridgeInx
-**** PiStackingInx
-**** HalogenBondInx
 
+*** InteractionType
+**** HydrogenBondType
+**** PiCationType
+**** HydrophobicType
+**** SaltBridgeType
+**** PiStackingType
+**** HalogenBondType

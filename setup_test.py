@@ -140,10 +140,25 @@ sys1_empty_assoc = SystemAssociation(members=None, association=None, system=sys1
 print("making SystemAssociation of sys2 molecules, with type AssociationType")
 sys2_mol_assoc = SystemAssociation(members=sys2.molecules, association=AssociationType(), system=sys2)
 
-
 print("importing the interaction.py module")
 from mast.interactions import Interaction
 
 print("Interaction constructor")
 int1 = Interaction()
 print(int1)
+
+from mast.interactions import InteractionType
+print("making InteractionType object")
+inttype = InteractionType(description="A prototype interaction type object")
+print(inttype)
+print(inttype.description)
+
+print("making SystemAssociation of sys2 molecules and inttype, with type InteractionType")
+sys2_mol_interaction = SystemAssociation(members=sys2.molecules, association=inttype, system=sys2)
+print(sys2_mol_interaction)
+
+from mast.interactions import HydrogenBondType, HydrogenBondInx
+print("the HydrogenBondType")
+print(HydrogenBondType)
+print("making HydrogenBonInx object")
+hbondinx = HydrogenBondInx(donor=sys2.molecules[0], acceptor=sys2.molecules[1])

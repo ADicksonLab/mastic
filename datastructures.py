@@ -522,5 +522,9 @@ class Association(TrackedList):
 class AssociationType(object):
     """ Base class for association attributes. """
 
-    def __init__(self):
-        pass
+    def __init__(self, description=None):
+        self._description = description
+
+    @property
+    def description(self):
+        return self._description
