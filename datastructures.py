@@ -140,13 +140,11 @@ class TrackedList(TrackedMember):
     def __init__(self, members=None, idx=None, ids=None):
         super().__init__(idx=idx, ids=ids)
         if members is None:
-            self._type = None
             self._members = []
             self._changed = False
             self._indexed = True
             self._member_type = None
         elif not members:
-            self._type = None
             self._members = []
             self._changed = False
             self._indexed = True
@@ -154,7 +152,6 @@ class TrackedList(TrackedMember):
         elif isinstance(members, list):
             # check to make sure the members are inherited from TrackedMembers
             if issubclass(type(members[0]), TrackedMember):
-                self._type = type(members[0])
                 self._members = members
                 self._changed = True
                 self._indexed = True
@@ -164,7 +161,6 @@ class TrackedList(TrackedMember):
                     "Elements in list constructor must be a subclass of TrackedMember, not type {}".format(type(members[0])))
 
         elif issubclass(type(members), TrackedList):
-            self._type = type(members[0])
             self._members = members
             self._changed = True
             self._indexed = False
@@ -195,10 +191,10 @@ class TrackedList(TrackedMember):
     # Mutable container protocol methods including slicing
     @_changes
     def __setitem__(self, index, value):
-        if self._type is None:
-            self._type = type(value)
+        if self._member_type is None:
+            self._member_type = type(value)
 
-        if isinstance(value, self._type):
+        if isinstance(value, self._member_type):
             self._members[index] = value
         else:
             raise TypeError("Members must be of type {0} not type {1}".format(self.type, type(value)))

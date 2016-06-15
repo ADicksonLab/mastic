@@ -29,12 +29,24 @@ really wanted it.
 ** TrackedMember
 def __init__(self, idx=None, ids=None)
 
+Attributes:
+- idx :: the index of the tracked member
+- ids :: a dictionary of types the TrackedMember belongs to
+
 *** Atom
 *** PseudoAtom
 
 
 *** TrackedList
 def __init__(self, members=None, idx=None, ids=None)
+
+Attributes:
+- type :: the type of things contained in the TrackedList
+- member_type :: the type of things contained in the TrackedList
+- members :: a list of the members in the TrackedList
+- changed :: has the TrackedList been changed
+- indexed :: has the TrackedList been indexed since last change
+
 **** AtomList
 
 **** SelectionList
