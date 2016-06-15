@@ -33,6 +33,12 @@ Attributes:
 - idx :: the index of the tracked member
 - ids :: a dictionary of types the TrackedMember belongs to
 
+*** CoordinateArray
+
+Attributes:
+- array :: a numpy array where each row is an element (e.g. Atom) and
+     the columns are each dimension.
+
 *** Atom
 *** PseudoAtom
 
@@ -41,11 +47,27 @@ Attributes:
 def __init__(self, members=None, idx=None, ids=None)
 
 Attributes:
-- type :: the type of things contained in the TrackedList
 - member_type :: the type of things contained in the TrackedList
 - members :: a list of the members in the TrackedList
 - changed :: has the TrackedList been changed
 - indexed :: has the TrackedList been indexed since last change
+
+Methods:
+- copy
+- index
+- index_members
+- member_idx
+- check_members
+
+- pop
+- remove
+- append
+- extend
+- insert
+- clear
+- reverse
+- sort
+
 
 **** AtomList
 
@@ -80,10 +102,24 @@ def __init__(self, donor=None, acceptor=None, distance=None, angle=None)
 
 *** Selection
 def __init__(self, container=None, sel=None, idx=None, ids=None)
+
+Attributes:
+- container :: The TrackedList subclass that you are selecting from
+- container_type :: The type of the TrackedList subclass container
+- sel_idx :: The indices of the selection from container, can be an int,
+     slice, or list of ints.
+- sel :: a collection of the type of the container with the members
+     pointed to by the sel_idx.
+- member_idx :: the indices of the members in the container
+
+Methods:
+
+
 **** Bond
 def __init__(self, atoms, atom1_idx, atom2_idx, idx=None, ids=None)
 **** Angle
 Implementation not ready
+
 
 
 
@@ -96,4 +132,17 @@ Implementation not ready
 **** SaltBridgeType
 **** PiStackingType
 **** HalogenBondType
+
+** MoleculeType
+
+Attributes:
+- atoms :: a list of the Atoms in MoleculeType
+- bonds :: a list of the bonds in a MoleculeType
+- _RDMol :: a pointer to a rdkit.Mol object
+- features :: a dict of lists of individual features in the molecule,
+     with feature_type as the keys
+- feature_families :: a list of the feature families in the features
+     list
+- feature_types :: a list of the feature types in the features list
+
 
