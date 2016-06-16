@@ -149,23 +149,93 @@ Attributes:
 * New Class Hierarchy
 
 
+** DONE SelectionMember(member)
+ - Module :: selection
 
-** SelectionMember
+ Attributes:
+ - member :: the object that this member is wrapping, repr returns
+      member.__repr__()
+ - registry :: a dict of the selections that are pointing to this
+      member, via the selections id in the global
+      selection_registry. {sel_id : id_in_sel}.
 
-Base class used to inherit from if the class is able to be selected
-from.
+ Methods:
+ - get_selections :: returns a list of the selections this
+      SelectionMember has been registered in.
 
-Attributes:
-- idxs :: attributes we want to associate with this member. The idea
-     is to let a SelectionMember know what Selections and Containers
-     it is a part of (the key) and what index they are in them (the
-     value).
+*** DONE GenericSelection(container) : collections.abc.UserDict, typing.Mapping[SelectionIDs, Selected]
+ - Module :: selection
 
-*** Container
+ Attributes:
+ - container :: the container for which selections will be made from
+ - sel_ids :: the keys/indices that are used to select values from
+      container
 
-Attributes:
-- changed :: has this Container been modified?
-- indexed :: has the Container added it's index to it's
-     SelectionMembers since the last change occurred.
+**** DONE IndexedSelection(container: typing.Sequence, sel: typing.Sequence[int]) : GenericSelection[int, Selected]
+ - Module :: selection
 
-**** 
+ Attributes:
+ - sel_reg_id :: this Selections id in the global SELECTION_REGISTRY
+
+***** TODO GenericBond
+
+****** TODO CovalentBond
+
+***** TODO GenericAngle
+
+****** TODO Angle
+
+****** TODO DihedralAngle
+
+
+**** DONE CoordArraySelection(array: np.ndarray, sel: typing.Sequence[int]) : GenericSelection[int, np.ndarray]
+ - Module :: selection
+
+ Selection provides views into the container with the sel_ids.
+
+***** DONE Point(coords, coord_array=None)
+ - Module :: selection
+
+ A CoordArraySelection that points to a single 'row' in a CoordArray.
+
+ The coordinates passed into Point are added to the CoordArray but not
+ kept directly in the object.
+
+
+****** TODO Atom
+ Like a Point except always use coordinates in an AtomArray.
+
+****** TODO PseudoAtom
+ Like an Atom but with different attributes.
+
+
+*** TODO SelectionContainer : typing.Container
+ - Module :: selection
+
+**** TODO SelectionDict
+ - Module :: selection
+
+***** TODO Molecule
+
+***** TODO System
+
+**** TODO SelectionList
+ - Module :: selection
+
+***** TODO Association
+
+*** DONE CoordArray(array: np.ndarray)
+ - Module :: selection
+
+  Attributes:
+  - coords :: convenient memorable accessor to the member
+  - shape :: simply accesses the coords array shape attribute
+  Methods:
+  - add_coord :: given a an np.ndarray of the same size adds it to the
+       array and returns the new coordinate's index.
+
+
+**** TODO AtomArray
+
+** TODO AssociationType
+ - Module :: selection

@@ -3,6 +3,7 @@ import collections as col
 import typing as ty
 import collections.abc as colabc
 from copy import copy
+from functools import reduce, partial
 
 
 SELECTION_REGISTRY = {}
@@ -150,19 +151,24 @@ class CoordArraySelection(GenericSelection[int, np.ndarray]):
     def __repr__(self):
         return str(dict(self))
 
+    @property
+    def coords(self):
+        return reduce(lambda x,y: np.concatenate((x,y), axis=0), list(self.values()))
+
 class Point(CoordArraySelection):
     def __init__(self, coords, coord_array=None):
         assert isinstance(coords, np.ndarray), \
             "coords must be a numpy.ndarray, not type {}".format(type(coords))
         assert len(coords.shape) == 1, \
             "coords must be 1-dimensional, not {}".format(len(coords.shape))
+
         # if not given a CoordArray just make our own
         if not coord_array:
             self._coord_array = CoordArray(np.array([coords]))
-            super().__init__(self._coord_array, 1)
+            super().__init__(self._coord_array, 0)
         # add coordinates to the passed in array
         else:
-            assert isinstance(coord_array, CoordArray), \
+            assert issubclass(type(coord_array), CoordArray), \
                 "coord_array must be type CoordArray, not {}".format(
                     type(coord_array))
             # set the private coord_array to None because it is not used
@@ -170,7 +176,6 @@ class Point(CoordArraySelection):
             # add the coord record to the CoordArray
             point_idx = coord_array.add_coord(coords)
             super().__init__(coord_array, point_idx)
-
 
 if __name__ == "__main__":
     # test GenericSelection
@@ -199,12 +204,13 @@ if __name__ == "__main__":
     stringsel = StrSelection(strings, [0])
     print(stringsel)
 
-    array = np.array([[0,0,0], [1,1,1]])
+    array = np.array([[0,0,0], [1,1,1], [2,2,2]])
     print("making CoordArray")
     coords = CoordArray(array)
     print("making CoordArraySelection")
-    coordsel = CoordArraySelection(coords, [0])
+    coordsel = CoordArraySelection(coords, [0,1])
     print(coordsel)
+    print(coordsel.coords)
 
     print("SELECTION_REGISTRY:", SELECTION_REGISTRY)
 
@@ -212,7 +218,10 @@ if __name__ == "__main__":
     point_coord = np.array([0,1,0])
     point1 = Point(point_coord)
     print(point1)
+    print(point1.coords)
     print("making Point in previous CoordArray")
     point_coord = np.array([0,1,0])
     point2 = Point(point_coord, coord_array=coords)
     print(point2)
+    print(point2.coords)
+    print("SELECTION_REGISTRY:", SELECTION_REGISTRY)
