@@ -5,8 +5,22 @@ import collections.abc as colabc
 from copy import copy
 
 
-selection_registry = {}
+SELECTION_REGISTRY = {}
 sel_reg_counter = 0
+
+def register_selection(selection):
+    """Register a selection in the global SELECTION_REGISTRY and return
+it's key in the registry
+
+    """
+    global sel_reg_counter
+    global SELECTION_REGISTRY
+    sel_reg_counter += 1
+    sel_reg_id = sel_reg_counter
+    SELECTION_REGISTRY[sel_reg_id] = selection
+
+    return sel_reg_id
+
 
 class SelectionMember(object):
     def __init__(self, member):
@@ -19,26 +33,19 @@ class SelectionMember(object):
         return self.member.__repr__()
 
     def get_selections(self):
-        global selection_registry
-        return [selection_registry[sel_id] for sel_id in self.registry.keys()]
-
-class CoordArray(SelectionMember, np.ndarray):
-    def __init__(self, array):
-        super().__init__()
+        global SELECTION_REGISTRY
+        return [SELECTION_REGISTRY[sel_id] for sel_id in self.registry.keys()]
 
 Selected = ty.TypeVar('Selected')
 SelectionIDs = ty.TypeVar('SelectionIDs')
 class GenericSelection(SelectionMember, col.UserDict, ty.Mapping[SelectionIDs, Selected]):
     def __init__(self, container: ty.Container):
         super().__init__(self)
-
+        print(dir(container))
         assert '__getitem__' in dir(container), \
             "container must implement `__getitem__`, {} does not".format(
                 container)
         assert container, "container must have at least one SelectionMember element"
-        assert issubclass(type(container[0]), SelectionMember), \
-            "container members must be a subclass of SelectionMember, not {}".format(
-                type(container[0]))
 
         self.container = container
         self.sel_ids = SelectionIDs
@@ -49,12 +56,12 @@ class GenericSelection(SelectionMember, col.UserDict, ty.Mapping[SelectionIDs, S
 class IndexedSelection(GenericSelection[int, Selected]):
     def __init__(self, container: ty.Sequence, sel: ty.Sequence[int]):
         super().__init__(container)
+        assert issubclass(type(container[0]), SelectionMember), \
+            "container members must be a subclass of SelectionMember, not {}".format(
+                type(container[0]))
+
         # register this selection
-        global sel_reg_counter
-        sel_reg_counter += 1
-        self.sel_reg_id = sel_reg_counter
-        global selection_registry
-        selection_registry[self.sel_reg_id] = self
+        self.sel_reg_id = register_selection(self)
 
         # make the selections from container
         self.sel_ids = sel
@@ -66,60 +73,45 @@ class IndexedSelection(GenericSelection[int, Selected]):
     def __repr__(self):
         return str(dict(self))
 
+class CoordArray(SelectionMember):
+    def __init__(self, array):
+        assert isinstance(array, np.ndarray), \
+            "array must be a numpy.ndarray, not {}".format(
+                type(array))
+
+        super().__init__(array)
+
+    def __getitem__(self, idx):
+        return self.member[idx]
+
+    @property
+    def coords(self):
+        return self.member
+
+
 class CoordArraySelection(GenericSelection[int, np.ndarray]):
     def __init__(self, array: CoordArray, sel: ty.Sequence[int]):
         super().__init__(array)
+
+        # global register_selection
+        self.sel_reg_id = register_selection(self)
+
+        # make selections as views from the array
+        self.sel_ids = sel
         for sel_idx in sel:
             # slices like this are views into the array
             self[sel_idx] = self.container[sel_idx:(sel_idx+1)]
+            # set this selection in the CoordArray registry
+            self.container.registry[self.sel_reg_id] = sel_idx
+
+    def __repr__(self):
+        return str(dict(self))
 
 class Point(CoordArraySelection):
     def __init__(self, coords, coord_array=None):
         pass
 
 
-class Atom(object):
-    def __init__(self, element=None, coords=None):
-        self.element = element
-        self.coords = coords
-
-    def __repr__(self):
-        return "Atom<{0}>{1}".format(str(self.element), self.coords)
-
-AtomList = ty.List[Atom]
-
-class Bond(object):
-    def __init__(self, atom1, atom2):
-        self.atom1 = atom1
-        self.atom2 = atom2
-
-BondList = ty.List[Bond]
-
-class Angle(object):
-    def __init__(self, atom1, atom2, atom3):
-        self.atom1 = atom1
-        self.atom2 = atom2
-        self.atom3 = atom3
-
-class AtomSelection(IndexedSelection[int, Atom]):
-    def __init__(self, atoms: ty.Sequence[Atom], sel: ty.Sequence[int]):
-        super().__init__(atoms, sel)
-
-class BondSelection(IndexedSelection[int, Bond]):
-    def __init__(self, bonds: ty.Sequence[Bond], sel: ty.Sequence[int]):
-        super().__init__(bonds, sel)
-
-
-class Molecule(col.UserDict):
-    def __init__(self, atoms: ty.Sequence[Atom],
-                       bonds: ty.Sequence[Bond],
-                       angles: ty.Sequence[Angle],
-                       idx: int=None) -> None:
-        super().__init__()
-        self['atoms'] = atoms
-        self['bonds'] = bonds
-        self['angles'] = angles
-        self.atoms = self['atoms']
 
 
 if __name__ == "__main__":
@@ -149,15 +141,10 @@ if __name__ == "__main__":
     stringsel = StrSelection(strings, [0])
     print(stringsel)
 
-    # make some atoms
-    atoms = [Atom('C', (0,1,0)), Atom('B'), Atom('C')]
-    print(atoms[0])
-    # make a selection of those atoms
-    atomsel = AtomSelection(atoms, [0])
-    print(atomsel)
-    bonds = [Bond(atoms[0], atoms[1]), Bond(atoms[1], atoms[2])]
-    print(bonds)
-    angles = [Angle(atoms[0], atoms[1], atoms[2])]
-    print(angles)
-    mol = Molecule(atoms, bonds, angles, idx=0)
-    print(mol)
+    array = np.array([[0,0,0], [1,1,1]])
+    print("making CoordArray")
+    coords = CoordArray(array)
+    print("making CoordArraySelection")
+    coordsel = CoordArraySelection(coords, [0])
+    print(coordsel)
+    print("SELECTION_REGISTRY:", SELECTION_REGISTRY)
