@@ -24,7 +24,7 @@ __debug__ business would allow for using my own exception types if I
 really wanted it.
 
 
-* Class Hierarchy
+* Old Class Hierarchy
 
 ** TrackedMember
 def __init__(self, idx=None, ids=None)
@@ -146,3 +146,26 @@ Attributes:
 - feature_types :: a list of the feature types in the features list
 
 
+* New Class Hierarchy
+
+
+
+** SelectionMember
+
+Base class used to inherit from if the class is able to be selected
+from.
+
+Attributes:
+- idxs :: attributes we want to associate with this member. The idea
+     is to let a SelectionMember know what Selections and Containers
+     it is a part of (the key) and what index they are in them (the
+     value).
+
+*** Container
+
+Attributes:
+- changed :: has this Container been modified?
+- indexed :: has the Container added it's index to it's
+     SelectionMembers since the last change occurred.
+
+**** 
