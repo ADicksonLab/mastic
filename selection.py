@@ -188,25 +188,38 @@ class CoordArraySelection(GenericSelection[int, np.ndarray]):
         return reduce(lambda x,y: np.concatenate((x,y), axis=0), list(self.values()))
 
 class Point(CoordArraySelection):
-    def __init__(self, coords, coord_array=None):
-        assert isinstance(coords, np.ndarray), \
-            "coords must be a numpy.ndarray, not type {}".format(type(coords))
-        assert len(coords.shape) == 1, \
-            "coords must be 1-dimensional, not {}".format(len(coords.shape))
+    def __init__(self, coords=None, coord_array=None, array_idx=None):
 
-        # if not given a CoordArray just make our own
+        # if not given a CoordArray just make our own using coords kwarg
         if not coord_array:
+            assert isinstance(coords, np.ndarray), \
+                "coords must be a numpy.ndarray, not type {}".format(type(coords))
+            assert len(coords.shape) == 1, \
+                "coords must be 1-dimensional, not {}".format(len(coords.shape))
             self._coord_array = CoordArray(np.array([coords]))
+
+            # use the CoordArraySelection constructor
             super().__init__(self._coord_array, 0)
-        # add coordinates to the passed in array
+
+        # use coord_array
         else:
             assert issubclass(type(coord_array), CoordArray), \
                 "coord_array must be type CoordArray, not {}".format(
                     type(coord_array))
             # set the private coord_array to None because it is not used
             self._coord_array = None
+
+            # if an array index is given don't add a new entry
+            if isinstance(array_idx, int):
+                assert array_idx < coord_array.shape[0], \
+                    "array_idx must be within the coord_array {0}, not {1}".format(
+                        coord_array.shape[0], array_idx)
+                point_idx = array_idx
             # add the coord record to the CoordArray
-            point_idx = coord_array.add_coord(coords)
+            else:
+                point_idx = coord_array.add_coord(coords)
+
+            # use the CoordArraySelection constructor
             super().__init__(coord_array, point_idx)
 
 if __name__ == "__main__":
