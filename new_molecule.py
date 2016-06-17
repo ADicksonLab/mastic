@@ -59,14 +59,15 @@ class RDKitMoleculeType(MoleculeType):
         assert self.molecule.GetNumConformers() > 0, \
             "{0} has no conformers".format(self)
 
-        conformer = self.GetConformer(conformer_idx)
+        conformer = self.molecule.GetConformer(conformer_idx)
         atom_idxs = range(self.molecule.GetNumAtoms())
         # make the CoordArray
         positions = []
         for atom_idx in atom_idxs:
             position = conformer.GetAtomPosition(atom_idx)
             position = np.array([position.x, position.y, position.z])
-        positions = reduce(lambda x,y: np.concatenate((x,y), axis=0), list(self.values()))
+            positions.append(position)
+        positions = np.array(positions)
         coord_array = CoordArray(positions)
         # Make atoms out of the coord array
         atoms = []
@@ -75,62 +76,70 @@ class RDKitMoleculeType(MoleculeType):
             atom = Atom(atom_array=coord_array, array_idx=atom_idx)
             atoms.append(atom)
 
-        return Molecule(atoms)
+        # TODO handle bonds
+        bonds = list(self.molecule.GetBonds())
+
+        # TODO handle and create angles
+        angles = None
+
+        return Molecule(atoms, bonds, angles, mol_type=RDKitMoleculeType)
 
 
-# class Molecule(SelectionDict):
-#     def __init__(self, mol_input, *args):
+class Molecule(SelectionDict):
+    def __init__(self, mol_input, *args, **kwargs):
 
-#         if issubclass(type(mol_input), MoleculeType):
-#             Molecule.type_constructor(mol_input, *args, **kwargs)
-#         elif issubclass(type(mol_input), col.Sequence):
-#             Molecule.atoms_constructor(mol_input, *args, **kwargs)
-#         else:
-#             raise TypeError("mol_input must be either a MoleculeType or a sequence of Atoms")
-
-
-#     @classmethod
-#     def type_constructor(self, mol_type):
-#         pass
+        if issubclass(type(mol_input), MoleculeType):
+            Molecule.type_constructor(mol_input, *args, **kwargs)
+        elif issubclass(type(mol_input), col.Sequence):
+            Molecule.atoms_constructor(mol_input, *args, **kwargs)
+        else:
+            raise TypeError("mol_input must be either a MoleculeType or a sequence of Atoms")
 
 
-#     @classmethod
-#     def atoms_constructor(self, atoms):
-#         assert atoms, "atoms must exist, {}".format(atoms)
-#         assert issubclass(type(atoms), col.Sequence), \
-#             "atoms must be a subclass of collections.Sequence, not {}".format(
-#                 type(atoms))
-#         assert all([(lambda x: False if issubclass(type(x), Atom) else True)(atom)
-#                     for atom in atoms]), \
-#             "all elements in atoms must be a subclass of type Atom"
+    @classmethod
+    def type_constructor(self, mol_type):
+        raise NotImplementedError
 
-#         super().__init__(selection_dict=
-#                          {'atoms' : atoms,
-#                           'bonds' : bonds,
-#                           'angles': angles})
 
-#     @property
-#     def molecule_type(self):
-#         return self._molecule_type
+    @classmethod
+    def atoms_constructor(self, atoms, bonds, angles, mol_type=None):
+        print(atoms)
+        print(bonds)
+        print(angles)
+        assert atoms, "atoms must exist, {}".format(atoms)
+        assert issubclass(type(atoms), col.Sequence), \
+            "atoms must be a subclass of collections.Sequence, not {}".format(
+                type(atoms))
+        assert all([(lambda x: True if issubclass(type(x), Atom) else False)(atom)
+                    for atom in atoms]), \
+            "all elements in atoms must be a subclass of type Atom"
 
-#     @molecule_type.setter
-#     def molecule_type(self, mol_type):
-#         assert issubclass(type(mol_type), MoleculeType), \
-#             "mol_type must be a subclass of MoleculeType, not {}".format(
-#                 type(mol_type))
-#         self._molecule_type = mol_type
+        super().__init__(self, selection_dict= {'atoms' : atoms,
+                                                'bonds' : bonds, 'angles': angles})
+        self._molecule_type = mol_type
 
-#     @property
-#     def atoms(self):
-#         return self.data['atoms']
+    @property
+    def molecule_type(self):
+        return self._molecule_type
 
-#     @property
-#     def bonds(self):
-#         return self.data['bonds']
+    @molecule_type.setter
+    def molecule_type(self, mol_type):
+        assert issubclass(type(mol_type), MoleculeType), \
+            "mol_type must be a subclass of MoleculeType, not {}".format(
+                type(mol_type))
+        self._molecule_type = mol_type
 
-#     @property
-#     def angles(self):
-#         return self.data['angles']
+    @property
+    def atoms(self):
+        return self.data['atoms']
+
+    @property
+    def bonds(self):
+        return self.data['bonds']
+
+    @property
+    def angles(self):
+        return self.data['angles']
 
 
 
@@ -156,12 +165,6 @@ if __name__ == "__main__":
     atomsel = IndexedSelection(atoms, [0,1])
     print(atomsel)
 
-    # make a selection of atoms for bonds, and angle
-    print("making a molecule")
-    bonds = [IndexedSelection(atoms, [0,1]), IndexedSelection(atoms, [1,2])]
-    angles = [IndexedSelection(atoms, [0,1,2])]
-    mol = Molecule(atoms, bonds, angles)
-    print(mol)
 
     from rdkit import Chem
     import os.path as osp
@@ -172,6 +175,23 @@ if __name__ == "__main__":
 
     pka_type = RDKitMoleculeType(pka)
     print(pka_type)
-    pka_mol = Molecule(mol_type=pka_type)
+
+    def func(arg1, *args, **kwargs):
+        print(arg1)
+        print(args)
+        print(*args)
+        print(kwargs)
+        print(*kwargs)
+
+
+    # make a selection of atoms for bonds, and angle
+    print("making a molecule")
+    bonds = [IndexedSelection(atoms, [0,1]), IndexedSelection(atoms, [1,2])]
+    angles = [IndexedSelection(atoms, [0,1,2])]
+    mol = Molecule(atoms, bonds, angles)
+    print(mol)
+
+    pka_mol = pka_type.to_molecule(0)
+    # pka_mol = Molecule(mol_type=pka_type)
     print(pka_mol)
     print(pka_mol.molecule_type)
