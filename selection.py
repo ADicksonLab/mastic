@@ -76,6 +76,35 @@ class IndexedSelection(GenericSelection[int, Selected]):
     def __repr__(self):
         return str(dict(self))
 
+class SelectionDict(col.UserDict, SelectionMember):
+    def __init__(self, selection_dict=None):
+        super().__init__(self)
+        if not selection_dict:
+            self.data = {}
+        else:
+            assert issubclass(type(selection_dict), col.Mapping), \
+                "selection_dict must be a subclass of collections.Mapping, not {}".format(
+                    type(selection_dict))
+            self.data = selection_dict
+
+    def __repr__(self):
+        return str(self.data)
+
+
+class SelectionList(col.UserList, SelectionMember):
+    def __init__(self, selection_list=None):
+        super().__init__(self)
+        if not selection_list:
+            self.data = []
+        else:
+            assert issubclass(type(selection_list), col.Sequence), \
+                "selection_dict must be a subclass of collections.Sequence, not {}".format(
+                    type(selection_list))
+            self.data = selection_list
+
+    def __repr__(self):
+        return str(self.data)
+
 class CoordArray(SelectionMember):
     def __init__(self, array):
         assert isinstance(array, np.ndarray), \
