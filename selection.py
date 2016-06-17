@@ -5,6 +5,9 @@ import collections.abc as colabc
 from copy import copy
 from functools import reduce, partial
 
+__all__ = ['SelectionMember', 'GenericSelection', 'IndexedSelection',
+           'SelectionDict', 'SelectionList', 'CoordArray',
+           'CoordArraySelection', 'Point']
 
 SELECTION_REGISTRY = {}
 sel_reg_counter = 0

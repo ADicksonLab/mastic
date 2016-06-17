@@ -1,6 +1,6 @@
 import numpy as np
 
-from mast.selection import CoordArray, Point, IndexedSelection
+from mast.selection import CoordArray, Point, IndexedSelection, SelectionDict, SelectionList
 
 DIM_NUM_3D = 3
 
@@ -26,17 +26,12 @@ class Atom(Point):
     def __repr__(self):
         return "Atom<{0}>{1}".format(str(self.element), self.coords)
 
-# class Molecule(col.UserDict):
-#     def __init__(self, atoms: ty.Sequence[Atom],
-#                        bonds: ty.Sequence[Bond],
-#                        angles: ty.Sequence[Angle],
-#                        idx: int=None) -> None:
-#         super().__init__()
-#         self['atoms'] = atoms
-#         self['bonds'] = bonds
-#         self['angles'] = angles
-#         self.atoms = self['atoms']
-
+class Molecule(SelectionDict):
+    def __init__(self, atoms, bonds, angles):
+        super().__init__(selection_dict=
+                         {'atoms' : atoms,
+                          'bonds' : bonds,
+                          'angles': angles})
 
 if __name__ == "__main__":
 
@@ -57,5 +52,9 @@ if __name__ == "__main__":
     atomsel = IndexedSelection(atoms, [0,1])
     print(atomsel)
 
-    # mol = Molecule(atoms, bonds, angles, idx=0)
-    # print(mol)
+    # make a selection of atoms for bonds, and angle
+    print("making a molecule")
+    bonds = [IndexedSelection(atoms, [0,1]), IndexedSelection(atoms, [1,2])]
+    angles = [IndexedSelection(atoms, [0,1,2])]
+    mol = Molecule(atoms, bonds, angles)
+    print(mol)
