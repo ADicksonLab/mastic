@@ -79,16 +79,20 @@ class IndexedSelection(GenericSelection[int, Selected]):
     def __repr__(self):
         return str(dict(self))
 
-class SelectionDict(col.UserDict, SelectionMember):
+class SelectionDict(SelectionMember, col.UserDict):
     def __init__(self, selection_dict=None):
-        super().__init__(self)
         if not selection_dict:
             self.data = {}
-        else:
+
+        super().__init__(selection_dict)
+
+        if selection_dict:
             assert issubclass(type(selection_dict), col.Mapping), \
                 "selection_dict must be a subclass of collections.Mapping, not {}".format(
                     type(selection_dict))
             self.data = selection_dict
+
+
 
     def __repr__(self):
         return str(self.data)
@@ -270,3 +274,20 @@ if __name__ == "__main__":
     print(point2)
     print(point2.coords)
     print("SELECTION_REGISTRY:", SELECTION_REGISTRY)
+
+    print("Making SelectionDict")
+    seldict = SelectionDict()
+    print(seldict)
+    print(seldict.registry)
+    seldict2 = SelectionDict({'points' : [point1, point2],
+                              'strings' : strings,
+                              'coords' : [coordsel, CoordArraySelection(coords, [1,2])]})
+    print(seldict2)
+    print(seldict2.registry)
+
+    print("registries from seldict2 selections")
+    print("point1: ", point1.registry)
+    print("point2: ", point2.registry)
+    print("strings[0]: ", strings[0].registry)
+    print("coordsel: ", coordsel.registry)
+

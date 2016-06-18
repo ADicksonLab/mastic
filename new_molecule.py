@@ -88,24 +88,30 @@ class RDKitMoleculeType(MoleculeType):
 class Molecule(SelectionDict):
     def __init__(self, mol_input, *args, **kwargs):
 
+        if 'mol_type' not in kwargs.keys():
+            mol_type = None
+        else:
+            mol_type = kwargs.pop('mol_type')
+
         if issubclass(type(mol_input), MoleculeType):
-            Molecule.type_constructor(mol_input, *args, **kwargs)
+            molecule_dict = Molecule.type_constructor(mol_input, *args, **kwargs)
         elif issubclass(type(mol_input), col.Sequence):
-            Molecule.atoms_constructor(mol_input, *args, **kwargs)
+            print("atoms constructor")
+            molecule_dict = Molecule.atoms_constructor(mol_input, *args, **kwargs)
+
         else:
             raise TypeError("mol_input must be either a MoleculeType or a sequence of Atoms")
-
+        print(molecule_dict)
+        super().__init__(selection_dict=molecule_dict)
+        self._molecule_type = mol_type
 
     @classmethod
-    def type_constructor(self, mol_type):
+    def type_constructor(cls, mol_type):
         raise NotImplementedError
 
 
     @classmethod
-    def atoms_constructor(self, atoms, bonds, angles, mol_type=None):
-        print(atoms)
-        print(bonds)
-        print(angles)
+    def atoms_constructor(cls, atoms, bonds, angles):
         assert atoms, "atoms must exist, {}".format(atoms)
         assert issubclass(type(atoms), col.Sequence), \
             "atoms must be a subclass of collections.Sequence, not {}".format(
@@ -113,10 +119,8 @@ class Molecule(SelectionDict):
         assert all([(lambda x: True if issubclass(type(x), Atom) else False)(atom)
                     for atom in atoms]), \
             "all elements in atoms must be a subclass of type Atom"
-
-        super().__init__(self, selection_dict= {'atoms' : atoms,
-                                                'bonds' : bonds, 'angles': angles})
-        self._molecule_type = mol_type
+        molecule_dict= {'atoms' : atoms, 'bonds' : bonds, 'angles': angles}
+        return molecule_dict
 
     @property
     def molecule_type(self):
@@ -192,6 +196,6 @@ if __name__ == "__main__":
     print(mol)
 
     pka_mol = pka_type.to_molecule(0)
-    # pka_mol = Molecule(mol_type=pka_type)
+    # pka_mol = Molecule(mol_type=pka_type, coords=pka_coords)
     print(pka_mol)
     print(pka_mol.molecule_type)
