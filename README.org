@@ -209,20 +209,21 @@ Attributes:
  Like an Atom but with different attributes.
 
 
-*** TODO SelectionContainer : typing.Container
+*** DONE SelectionContainer : typing.Container
  - Module :: selection
 
-**** TODO SelectionDict
+**** DONE SelectionDict
  - Module :: selection
 
-***** TODO Molecule
+***** DONE Molecule
 
+
+**** DONE SelectionList
+ - Module :: selection
+
+***** DONE Association
 ***** TODO System
 
-**** TODO SelectionList
- - Module :: selection
-
-***** TODO Association
 
 *** DONE CoordArray(array: np.ndarray)
  - Module :: selection

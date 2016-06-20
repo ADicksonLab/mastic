@@ -92,18 +92,18 @@ class SelectionDict(SelectionMember, col.UserDict):
                     type(selection_dict))
             self.data = selection_dict
 
-
-
     def __repr__(self):
         return str(self.data)
 
 
-class SelectionList(col.UserList, SelectionMember):
+class SelectionList(SelectionMember, col.UserList):
     def __init__(self, selection_list=None):
-        super().__init__(self)
         if not selection_list:
             self.data = []
-        else:
+
+        super().__init__(selection_list)
+
+        if selection_list:
             assert issubclass(type(selection_list), col.Sequence), \
                 "selection_dict must be a subclass of collections.Sequence, not {}".format(
                     type(selection_list))
@@ -188,8 +188,12 @@ class CoordArraySelection(GenericSelection[int, np.ndarray]):
         return str(dict(self))
 
     @property
-    def coords(self):
+    def _coords(self):
         return reduce(lambda x,y: np.concatenate((x,y), axis=0), list(self.values()))
+
+    @property
+    def coords(self):
+        return self._coords
 
 class Point(CoordArraySelection):
     def __init__(self, coords=None, coord_array=None, array_idx=None):
@@ -225,6 +229,33 @@ class Point(CoordArraySelection):
 
             # use the CoordArraySelection constructor
             super().__init__(coord_array, point_idx)
+
+    @property
+    def coords(self):
+        return self._coords[0]
+
+    def overlaps(self, other):
+        assert issubclass(type(other), Point), \
+            "Other must be a subclass of Point, not {}".format(type(other))
+        return np.any(np.isclose(self.coords, other.coords))
+
+class Association(SelectionList):
+    def __init__(self, association_list=None, association_type=None):
+        super().__init__(selection_list=association_list)
+        self._association_type = association_type
+
+    @property
+    def association_type(self):
+        return self._association_type
+
+class AssociationType(object):
+    def __init__(self, description=None):
+        self._description = description
+
+    @property
+    def description(self):
+        return self._description
+
 
 if __name__ == "__main__":
     # test GenericSelection
@@ -275,6 +306,9 @@ if __name__ == "__main__":
     print(point2.coords)
     print("SELECTION_REGISTRY:", SELECTION_REGISTRY)
 
+    print("testing point overlaps")
+    print(point1.overlaps(point2))
+
     print("Making SelectionDict")
     seldict = SelectionDict()
     print(seldict)
@@ -291,3 +325,14 @@ if __name__ == "__main__":
     print("strings[0]: ", strings[0].registry)
     print("coordsel: ", coordsel.registry)
 
+    print("Making SelectionList")
+    sellist = SelectionList()
+    print(sellist)
+    print(sellist.registry)
+    sellist2 = SelectionList([point1, point2])
+    print(sellist2)
+    print(sellist2.registry)
+
+    print("Making Association")
+    assoc = Association(association_list=[point1, point2], association_type=None)
+    print(assoc)
