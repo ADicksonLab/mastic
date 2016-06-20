@@ -1,6 +1,7 @@
 import numpy as np
 import collections as col
 from functools import reduce
+import os.path as osp
 
 from mast.selection import CoordArray, CoordArraySelection, \
     Point, IndexedSelection, SelectionDict, SelectionList
@@ -35,13 +36,21 @@ class Atom(Point):
 class MoleculeType(object):
     def __init__(self):
         self._molecule = None
-        self.features = None
+
+    # @classmethod
+    # def create_molecule_type(cls, mol, mol_type=None):
+    #     cls_name = str(super().__self_class__).strip("'>").split('.')[-1]
+    #     return type(mol_type, (cls_name,), cls(mol).__dict__)
+
 
 class RDKitMoleculeType(MoleculeType):
-    def __init__(self, rdkit_molecule):
+    def __init__(self, rdkit_molecule, mol_type=None):
         super().__init__()
         self.molecule = rdkit_molecule
-
+        # TODO convert this attribute to a class factory
+        assert isinstance(mol_type, str)
+        self.molecule_type = mol_type
+        self._features = None
 
     @property
     def atoms(self):
@@ -50,6 +59,32 @@ class RDKitMoleculeType(MoleculeType):
     @property
     def bonds(self):
         return [bond for bond in self.molecule.GetBonds()]
+
+    @property
+    def features(self):
+        return self._features
+
+    def find_features(self, fdef="BaseFeatures.fdef"):
+        """Uses a feature definition (fdef) database to to find features in
+the molecule.
+
+        """
+        from rdkit import RDConfig
+        from rdkit.Chem import ChemicalFeatures
+
+        assert isinstance(fdef, str)
+        fdef_path = osp.join(RDConfig.RDDataDir, fdef)
+        feature_factory = ChemicalFeatures.BuildFeatureFactory(fdef_path)
+        factory_features = feature_factory.GetFeaturesForMol(self.molecule)
+        features = {}
+        for feature in factory_features:
+            feature_info = {'family' : feature.GetFamily(),
+                            'type' : feature.GetType(),
+                            'atom_ids' : feature.GetAtomIds(),
+                            'position' : feature.GetPos()}
+            features[feature.GetId()] = feature_info
+
+        return features
 
     def to_molecule(self, conformer_idx):
         """Construct a Molecule using a coordinates from a conformer of this
@@ -82,7 +117,7 @@ class RDKitMoleculeType(MoleculeType):
         # TODO handle and create angles
         angles = None
 
-        return Molecule(atoms, bonds, angles, mol_type=RDKitMoleculeType)
+        return Molecule(atoms, bonds, angles, mol_type=self.molecule_type, external_mol_rep=(RDKitMoleculeType, self))
 
 
 class Molecule(SelectionDict):
@@ -93,17 +128,28 @@ class Molecule(SelectionDict):
         else:
             mol_type = kwargs.pop('mol_type')
 
+        if 'external_mol_rep' not in kwargs.keys():
+            external_mol_rep = None
+        else:
+            assert isinstance(kwargs['external_mol_rep'], tuple), \
+                "An external_mol_rep must be a tuple (external_type, external_mol), not {}".format(
+                    kwargs['external_mol_rep'])
+            external_mol_rep = kwargs.pop('external_mol_rep')
+
         if issubclass(type(mol_input), MoleculeType):
             molecule_dict = Molecule.type_constructor(mol_input, *args, **kwargs)
         elif issubclass(type(mol_input), col.Sequence):
             print("atoms constructor")
             molecule_dict = Molecule.atoms_constructor(mol_input, *args, **kwargs)
-
         else:
             raise TypeError("mol_input must be either a MoleculeType or a sequence of Atoms")
-        print(molecule_dict)
+
         super().__init__(selection_dict=molecule_dict)
+        self._features = None
         self._molecule_type = mol_type
+        # a dictionary of molecular representations from other libraries
+        if external_mol_rep:
+            self._external_mol_reps = {external_mol_rep[0] : external_mol_rep[1]}
 
     @classmethod
     def type_constructor(cls, mol_type):
@@ -145,6 +191,19 @@ class Molecule(SelectionDict):
     def angles(self):
         return self.data['angles']
 
+    @property
+    def external_mol_reps(self):
+        return self._external_mol_reps
+
+    @property
+    def features(self):
+        return self._features
+
+    # TODO should be in the Type class for the molecule not the
+    # molecule itself
+    def find_features(self):
+        features = self._external_mol_reps[RDKitMoleculeType].find_features()
+        self._features = features
 
 
 if __name__ == "__main__":
@@ -177,16 +236,12 @@ if __name__ == "__main__":
     pka = Chem.MolFromPDBFile(PKA_pdb_path, removeHs=False)
     print(pka)
 
-    pka_type = RDKitMoleculeType(pka)
+
+    # PKA = RDKitMoleculeType.create_molecule_type(pka, mol_type='PKA')
+
+    # PKA = RDKitMoleculeType.create_molecule_type(
+    pka_type = RDKitMoleculeType(pka, mol_type="PKA")
     print(pka_type)
-
-    def func(arg1, *args, **kwargs):
-        print(arg1)
-        print(args)
-        print(*args)
-        print(kwargs)
-        print(*kwargs)
-
 
     # make a selection of atoms for bonds, and angle
     print("making a molecule")
@@ -195,7 +250,17 @@ if __name__ == "__main__":
     mol = Molecule(atoms, bonds, angles)
     print(mol)
 
+    print("Making a mast.Molecule from the RDKitMoleculeType")
     pka_mol = pka_type.to_molecule(0)
     # pka_mol = Molecule(mol_type=pka_type, coords=pka_coords)
     print(pka_mol)
     print(pka_mol.molecule_type)
+
+    print("Getting features for the molecule from it's RDKit representation")
+    pka_mol_rdmol = pka_mol.external_mol_reps[RDKitMoleculeType]
+    pka_rdfeatures = pka_mol_rdmol.find_features()
+    print(pka_rdfeatures)
+
+    print("finding features using amst.molecule method")
+    pka_mol.find_features()
+    print(pka_mol.features)
