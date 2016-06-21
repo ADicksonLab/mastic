@@ -11,7 +11,8 @@ from mast.selection import CoordArray, CoordArraySelection, \
 DIM_NUM_3D = 3
 
 class Atom(Point):
-    def __init__(self, coords=None, atom_array=None, array_idx=None, element=None):
+    def __init__(self, coords=None, atom_array=None, array_idx=None, element=None,
+                       atomic_num=None):
 
         if not coords is None:
             assert coords.shape[-1] == DIM_NUM_3D, \
@@ -33,6 +34,59 @@ class Atom(Point):
 
     def __repr__(self):
         return "Atom<{0}>{1}".format(str(self.element), self.coords)
+
+class AtomTypeLibrary(col.UserDict):
+    def __init__(self):
+        super().__init__()
+
+    def add_atom_type(self, atom_type, atom_name):
+        """ adds an AtomType to the AtomTypeLibrary using the atom_name."""
+        if atom_name not in self.data.keys():
+            self.data[atom_name] = atom_type
+        elif self.data[atom_name] == atom_type:
+            pass
+        else:
+            print(self.data[atom_name])
+            print(atom_type)
+            raise ValueError("{0} is already in the AtomTypeLibrary {1} and you cannot redefine attributes under the same name".format(
+                atom_name, self))
+
+    def attributes_match(self, atom_type):
+        """Check if the attributes of an AtomType are equivalent to any
+AtomType already in the library.
+
+        """
+
+        for pair in product(self.data.values(), atom_type):
+                if pair[1] == pair[0]:
+                    return True
+        return False
+
+class AtomType(object):
+    def __init__(self, attr_dict=None):
+        self.__dict__.update(attr_dict)
+
+    def __repr__(self):
+        return str(self.__dict__)
+
+    def __eq__(self, other):
+        return self.__dict__ == other.__dict__
+    def __ne__(self, other):
+        return self.__dict__ != other.__dict__
+    def __lt__(self, other):
+        return set(self.__dict__.keys()) < set(other.__dict__.keys())
+    def __gt__(self, other):
+        return set(self.__dict__.keys()) > set(other.__dict__.keys())
+    def __le__(self, other):
+        if self == other or self < other:
+            return True
+        else:
+            return False
+    def __ge__(self, other):
+        if self == other or self > other:
+            return True
+        else:
+            return False
 
 class MoleculeType(object):
     def __init__(self):
@@ -64,6 +118,42 @@ class RDKitMoleculeType(MoleculeType):
     @property
     def features(self):
         return self._features
+
+    def atom_data(self, atom_idx):
+
+        """Extracts useful information about an atom and returns it as a
+dictionary.
+
+        """
+        atom = self.atoms[atom_idx]
+        atom_dict = {}
+        atom_dict['atomic_num'] = atom.GetAtomicNum()
+        atom_dict['bond_degree_no_Hs'] = atom.GetDegree()
+        # same but want a convenience attribute
+        atom_dict['bond_degree'] = atom.GetDegree()
+        atom_dict['bond_degree_with_Hs'] = atom.GetTotalDegree()
+        # same but want a convenience attribute
+        atom_dict['total_bond_degree'] = atom.GetTotalDegree()
+        atom_dict['explicit_valence'] = atom.GetExplicitValence()
+        atom_dict['implicit_valence'] = atom.GetImplicitValence()
+        atom_dict['total_valence'] = atom.GetTotalValence()
+        atom_dict['formal_charge'] = atom.GetFormalCharge()
+        atom_dict['hybridization'] = atom.GetHybridization()
+
+        atom_dict['is_aromatic'] = atom.GetIsAromatic()
+        atom_dict['in_ring'] = atom.IsInRing()
+        atom_dict['isotope'] = atom.GetIsotope()
+        atom_dict['mass'] = atom.GetMass()
+        atom_dict['num_radical_electrons'] = atom.GetNumRadicalElectrons()
+        atom_dict['element'] = atom.GetSymbol()
+        atom_dict['num_Hs'] = atom.GetTotalNumHs()
+        monomer_info = atom.GetMonomerInfo()
+        atom_dict['pdb_name'] = monomer_info.GetName().strip()
+        atom_dict['pdb_occupancy'] = monomer_info.GetOccupancy()
+        atom_dict['pdb_residue_name'] = monomer_info.GetResidueName()
+        atom_dict['pdb_temp_factor'] = monomer_info.GetTempFactor()
+
+        return atom_dict
 
     def find_features(self, fdef="BaseFeatures.fdef"):
         """Uses a feature definition (fdef) database to to find features in
@@ -316,6 +406,28 @@ if __name__ == "__main__":
     # PKA = RDKitMoleculeType.create_molecule_type(
     pka_type = RDKitMoleculeType(pka, mol_type="PKA")
     print(pka_type)
+
+    print("Making an AtomTypeLibrary for pka")
+    atom_types = []
+    atom_names = {}
+    pka_atom_type_library = AtomTypeLibrary()
+    for atom_idx in range(len(pka_type.atoms)):
+        atom_type = AtomType(pka_type.atom_data(atom_idx))
+        atom_types.append(atom_type)
+
+        atom_name = atom_type.pdb_name
+        if atom_name in atom_names.keys() and \
+           not pka_atom_type_library.attributes_match([atom_type]):
+            atom_names[atom_name] += 1
+        elif atom_name not in atom_names.keys():
+            atom_names[atom_name] = 0
+
+        if atom_names[atom_name] > 0:
+            pka_atom_type_library.add_atom_type(atom_type, atom_name + str(atom_names[atom_name]) )
+        else:
+            pka_atom_type_library.add_atom_type(atom_type, atom_name)
+
+    print(pka_atom_type_library)
 
     # make a selection of atoms for bonds, and angle
     print("making a molecule")
