@@ -86,11 +86,26 @@ class SelectionDict(SelectionMember, col.UserDict):
 
         super().__init__(selection_dict)
 
+        # register this selection
+        self.sel_reg_id = register_selection(self)
+
+        # add the selection_dict to the data
         if selection_dict:
             assert issubclass(type(selection_dict), col.Mapping), \
                 "selection_dict must be a subclass of collections.Mapping, not {}".format(
                     type(selection_dict))
             self.data = selection_dict
+
+        # if values in the selection_dict are SelectionMembers update
+        # their registries
+        for key, value in self.data.items():
+            try:
+                for member in value:
+                    if issubclass(type(member), SelectionMember):
+                        member.registry[self.sel_reg_id] = key
+            except TypeError:
+                if issubclass(type(value), SelectionMember):
+                    value.registry[self.sel_reg_id] = key
 
     def __repr__(self):
         return str(self.data)
@@ -103,11 +118,25 @@ class SelectionList(SelectionMember, col.UserList):
 
         super().__init__(selection_list)
 
+        # register this selection
+        self.sel_reg_id = register_selection(self)
+
         if selection_list:
             assert issubclass(type(selection_list), col.Sequence), \
                 "selection_dict must be a subclass of collections.Sequence, not {}".format(
                     type(selection_list))
             self.data = selection_list
+
+        # if values in the selection_dict are SelectionMembers update
+        # their registries
+        for key, value in enumerate(self.data):
+            try:
+                for member in value:
+                    if issubclass(type(member), SelectionMember):
+                        member.registry[self.sel_reg_id] = key
+            except TypeError:
+                if issubclass(type(value), SelectionMember):
+                    value.registry[self.sel_reg_id] = key
 
     def __repr__(self):
         return str(self.data)
@@ -318,6 +347,15 @@ if __name__ == "__main__":
                               'coords' : [coordsel, CoordArraySelection(coords, [1,2])]})
     print(seldict2)
     print(seldict2.registry)
+    print("retrieving a seldict from it's members registries")
+    selected_member = seldict2['points'][0]
+    selector_id, selmember_id = selected_member.registry.popitem()
+    print(SELECTION_REGISTRY[selector_id][selmember_id])
+    print("is the original point in this list?")
+    print(selected_member in SELECTION_REGISTRY[selector_id][selmember_id])
+    print("getting the other points in this selection")
+    print("other_points in seldict2")
+    other_points = [p for p in SELECTION_REGISTRY[selector_id][selmember_id] if p is not selected_member]
 
     print("registries from seldict2 selections")
     print("point1: ", point1.registry)

@@ -11,10 +11,11 @@ from mast.selection import CoordArray, CoordArraySelection, \
 DIM_NUM_3D = 3
 
 class Atom(Point):
-    def __init__(self, coords=None, atom_array=None, array_idx=None, element=None,
-                       atomic_num=None):
+    def __init__(self, coords=None, atom_array=None, array_idx=None, atom_type=None):
 
-        if not coords is None:
+        if coords is None:
+            coords = np.array([np.nan, np.nan, np.nan])
+        else:
             assert coords.shape[-1] == DIM_NUM_3D, \
                 "coords must have 3-dimensions, not {}".format(
                     coords.shape[-1])
@@ -26,14 +27,12 @@ class Atom(Point):
 
 
         super().__init__(coords=coords, coord_array=atom_array, array_idx=array_idx)
-        self.element = element
 
-        # stubs
-        self.force_field = None
+        self.atom_type = atom_type
 
 
     def __repr__(self):
-        return "Atom<{0}>{1}".format(str(self.element), self.coords)
+        return "Atom{0}{1}".format(self.atom_type, self.coords)
 
 class AtomTypeLibrary(col.UserDict):
     def __init__(self):
@@ -65,9 +64,6 @@ AtomType already in the library.
 class AtomType(object):
     def __init__(self, attr_dict=None):
         self.__dict__.update(attr_dict)
-
-    def __repr__(self):
-        return str(self.__dict__)
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
@@ -243,6 +239,7 @@ class Molecule(SelectionDict):
         self._feature_types = None
         self._feature_type_selections = None
         self._molecule_type = mol_type
+        self._atom_types = AtomTypeLibrary()
         # a dictionary of molecular representations from other libraries
         if external_mol_rep:
             self._external_mol_reps = {external_mol_rep[0] : external_mol_rep[1]}
@@ -379,7 +376,10 @@ if __name__ == "__main__":
     atom1 = Atom(np.array([5,5,5]))
     print(atom1)
     print(atom1.coords)
-    atom2 = Atom(np.array([6,6,6]), element='C', atom_array=atom_array)
+    print("making AtomType")
+    atom2_type = AtomType({'element':'C'})
+
+    atom2 = Atom(np.array([6,6,6]), atom_array=atom_array, atom_type=atom2_type)
     print(atom2)
     print(atom2.coords)
     print("testing overlap of two atoms")
@@ -407,9 +407,10 @@ if __name__ == "__main__":
     pka_type = RDKitMoleculeType(pka, mol_type="PKA")
     print(pka_type)
 
-    print("Making an AtomTypeLibrary for pka")
+    print("Making an AtomTypeLibrary and Atom list for pka")
     atom_types = []
     atom_names = {}
+    atoms = []
     pka_atom_type_library = AtomTypeLibrary()
     for atom_idx in range(len(pka_type.atoms)):
         atom_type = AtomType(pka_type.atom_data(atom_idx))
@@ -427,7 +428,10 @@ if __name__ == "__main__":
         else:
             pka_atom_type_library.add_atom_type(atom_type, atom_name)
 
+        atoms.append(Atom(coords=None, atom_type=atom_type))
+
     print(pka_atom_type_library)
+    print(atoms)
 
     # make a selection of atoms for bonds, and angle
     print("making a molecule")
