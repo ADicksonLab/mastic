@@ -64,23 +64,19 @@ class Atom(Point):
 
 
     @property
-    def adjacent_atoms(self, adjacency=1):
-        """Return all atoms that are certain number (the adjacency) of bonds
-away from this one.
+    def adjacent_atoms(self):
 
-        e.g. For all atoms connected to this one the default adjacency=1 will
-give them to you.
-              neighbor_atoms = atom.adjacent_atoms()
-        e.g. for all atoms 2 bonds away:
-              two_bonds_down = atom.adjacent_atoms(adjacency=2)
-
-        """
-
-        if adjacency == 0:
-            return self
-
-
-        self.molecule
+        # collect adjacent atoms
+        adjacent_atoms = []
+        for bond in self.bonds:
+            # this atom's index in the bond
+            curr_atom_idx = self.registry[bond.sel_reg_id]
+            curr_atom = bond[curr_atom_idx]
+            other_atom_idx = next((idx for idx in bond.keys() if idx != curr_atom_idx), None)
+            other_atom = bond[other_atom_idx]
+            assert curr_atom is not other_atom, "Cannot be bound to itself"
+            adjacent_atoms.append(other_atom)
+        return adjacent_atoms
 
 class AtomTypeLibrary(col.UserDict):
     def __init__(self):
@@ -530,9 +526,24 @@ if __name__ == "__main__":
     idx = zip(idx_a, idx_b)
     bonds = [Bond(atoms, bond_idx) for bond_idx in idx]
 
-
-
-    
+    print("accessing bonds from an atom")
+    print("Is an atom in a bond?")
+    print(atoms[0]._in_bond)
+    print("how many bonds is it in")
+    print("first atom", len(atoms[0].bonds))
+    print("second atom", len(atoms[1].bonds))
+    print("get the bonds themselves")
+    print(atoms[0].bonds)
+    print("get the other atom in the bond")
+    bond = atoms[0].bonds[0]
+    curr_atom_idx = atoms[0].registry[bond.sel_reg_id]
+    curr_atom = bond[curr_atom_idx]
+    other_atom_idx = next((idx for idx in bond.keys() if idx != curr_atom_idx), None)
+    other_atom = bond[other_atom_idx]
+    print("idx:", other_atom_idx, "atom:", other_atom)
+    print("same atom", curr_atom is atoms[curr_atom_idx])
+    print("same thing using the method")
+    print(atoms[0].adjacent_atoms)
     # angles still stubbed out for now
     angles = [IndexedSelection(atoms, [0,1,2])]
     print("making a molecule")
