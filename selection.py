@@ -7,7 +7,7 @@ from functools import reduce, partial
 
 __all__ = ['SelectionMember', 'GenericSelection', 'IndexedSelection',
            'SelectionDict', 'SelectionList', 'CoordArray',
-           'CoordArraySelection', 'Point']
+           'CoordArraySelection', 'Point', 'SELECTION_REGISTRY', 'sel_reg_counter']
 
 SELECTION_REGISTRY = {}
 sel_reg_counter = 0

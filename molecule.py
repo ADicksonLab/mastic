@@ -6,7 +6,8 @@ from itertools import product
 import math
 
 from mast.selection import CoordArray, CoordArraySelection, \
-    Point, IndexedSelection, SelectionDict, SelectionList
+    Point, IndexedSelection, SelectionDict, SelectionList, \
+    SELECTION_REGISTRY, sel_reg_counter
 
 DIM_NUM_3D = 3
 
@@ -29,16 +30,64 @@ class Atom(Point):
         super().__init__(coords=coords, coord_array=atom_array, array_idx=array_idx)
 
         self.atom_type = atom_type
+        self._in_molecule = False
+        self._in_bond = False
 
 
     def __repr__(self):
         return "Atom{0}{1}".format(self.atom_type, self.coords)
+
+    @property
+    def molecule(self):
+        if self._in_molecule is False:
+            return None
+        else:
+            molecule = next((sel for sel in self.get_selections()
+                             if isinstance(sel, Molecule)),
+                            None)
+            assert molecule
+            return molecule
+
+    @property
+    def bonds(self):
+        if self._in_bond is False:
+            return None
+        else:
+            # TODO really weird bug where isinstance(Molecule(), Bond)
+            # evaluates to True!!!! Need to find out why that is. For
+            # now just test to make sure it is not a Molecule
+            bonds = [sel for sel in self.get_selections() \
+                     if (isinstance(sel, Bond) and not isinstance(sel, Molecule))]
+
+            assert bonds
+            return bonds
+
+
+    @property
+    def adjacent_atoms(self, adjacency=1):
+        """Return all atoms that are certain number (the adjacency) of bonds
+away from this one.
+
+        e.g. For all atoms connected to this one the default adjacency=1 will
+give them to you.
+              neighbor_atoms = atom.adjacent_atoms()
+        e.g. for all atoms 2 bonds away:
+              two_bonds_down = atom.adjacent_atoms(adjacency=2)
+
+        """
+
+        if adjacency == 0:
+            return self
+
+
+        self.molecule
 
 class AtomTypeLibrary(col.UserDict):
     def __init__(self):
         super().__init__()
 
     def add_atom_type(self, atom_type, atom_name):
+
         """ adds an AtomType to the AtomTypeLibrary using the atom_name."""
         if atom_name not in self.data.keys():
             self.data[atom_name] = atom_type
@@ -83,6 +132,32 @@ class AtomType(object):
             return True
         else:
             return False
+
+class Bond(IndexedSelection):
+    def __init__(self, atom_container=None, atom_ids=None):
+        if atom_ids is not None:
+            assert isinstance(atom_ids, tuple), \
+                "atom_ids must be a length 2 tuple, not type{}".format(
+                    type(atom_ids))
+            assert len(atom_ids) == 2, \
+                "atom_ids must be a length 2 tuple, not len={}".format(
+                    len(atom_ids))
+            assert all([(lambda x: isinstance(x, int))(i) for i in atom_ids]), \
+                "atom_ids must be a length 2 tuple of ints"
+
+        if atom_container is not None:
+            assert issubclass(type(atom_container), col.Sequence), \
+                "atom_container must be a subclass of collections.Sequence, not {}".format(
+                    type(atom_container))
+
+        super().__init__(atom_container, atom_ids)
+        for atom in self.values():
+            atom._in_bond = True
+
+    @property
+    def atoms(self):
+        return tuple(self.values())
+
 
 class MoleculeType(object):
     def __init__(self):
@@ -258,6 +333,13 @@ class Molecule(SelectionDict):
         assert all([(lambda x: True if issubclass(type(x), Atom) else False)(atom)
                     for atom in atoms]), \
             "all elements in atoms must be a subclass of type Atom"
+        assert not all([atom._in_molecule for atom in atoms]), \
+            "all atoms must not be part of another molecule"
+
+        # set that each atom is in a molecule now
+        for atom in atoms:
+            atom._in_molecule = True
+
         molecule_dict= {'atoms' : atoms, 'bonds' : bonds, 'angles': angles}
         return molecule_dict
 
@@ -407,6 +489,10 @@ if __name__ == "__main__":
     pka_type = RDKitMoleculeType(pka, mol_type="PKA")
     print(pka_type)
 
+    print("getting positions objects from rdchem.Mol for atoms")
+    conf = list(pka_type.molecule.GetConformers()).pop()
+    positions = {idx : conf.GetAtomPosition(idx) for idx in range(conf.GetNumAtoms())}
+    print(positions[0])
     print("Making an AtomTypeLibrary and Atom list for pka")
     atom_types = []
     atom_names = {}
@@ -428,15 +514,28 @@ if __name__ == "__main__":
         else:
             pka_atom_type_library.add_atom_type(atom_type, atom_name)
 
-        atoms.append(Atom(coords=None, atom_type=atom_type))
+        coord = np.array([positions[atom_idx].x, positions[atom_idx].y, positions[atom_idx].z])
+        atoms.append(Atom(coords=coord, atom_type=atom_type))
 
     print(pka_atom_type_library)
     print(atoms)
 
     # make a selection of atoms for bonds, and angle
-    print("making a molecule")
-    bonds = [IndexedSelection(atoms, [0,1]), IndexedSelection(atoms, [1,2])]
+
+    # making a bond between each atom and the next one in the index,
+    # just to test
+    print("making up bonds")
+    idx_a = range(len(atoms))[:-1]
+    idx_b = [a+1 for a in idx_a]
+    idx = zip(idx_a, idx_b)
+    bonds = [Bond(atoms, bond_idx) for bond_idx in idx]
+
+
+
+    
+    # angles still stubbed out for now
     angles = [IndexedSelection(atoms, [0,1,2])]
+    print("making a molecule")
     mol = Molecule(atoms, bonds, angles)
     print(mol)
 
