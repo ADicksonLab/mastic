@@ -114,6 +114,7 @@ class HydrogenBondInx(Interaction):
 
 if __name__ == "__main__":
     from rdkit import Chem
+    from rdkit.Chem import AllChem
     import os.path as osp
     trypsin_dir = osp.expanduser("~/Dropbox/lab/trypsin")
     trypsin_pdb_path = osp.join(trypsin_dir, "trypsin.pdb")
@@ -122,6 +123,8 @@ if __name__ == "__main__":
     ben_pdb_path = osp.join(trypsin_dir, "BEN.pdb")
     ben = Chem.MolFromPDBFile(ben_pdb_path, removeHs=False)
     ben = Chem.AddHs(ben)
+    AllChem.EmbedMolecule(ben)
+    AllChem.UFFOptimizeMolecule(ben)
 
     from mast.molecule import RDKitMoleculeType
 
