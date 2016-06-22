@@ -2,8 +2,9 @@
 from itertools import product, combinations
 import collections as col
 
-from mast.selection import SelectionList, Association, IndexedSelection
-from mast.molecule import Atom, Molecule
+from mast.selection import SelectionList, Association, IndexedSelection, \
+    SelectionType, SelectionTypeLibrary
+from mast.molecule import Atom, Molecule, MoleculeTypeLibrary, MoleculeType
 
 def overlaps(members):
     """Check to see if members overlap.
@@ -28,6 +29,15 @@ def overlaps(members):
                 flag = False
     return False
 
+class SystemType(SelectionType):
+    """Base type for systems, subclasses should implement a to_system
+method.
+
+    """
+    def __init__(self, system_attrs=None):
+        super().__init__(attr_dict=system_attrs)
+
+
 class System(SelectionList):
     """System that contains non-overlapping molecules, assumed to be in
 the same coordinate system.
@@ -36,7 +46,7 @@ the same coordinate system.
 
     """
 
-    def __init__(self, members=None):
+    def __init__(self, members=None, system_type=None):
 
         assert issubclass(type(members), col.Sequence), \
             "members must be a subclass of collections.Sequence, not {}".format(
@@ -52,15 +62,51 @@ the same coordinate system.
         assert not overlaps(members), \
             "molecule system members cannot be overlapping"
 
+        if system_type:
+            assert issubclass(system_type, SystemType), \
+                "system_type must be a subclass of SystemType, not {}".format(
+                    type(system_type))
+
         super().__init__(selection_list=members)
+        for member in member:
+            member._in_system = True
+        self._system_type = system_type
+        self._molecule_types = MoleculeTypeLibrary()
+        self._system_associations = None
+
+    @property
+    def system_type(self):
+        return self._system_type
+
+    @property
+    def molecule_types(self):
+        return self._molecule_types
+
+    def add_molecule_type(self, mol_type, mol_name=None):
+        if not mol_name:
+            mol_name = mol_type.name
+        self._molecule_types.add_type(mol_type, mol_name)
 
     @property
     def molecules(self):
-        
+        molecules = [member for  member in self if issubclass(type(member), Molecule)]
+        return molecules
+
+    # TODO should this be a property or function?
+    @property
+    def molecules_sel(self):
+        mol_indices = [i for i, member in enumerate(self) if issubclass(type(member), Molecule)]
+        return IndexedSelection(self, mol_indices)
+
+    @property
+    def associations(self):
+        return self._system_associations
+
     def find_features(self):
         """Find features in all members of the system. Currently only molecules."""
 
-        pass
+        for mol in molecules:
+            mol.find_features()
 
 class SystemAssociation(Association):
     def __init__(self, members=None, association_type=None, system=None):
@@ -100,8 +146,10 @@ if __name__ == "__main__":
     ben_mol = ben_type.to_molecule(0)
     trypsin_mol = trypsin_type.to_molecule(0)
 
+    print("making a SystemType")
+    systype = SystemType({'name': 'trypsin-benzamidine-complex'})
     print("making a system")
-    tryp_sys = System([ben_mol, trypsin_mol])
+    tryp_sys = System([ben_mol, trypsin_mol], system_type=systype)
 
     print("making SystemAssociation")
     rec_lig_assoc = SystemAssociation(members=[tryp_sys[0],tryp_sys[1]],
@@ -117,10 +165,4 @@ if __name__ == "__main__":
 
     print("finding BEN features")
     ben_mol.find_features()
-    print(ben_mol.feature_families)
-    print(ben_mol.feature_types)
-    print(ben_mol.family_selections)
-    print(ben_mol.type_selections)
-    # print(ben_mol.feature_dataframe)
-    print("finding trypsin features")
-    trypsin_mol.find_features()
+

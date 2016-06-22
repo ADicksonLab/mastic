@@ -30,13 +30,19 @@ class Atom(Point):
 
         super().__init__(coords=coords, coord_array=atom_array, array_idx=array_idx)
 
-        self.atom_type = atom_type
+        if atom_type is None:
+            atom_type = AtomType({})
+        self._atom_type = atom_type
         self._in_molecule = False
         self._in_bond = False
 
 
     def __repr__(self):
         return "Atom{0}{1}".format(self.atom_type, self.coords)
+
+    @property
+    def atom_type(self):
+        return self._atom_type
 
     @property
     def molecule(self):
@@ -83,12 +89,13 @@ class AtomTypeLibrary(SelectionTypeLibrary):
     def __init__(self):
         super().__init__()
 
-    def add_type(self, atom_type, atom_name):
+    def add_type(self, atom_type, atom_name, rename=False):
         # type check that input types are AtomTypes
         assert isinstance(atom_type, AtomType), \
-            "atom_type must be type AtomType, not {}".format(type(atom_type))
+            "atom_type must be a subclass of AtomType, not {}".format(
+                type(atom_type))
 
-        return super().add_type(atom_type, atom_name)
+        return super().add_type(atom_type, atom_name, rename=rename)
 
 class AtomType(SelectionType):
     def __init__(self, atom_attrs=None):
@@ -123,6 +130,16 @@ class MoleculeType(SelectionType):
     def __init__(self, mol_attrs=None):
         super().__init__(attr_dict=mol_attrs)
 
+class MoleculeTypeLibrary(SelectionTypeLibrary):
+    def __init__(self):
+        super().__init__()
+
+    def add_type(self, mol_type, mol_name, rename=False):
+        # type check that input types are MoleculeTypes
+        assert issubclass(type(mol_type)), \
+            "mol_type must be a subclass of MoleculeType, not {}".format(
+                type(mol_type))
+        return super().add_type(mol_type, mol_name, rename=rename)
 
 class RDKitMoleculeType(MoleculeType):
     def __init__(self, rdkit_molecule, mol_name=None):
@@ -181,6 +198,7 @@ dictionary.
             atom_dict['pdb_temp_factor'] = monomer_info.GetTempFactor()
 
         atom_dict['rdkit_mol_idx'] = atom.GetIdx()
+        atom_dict['name'] = atom_dict['rdkit_mol_idx']
         return atom_dict
 
     def find_features(self, fdef="BaseFeatures.fdef"):
@@ -206,37 +224,15 @@ the molecule.
         self._features = features
 
 
-    def make_atom_type_library(self, type_name='rdkit_mol_idx'):
+    def make_atom_type_library(self, type_name='name'):
 
         # initialize the library and names record
         atom_lib = AtomTypeLibrary()
-        atom_names = {}
         for atom_idx in range(self.molecule.GetNumAtoms()):
             # make a new atom type
             atom_type = AtomType(self.atom_data(atom_idx))
-            # and make a tentative name
             atom_name = atom_type.__dict__[type_name]
-            # check to see if there is another atom in the library
-            # with the same name as the current one and if there is
-            # check to see if they have the same attributes
-            if atom_name in atom_names.keys() and \
-               not pka_atom_type_library.attributes_match([atom_type]):
-                # if they do increment the name count which will make
-                # the next entry have number at the end of the
-                # duplicate symbol
-                atom_names[atom_name] += 1
-            # if there is no atom type with this name initialize and
-            # entry in the names record
-            elif atom_name not in atom_names.keys():
-                atom_names[atom_name] = 0
-
-            # if there are multiple of the same name append the number
-            # to the type_name
-            if atom_names[atom_name] > 0:
-                atom_lib.add_type(atom_type, atom_name + str(atom_names[atom_name]) )
-            # otherwise just give it the type_name
-            else:
-                atom_lib.add_type(atom_type, atom_name)
+            atom_lib.add_type(atom_type, atom_name=atom_name, rename=True)
 
         return atom_lib
 
@@ -266,10 +262,11 @@ the molecule.
         coord_array = CoordArray(positions)
 
         # Make atoms out of the coord array
+        self.make_atom_type_library()
         atoms = []
         for atom_idx in atom_idxs:
-            atom_data = self.atom_type_library[atom_idx]
-            atom = Atom(atom_array=coord_array, array_idx=atom_idx, atom_type=atom_data)
+            atom_type = self.atom_type_library[atom_idx]
+            atom = Atom(atom_array=coord_array, array_idx=atom_idx, atom_type=atom_type)
             atoms.append(atom)
 
         # handle bonds
@@ -308,16 +305,25 @@ class Molecule(SelectionDict):
             raise TypeError("mol_input must be either a MoleculeType or a sequence of Atoms")
 
         super().__init__(selection_dict=molecule_dict)
+        self._in_system = False
         self._features = None
         self._feature_families = None
         self._feature_family_selections = None
         self._feature_types = None
         self._feature_type_selections = None
+        if mol_type is None:
+            mol_type = MoleculeType({})
         self._molecule_type = mol_type
         self._atom_types = AtomTypeLibrary()
         # a dictionary of molecular representations from other libraries
         if external_mol_rep:
             self._external_mol_reps = {external_mol_rep[0] : external_mol_rep[1]}
+
+        # set that each atom is in a molecule now
+        for atom in self.atoms:
+            atom._in_molecule = True
+            self._atom_types.add_type(atom.atom_type, atom.atom_type.name, rename=True)
+
 
     @classmethod
     def type_constructor(cls, mol_type):
@@ -336,12 +342,14 @@ class Molecule(SelectionDict):
         assert not all([atom._in_molecule for atom in atoms]), \
             "all atoms must not be part of another molecule"
 
-        # set that each atom is in a molecule now
-        for atom in atoms:
-            atom._in_molecule = True
+
 
         molecule_dict= {'atoms' : atoms, 'bonds' : bonds, 'angles': angles}
         return molecule_dict
+
+    @property
+    def atom_types(self):
+        return self._atom_types
 
     @property
     def molecule_type(self):
@@ -550,9 +558,13 @@ if __name__ == "__main__":
     print(atoms[0].adjacent_atoms)
     # angles still stubbed out for now
     angles = [IndexedSelection(atoms, [0,1,2])]
+    print("making a MoleculeType")
+    moltype = MoleculeType({'name':'test_molecule'})
     print("making a molecule")
-    mol = Molecule(atoms, bonds, angles)
+    mol = Molecule(atoms, bonds, angles, mol_type=moltype)
     print(mol)
+    print("atom_types in mol")
+    print(mol.atom_types)
 
     print("Making a mast.Molecule from the RDKitMoleculeType")
     pka_mol = pka_type.to_molecule(0)

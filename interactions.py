@@ -165,6 +165,12 @@ if __name__ == "__main__":
 
     print("finding BEN features")
     ben_mol.find_features()
+    print(ben_mol.feature_families)
+    print(ben_mol.feature_types)
+    print(ben_mol.family_selections)
+    print(ben_mol.type_selections)
+    # error in my environment that doesn't allow for pandas
+    # print(ben_mol.feature_dataframe)
     print("finding trypsin features")
     trypsin_mol.find_features()
 

@@ -81,6 +81,11 @@ class IndexedSelection(GenericSelection[int, Selected]):
         return str(dict(self))
 
 class SelectionDict(SelectionMember, col.UserDict):
+    """Creates a dictionary of collections of SelectionMembers.
+e.g. {'strings' : [StringSelection, StringSelection] 'ints' :
+[IntSelection, IntSelection]}
+
+    """
     def __init__(self, selection_dict=None):
         if not selection_dict:
             self.data = {}
@@ -294,6 +299,9 @@ class SelectionType(object):
             assert isinstance(attr_dict, dict), \
                 "The attr_dict must be a dictionary, not {}".format(
                     type(attr_dict))
+            # if there is no 'name' in the attr_dict set it to the empty string
+            if 'name' not in attr_dict.keys():
+                attr_dict['name'] = ''
             self.__dict__.update(attr_dict)
 
     def __eq__(self, other):
@@ -325,25 +333,40 @@ naming distinctions.
 
     def __init__(self):
         super().__init__()
+        self._names_counter = {}
 
-    def add_type(self, a_type, type_name):
-        """ adds a SelectionType to the SelectionTypeLibrary using the type_name."""
+    def add_type(self, a_type, type_name, rename=False):
+        """adds a SelectionType to the SelectionTypeLibrary using the
+type_name.  If you try to add a duplicate with the same name it is
+silently ignored. If you try to add a type with the same name as one
+in the library but with different attributes it will raise an
+error.
+
+        """
+
         assert issubclass(type(a_type), SelectionType), \
             "added types must be a subclass of SelectionType, not {}".format(
                 type(a_type))
         assert isinstance(type_name, str) or isinstance(type_name, int), \
             "type_name must be type str or int, not {}".format(type(type_name))
-
+        if rename:
+            assert isinstance(rename, bool), "rename should be type bool, not {}".format(
+                type(rename))
+            if type_name in ['',None]:
+                type_name = 'NoName'
         if type_name not in self.data.keys():
             self.data[type_name] = a_type
+            self._names_counter[type_name] = 1
         elif self.data[type_name] == a_type:
             pass
-        else:
-            print(self.data[type_name])
-            print(a_type)
+        elif rename is False:
             raise ValueError(
-                "{0} is already in the {2}, {1}, and you cannot redefine attributes under the same name".format(
+                "{0} is already in the {2}, {1}, "
+                "cannot redefine attributes under the same type_name".format(
                     type_name, id(self), type(self)))
+        else:
+            self.data[type_name+str(self._names_counter[type_name])] = a_type
+            self._names_counter[type_name] += 1
 
     def attributes_match(self, a_type):
         """Check if the attributes of an AtomType are equivalent to any
@@ -463,6 +486,12 @@ if __name__ == "__main__":
     seltype_lib.add_type(seltype_dup, type_name=seltype_dup.name)
     print("Adding it with the same name makes no new entry")
     print(seltype_lib)
-    seltype_lib.add_type(seltype_dup, type_name='a2')
+    seltype_lib.add_type(seltype_dup, type_name='a_dup')
     print("Using a different name will add it though")
+    print(seltype_lib)
+    print("If you add a type with the same name but different attributes,"
+          " it default raises an error. Set rename flag to true if you want to"
+          " allow it to rename the type. Default is just numbering")
+    new_seltype = SelectionType({'name':'a', 'newattr':0})
+    seltype_lib.add_type(new_seltype, type_name='a', rename=True)
     print(seltype_lib)
