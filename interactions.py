@@ -1,5 +1,9 @@
 """ The interactions module. """
 
+from scipy.spatial.distance import cdist
+import numpy as np
+import numpy.linalg as la
+
 from mast.selection import AssociationType
 from mast.system import SystemAssociation, System
 
@@ -21,19 +25,33 @@ class HydrogenBondType(InteractionType):
     """ Class for checking validity of a HydrogenBondInx."""
 
     @classmethod
-    def check(donor_sel, acceptor_sel):
-        pass
-    
+    def check(cls, donor_atom, h_atom, acceptor_atom):
+        distance = cdist(np.array([donor_atom.coords]), np.array([acceptor_atom.coords]))[0,0]
+        print("distance:", distance)
+        if not cls.check_distance(distance):
+            return False
+
+        v1 = donor_atom.coords + h_atom.coords
+        v2 = h_atom.coords + acceptor_atom.coords
+        angle = np.arccos(np.dot(v1,v2)/(la.norm(v1) * la.norm(v2)))
+        print("angle:", angle)
+        if not cls.check_angle(angle):
+            return False
+
+        return True
+
     @classmethod
-    def distance(self, distance):
+    def check_distance(cls, distance):
         if distance < HBOND_DIST_MAX:
+            print("distance HIT")
             return True
         else:
             return False
 
     @classmethod
-    def angle(self, angle):
+    def check_angle(cls, angle):
         if angle < HBOND_DON_ANGLE_MIN:
+            print("angle HIT")
             return True
         else:
             return False
@@ -116,6 +134,8 @@ if __name__ == "__main__":
     from rdkit import Chem
     from rdkit.Chem import AllChem
     import os.path as osp
+    from copy import copy
+
     trypsin_dir = osp.expanduser("~/Dropbox/lab/trypsin")
     trypsin_pdb_path = osp.join(trypsin_dir, "trypsin.pdb")
     trypsin = Chem.MolFromPDBFile(trypsin_pdb_path, removeHs=False)
@@ -123,8 +143,9 @@ if __name__ == "__main__":
     ben_pdb_path = osp.join(trypsin_dir, "BEN.pdb")
     ben = Chem.MolFromPDBFile(ben_pdb_path, removeHs=False)
     ben = Chem.AddHs(ben)
-    AllChem.EmbedMolecule(ben)
-    AllChem.UFFOptimizeMolecule(ben)
+    ben_Hs_embed = copy(ben)
+    # AllChem.EmbedMolecule(ben)
+    # AllChem.UFFOptimizeMolecule(ben_Hs)
 
     from mast.molecule import RDKitMoleculeType
 
@@ -153,5 +174,15 @@ if __name__ == "__main__":
     acceptors = trypsin_mol.family_selections['Acceptor']
     acceptor_keys = list(acceptors.keys())
 
-    donor = donors[donor_keys[0]]
-    acceptor = acceptors[acceptor_keys[0]]
+    from itertools import product
+    # test all pairs for if they are hydrogen bonded
+    h_bonds = []
+    for pair in product(donors.values(), acceptors.values()):
+        donor = pair[0]
+        acceptor = pair[1]
+        donor_Hs = [atom for atom in donor.adjacent_atoms if atom.atom_type.element == 'H']
+        distance = cdist(np.array([donor.coords]), np.array([acceptor.coords]))[0,0]
+        print(distance)
+        if HydrogenBondType.check_distance(distance):
+            print("HIT")
+

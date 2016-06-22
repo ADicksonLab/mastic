@@ -7,7 +7,8 @@ import math
 
 from mast.selection import CoordArray, CoordArraySelection, \
     Point, IndexedSelection, SelectionDict, SelectionList, \
-    SELECTION_REGISTRY, sel_reg_counter
+    SELECTION_REGISTRY, sel_reg_counter, \
+    SelectionType
 
 DIM_NUM_3D = 3
 
@@ -78,56 +79,20 @@ class Atom(Point):
             adjacent_atoms.append(other_atom)
         return adjacent_atoms
 
-class AtomTypeLibrary(col.UserDict):
+class AtomTypeLibrary(SelectionTypeLibrary):
     def __init__(self):
         super().__init__()
 
-    def add_atom_type(self, atom_type, atom_name):
+    def add_type(self, atom_type, atom_name):
+        # type check that input types are AtomTypes
+        assert isinstance(atom_type, AtomType), \
+            "atom_type must be type AtomType, not {}".format(type(atom_type))
 
-        """ adds an AtomType to the AtomTypeLibrary using the atom_name."""
-        if atom_name not in self.data.keys():
-            self.data[atom_name] = atom_type
-        elif self.data[atom_name] == atom_type:
-            pass
-        else:
-            print(self.data[atom_name])
-            print(atom_type)
-            raise ValueError("{0} is already in the AtomTypeLibrary {1} and you cannot redefine attributes under the same name".format(
-                atom_name, self))
+        return super().add_type(atom_type, atom_name)
 
-    def attributes_match(self, atom_type):
-        """Check if the attributes of an AtomType are equivalent to any
-AtomType already in the library.
-
-        """
-
-        for pair in product(self.data.values(), atom_type):
-                if pair[1] == pair[0]:
-                    return True
-        return False
-
-class AtomType(object):
-    def __init__(self, attr_dict=None):
-        self.__dict__.update(attr_dict)
-
-    def __eq__(self, other):
-        return self.__dict__ == other.__dict__
-    def __ne__(self, other):
-        return self.__dict__ != other.__dict__
-    def __lt__(self, other):
-        return set(self.__dict__.keys()) < set(other.__dict__.keys())
-    def __gt__(self, other):
-        return set(self.__dict__.keys()) > set(other.__dict__.keys())
-    def __le__(self, other):
-        if self == other or self < other:
-            return True
-        else:
-            return False
-    def __ge__(self, other):
-        if self == other or self > other:
-            return True
-        else:
-            return False
+class AtomType(SelectionType):
+    def __init__(self, atom_attrs=None):
+        super().__init__(attr_dict=atom_attrs)
 
 class Bond(IndexedSelection):
     def __init__(self, atom_container=None, atom_ids=None):
@@ -154,23 +119,17 @@ class Bond(IndexedSelection):
     def atoms(self):
         return tuple(self.values())
 
-class MoleculeType(object):
-    def __init__(self):
-        self._molecule = None
-
-    # @classmethod
-    # def create_molecule_type(cls, mol, mol_type=None):
-    #     cls_name = str(super().__self_class__).strip("'>").split('.')[-1]
-    #     return type(mol_type, (cls_name,), cls(mol).__dict__)
+class MoleculeType(SelectionType):
+    def __init__(self, mol_attrs=None):
+        super().__init__(attr_dict=mol_attrs)
 
 
 class RDKitMoleculeType(MoleculeType):
-    def __init__(self, rdkit_molecule, mol_type=None):
+    def __init__(self, rdkit_molecule, mol_name=None):
         super().__init__()
         self.molecule = rdkit_molecule
-        # TODO convert this attribute to a class factory
-        assert isinstance(mol_type, str)
-        self.molecule_type = mol_type
+        self.rdkit_mol = self.molecule
+        self.name = mol_name
         self._features = None
         self._atom_type_library = None
 

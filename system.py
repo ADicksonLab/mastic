@@ -54,6 +54,14 @@ the same coordinate system.
 
         super().__init__(selection_list=members)
 
+    @property
+    def molecules(self):
+        
+    def find_features(self):
+        """Find features in all members of the system. Currently only molecules."""
+
+        pass
+
 class SystemAssociation(Association):
     def __init__(self, members=None, association_type=None, system=None):
 
@@ -70,7 +78,7 @@ class SystemAssociation(Association):
 
     def profile_interactions(self, interaction_types):
         for interaction_type in interaction_types:
-            pass
+            interaction_type()
 
 
 if __name__ == "__main__":

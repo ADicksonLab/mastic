@@ -4,6 +4,7 @@ import typing as ty
 import collections.abc as colabc
 from copy import copy
 from functools import reduce, partial
+from itertools import product
 
 __all__ = ['SelectionMember', 'GenericSelection', 'IndexedSelection',
            'SelectionDict', 'SelectionList', 'CoordArray',
@@ -285,6 +286,76 @@ class AssociationType(object):
     def description(self):
         return self._description
 
+class SelectionType(object):
+    """Base type for other Types."""
+
+    def __init__(self, attr_dict=None):
+        if attr_dict:
+            assert isinstance(attr_dict, dict), \
+                "The attr_dict must be a dictionary, not {}".format(
+                    type(attr_dict))
+            self.__dict__.update(attr_dict)
+
+    def __eq__(self, other):
+        return self.__dict__ == other.__dict__
+    def __ne__(self, other):
+        return self.__dict__ != other.__dict__
+    def __lt__(self, other):
+        return set(self.__dict__.keys()) < set(other.__dict__.keys())
+    def __gt__(self, other):
+        return set(self.__dict__.keys()) > set(other.__dict__.keys())
+    def __le__(self, other):
+        if self == other or self < other:
+            return True
+        else:
+            return False
+    def __ge__(self, other):
+        if self == other or self > other:
+            return True
+        else:
+            return False
+
+class SelectionTypeLibrary(col.UserDict):
+    """Class that keeps track of a collection of types with methods for
+querying matches to attributes of types in the library, to reduce
+duplication, promote standardization of attributes, and keep clear
+naming distinctions.
+
+    """
+
+    def __init__(self):
+        super().__init__()
+
+    def add_type(self, a_type, type_name):
+        """ adds a SelectionType to the SelectionTypeLibrary using the type_name."""
+        assert issubclass(type(a_type), SelectionType), \
+            "added types must be a subclass of SelectionType, not {}".format(
+                type(a_type))
+        assert isinstance(type_name, str), \
+            "type_name must be type str, not {}".format(type(type_name))
+
+        if type_name not in self.data.keys():
+            self.data[type_name] = a_type
+        elif self.data[type_name] == a_type:
+            pass
+        else:
+            print(self.data[type_name])
+            print(a_type)
+            raise ValueError(
+                "{0} is already in the {2}, {1}, and you cannot redefine attributes under the same name".format(
+                    type_name, id(self), type(self)))
+
+    def attributes_match(self, a_type):
+        """Check if the attributes of an AtomType are equivalent to any
+AtomType already in the library.
+
+        """
+
+        for pair in product(self.data.values(), [a_type]):
+                if pair[1] == pair[0]:
+                    return True
+        return False
+
 
 if __name__ == "__main__":
     # test GenericSelection
@@ -374,3 +445,24 @@ if __name__ == "__main__":
     print("Making Association")
     assoc = Association(association_list=[point1, point2], association_type=None)
     print(assoc)
+
+    print("testing Type base classes")
+    print("making SelectionTypes")
+    seltype = SelectionType({'name':'a'})
+    seltype2 = SelectionType({'name':'b'})
+
+    print("making SelectionTypeLibrarys")
+    seltype_lib = SelectionTypeLibrary()
+    seltype_lib.add_type(seltype, type_name=seltype.name)
+    seltype_lib.add_type(seltype2, type_name=seltype2.name)
+    print("the library with two types")
+    print(seltype_lib)
+    seltype_dup = SelectionType({'name': 'a'})
+    print("A duplicate type, attributes_match result:")
+    print(seltype_lib.attributes_match(seltype_dup))
+    seltype_lib.add_type(seltype_dup, type_name=seltype_dup.name)
+    print("Adding it with the same name makes no new entry")
+    print(seltype_lib)
+    seltype_lib.add_type(seltype_dup, type_name='a2')
+    print("Using a different name will add it though")
+    print(seltype_lib)
