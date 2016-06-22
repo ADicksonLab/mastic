@@ -154,7 +154,6 @@ class Bond(IndexedSelection):
     def atoms(self):
         return tuple(self.values())
 
-
 class MoleculeType(object):
     def __init__(self):
         self._molecule = None
@@ -173,6 +172,7 @@ class RDKitMoleculeType(MoleculeType):
         assert isinstance(mol_type, str)
         self.molecule_type = mol_type
         self._features = None
+        self._atom_type_library = None
 
     @property
     def atoms(self):
@@ -215,11 +215,13 @@ dictionary.
         atom_dict['element'] = atom.GetSymbol()
         atom_dict['num_Hs'] = atom.GetTotalNumHs()
         monomer_info = atom.GetMonomerInfo()
-        atom_dict['pdb_name'] = monomer_info.GetName().strip()
-        atom_dict['pdb_occupancy'] = monomer_info.GetOccupancy()
-        atom_dict['pdb_residue_name'] = monomer_info.GetResidueName()
-        atom_dict['pdb_temp_factor'] = monomer_info.GetTempFactor()
+        if monomer_info:
+            atom_dict['pdb_name'] = monomer_info.GetName().strip()
+            atom_dict['pdb_occupancy'] = monomer_info.GetOccupancy()
+            atom_dict['pdb_residue_name'] = monomer_info.GetResidueName()
+            atom_dict['pdb_temp_factor'] = monomer_info.GetTempFactor()
 
+        atom_dict['rdkit_mol_idx'] = atom.GetIdx()
         return atom_dict
 
     def find_features(self, fdef="BaseFeatures.fdef"):
@@ -245,6 +247,46 @@ the molecule.
         self._features = features
 
 
+    def make_atom_type_library(self, type_name='rdkit_mol_idx'):
+
+        # initialize the library and names record
+        atom_lib = AtomTypeLibrary()
+        atom_names = {}
+        for atom_idx in range(self.molecule.GetNumAtoms()):
+            # make a new atom type
+            atom_type = AtomType(self.atom_data(atom_idx))
+            # and make a tentative name
+            atom_name = atom_type.__dict__[type_name]
+            # check to see if there is another atom in the library
+            # with the same name as the current one and if there is
+            # check to see if they have the same attributes
+            if atom_name in atom_names.keys() and \
+               not pka_atom_type_library.attributes_match([atom_type]):
+                # if they do increment the name count which will make
+                # the next entry have number at the end of the
+                # duplicate symbol
+                atom_names[atom_name] += 1
+            # if there is no atom type with this name initialize and
+            # entry in the names record
+            elif atom_name not in atom_names.keys():
+                atom_names[atom_name] = 0
+
+            # if there are multiple of the same name append the number
+            # to the type_name
+            if atom_names[atom_name] > 0:
+                atom_lib.add_atom_type(atom_type, atom_name + str(atom_names[atom_name]) )
+            # otherwise just give it the type_name
+            else:
+                atom_lib.add_atom_type(atom_type, atom_name)
+
+        return atom_lib
+
+    @property
+    def atom_type_library(self):
+        if self._atom_type_library is None:
+            self._atom_type_library = self.make_atom_type_library()
+        return self._atom_type_library
+
     def to_molecule(self, conformer_idx):
         """Construct a Molecule using a coordinates from a conformer of this
    rdchem.Mol.
@@ -263,15 +305,18 @@ the molecule.
             positions.append(position)
         positions = np.array(positions)
         coord_array = CoordArray(positions)
+
         # Make atoms out of the coord array
         atoms = []
         for atom_idx in atom_idxs:
-            # TODO additional encapsualtion of atom data needed
-            atom = Atom(atom_array=coord_array, array_idx=atom_idx)
+            atom_data = self.atom_type_library[atom_idx]
+            atom = Atom(atom_array=coord_array, array_idx=atom_idx, atom_type=atom_data)
             atoms.append(atom)
 
-        # TODO handle bonds
-        bonds = list(self.molecule.GetBonds())
+        # handle bonds
+        bonds = []
+        for bond in self.molecule.GetBonds():
+            bonds.append(Bond(atoms, (bond.GetBeginAtomIdx(), bond.GetEndAtomIdx())))
 
         # TODO handle and create angles
         angles = None
