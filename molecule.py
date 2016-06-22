@@ -8,7 +8,7 @@ import math
 from mast.selection import CoordArray, CoordArraySelection, \
     Point, IndexedSelection, SelectionDict, SelectionList, \
     SELECTION_REGISTRY, sel_reg_counter, \
-    SelectionType
+    SelectionType, SelectionTypeLibrary
 
 DIM_NUM_3D = 3
 
@@ -233,10 +233,10 @@ the molecule.
             # if there are multiple of the same name append the number
             # to the type_name
             if atom_names[atom_name] > 0:
-                atom_lib.add_atom_type(atom_type, atom_name + str(atom_names[atom_name]) )
+                atom_lib.add_type(atom_type, atom_name + str(atom_names[atom_name]) )
             # otherwise just give it the type_name
             else:
-                atom_lib.add_atom_type(atom_type, atom_name)
+                atom_lib.add_type(atom_type, atom_name)
 
         return atom_lib
 
@@ -280,7 +280,7 @@ the molecule.
         # TODO handle and create angles
         angles = None
 
-        return Molecule(atoms, bonds, angles, mol_type=self.molecule_type, external_mol_rep=(RDKitMoleculeType, self))
+        return Molecule(atoms, bonds, angles, mol_type=self, external_mol_rep=(RDKitMoleculeType, self))
 
 
 class Molecule(SelectionDict):
@@ -486,7 +486,7 @@ if __name__ == "__main__":
     # PKA = RDKitMoleculeType.create_molecule_type(pka, mol_type='PKA')
 
     # PKA = RDKitMoleculeType.create_molecule_type(
-    pka_type = RDKitMoleculeType(pka, mol_type="PKA")
+    pka_type = RDKitMoleculeType(pka, mol_name="PKA")
     print(pka_type)
 
     print("getting positions objects from rdchem.Mol for atoms")
@@ -504,15 +504,15 @@ if __name__ == "__main__":
 
         atom_name = atom_type.pdb_name
         if atom_name in atom_names.keys() and \
-           not pka_atom_type_library.attributes_match([atom_type]):
+           not pka_atom_type_library.attributes_match(atom_type):
             atom_names[atom_name] += 1
         elif atom_name not in atom_names.keys():
             atom_names[atom_name] = 0
 
         if atom_names[atom_name] > 0:
-            pka_atom_type_library.add_atom_type(atom_type, atom_name + str(atom_names[atom_name]) )
+            pka_atom_type_library.add_type(atom_type, atom_name + str(atom_names[atom_name]) )
         else:
-            pka_atom_type_library.add_atom_type(atom_type, atom_name)
+            pka_atom_type_library.add_type(atom_type, atom_name)
 
         coord = np.array([positions[atom_idx].x, positions[atom_idx].y, positions[atom_idx].z])
         atoms.append(Atom(coords=coord, atom_type=atom_type))

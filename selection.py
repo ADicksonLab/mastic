@@ -331,8 +331,8 @@ naming distinctions.
         assert issubclass(type(a_type), SelectionType), \
             "added types must be a subclass of SelectionType, not {}".format(
                 type(a_type))
-        assert isinstance(type_name, str), \
-            "type_name must be type str, not {}".format(type(type_name))
+        assert isinstance(type_name, str) or isinstance(type_name, int), \
+            "type_name must be type str or int, not {}".format(type(type_name))
 
         if type_name not in self.data.keys():
             self.data[type_name] = a_type
