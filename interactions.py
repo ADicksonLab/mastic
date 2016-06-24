@@ -29,7 +29,7 @@ class AssociationType(SelectionType):
 
 class SystemAssociation(Association):
     def __init__(self, members=None, association_type=None, system=None):
-        print(system, id(system))
+        # print(system, id(system))
         # print([bool(member in system) for member in members])
         # print([(member.molecule.system, id(member.molecule.system)) for member in members])
         # if all([(member in system) for member in members]):
@@ -123,8 +123,6 @@ class HydrogenBondType(InteractionType):
             try:
                 # if it succeeds add it to the list of H-Bonds
                 hbond = HydrogenBondInx(donor=donor_atom, H=h_atom, acceptor=acceptor_atom)
-                print("HIT")
-                print(hbond)
 
             # else continue to the next pairing
             except InteractionError:
@@ -152,13 +150,11 @@ respectively. Angle may be None if distance failed to qualify.
         if cls.check_angle(angle) is False:
             return (False, distance, angle)
 
-        print("check is True")
         return (True, distance, angle)
 
     @classmethod
     def check_distance(cls, distance):
         if distance < HBOND_DIST_MAX:
-            print("distance:{} HIT".format(distance))
             return True
         else:
             return False
@@ -166,7 +162,6 @@ respectively. Angle may be None if distance failed to qualify.
     @classmethod
     def check_angle(cls, angle):
         if angle < HBOND_DON_ANGLE_MIN:
-            print("angle: {} HIT".format(angle))
             return True
         else:
             return False
@@ -182,7 +177,6 @@ information about an about the interaction.
         if not interaction_type:
             interaction_type = InteractionType()
 
-        print(interaction_type, InteractionType)
         if not issubclass(interaction_type, InteractionType):
             raise TypeError(
                 "interaction_type must be a subclass of InteractionType, not {}".format(
@@ -230,7 +224,6 @@ distance = {3}
         self._acceptor = acceptor
         self._distance = distance
         self._angle = angle
-        print("ValueErrors passed")
     @property
     def donor(self):
         return self._donor
