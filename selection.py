@@ -39,6 +39,14 @@ class SelectionMember(object):
         # {selection_registry_id : id_in_selection}
         self.registry = {}
 
+        # TODO move this to a SystemMember class for mixing in later
+        self._in_system = False
+        # TODO turn this into a general method where the selections in
+        # the selection members registry are recursively searched for
+        # one that is true for _in_system. Currently implemented
+        # induvidually for each class I need for it.
+        self._system = None
+
     def __repr__(self):
         return str(self.__class__)
 
@@ -136,16 +144,11 @@ class SelectionList(SelectionMember, col.UserList):
                     type(selection_list))
             self.data = selection_list
 
-        # if values in the selection_dict are SelectionMembers update
+        # if values in the selection_list are SelectionMembers update
         # their registries
-        for key, value in enumerate(self.data):
-            try:
-                for member in value:
-                    if issubclass(type(member), SelectionMember):
-                        member.registry[self.sel_reg_id] = key
-            except TypeError:
-                if issubclass(type(value), SelectionMember):
-                    value.registry[self.sel_reg_id] = key
+        for idx, member in enumerate(self.data):
+            if issubclass(type(member), SelectionMember):
+                member.registry[self.sel_reg_id] = idx
 
     def __repr__(self):
         return str(self.__class__)
@@ -369,7 +372,7 @@ AtomType already in the library.
 if __name__ == "__main__":
 
     from mast.interactions import Association
-    
+
     # test GenericSelection
     gensel = GenericSelection([SelectionMember(None)])
     print(gensel)

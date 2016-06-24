@@ -29,6 +29,7 @@ class AssociationType(SelectionType):
 
 class SystemAssociation(Association):
     def __init__(self, members=None, association_type=None, system=None):
+        # TODO check to make sure that all the atoms are in the same system
         # print(system, id(system))
         # print([bool(member in system) for member in members])
         # print([(member.molecule.system, id(member.molecule.system)) for member in members])
@@ -39,14 +40,50 @@ class SystemAssociation(Association):
 
         super().__init__(association_list=members, association_type=association_type)
         self._system = system
+        self._interactions = None
 
     @property
     def system(self):
         return self._system
 
+    @property
+    def interactions(self):
+        return self._interactions
+
     def profile_interactions(self, interaction_types):
+        """Profiles all interactions of all features for everything in the
+association.
+
+        """
+        assert all([issubclass(itype, InteractionType) for itype in interaction_types]), \
+                   "All interaction_types must be a subclass of InteractionType"
+        # go through each interaction_type and check for hits
+        interactions = {}
         for interaction_type in interaction_types:
-            interaction_type()
+            # collect the specific features for each family
+            family_features = {}
+            for family in interaction_type.feature_families:
+                for member in self.members:
+                    try:
+                        family_features[family] = member.family_selections[family].values()
+                    except KeyError:
+                        print("No {0} features in {1} for profiling {2}".format(
+                            family, self, interaction_type))
+                        return None
+
+            # pass these to the check class method of the InteractionType
+            all_inxs = interaction_type.find_hits(**family_features)
+
+            # separate into intra- and inter-member interactions
+            for inx in all_inxs:
+                inx.members
+
+            intermember_interactions[str(interaction_type)]
+
+
+        self._interactions = intermember_interactions
+
+
 
 
 class InteractionType(AssociationType):
@@ -99,6 +136,7 @@ class HydrogenBondType(InteractionType):
 
     @classmethod
     def find_hits(cls, **kwargs):
+        """ Takes in key-word arguments for the donors and acceptor atoms"""
         # check that the keys ar okay in parent class
         super().find_hits(**kwargs)
 
@@ -275,39 +313,25 @@ if __name__ == "__main__":
     trypsys.find_features()
 
     print("finding Hbonds in BEN")
-    ben_hbonds = ben_mol.profile_interactions([HydrogenBondType])
+    ben_mol.profile_interactions([HydrogenBondType])
+    print(ben_mol.internal_interactions)
+
     print("finding Hbonds in trypsin")
-    tryp_hbonds = trypsin_mol.profile_interactions([HydrogenBondType])
+    trypsin_mol.profile_interactions([HydrogenBondType])
+    print(trypsin_mol.internal_interactions)
 
-    # print("making SystemAssociation for receptor-ligand complex")
-    # rec_lig_attrs = {}
-    # rec_lig_attrs['ligand_type'] = ben_type
-    # rec_lig_attrs['receptor_type'] = trypsin_type
-    # rec_lig_attrs['name'] = 'trypsin-benzamidine-complex'
-    # rec_lig_type = AssociationType(rec_lig_attrs)
-    # rec_lig_assoc = SystemAssociation(members=[trypsys[0],trypsys[1]],
-    #                                                  system=trypsys,
-    #                                   association_type=rec_lig_type)
-    # rec_lig_assoc = SystemAssociation(members=[trypsys[0],trypsys[1]],
-    #                                                  system=trypsys)
+    print("making SystemAssociation for receptor-ligand complex")
+    rec_lig_attrs = {}
+    rec_lig_attrs['ligand_type'] = ben_type
+    rec_lig_attrs['receptor_type'] = trypsin_type
+    rec_lig_attrs['name'] = 'trypsin-benzamidine-complex'
+    rec_lig_type = AssociationType(rec_lig_attrs)
+    rec_lig_assoc = SystemAssociation(members=[trypsys[0],trypsys[1]],
+                                                     system=trypsys,
+                                      association_type=rec_lig_type)
+    rec_lig_assoc = SystemAssociation(members=[trypsys[0],trypsys[1]],
+                                                     system=trypsys)
 
 
-    # print( "testing Hbond interaction between molecules")
-    # donors = ben_mol.family_selections['Donor']
-    # donor_keys = list(donors.keys())
-    # acceptors = trypsin_mol.family_selections['Acceptor']
-    # acceptor_keys = list(acceptors.keys())
-
-    # from itertools import product
-    # # test all pairs for if they are hydrogen bonded
-    # h_bonds = []
-    # distances = []
-    # for pair in product(donors.values(), acceptors.values()):
-    #     donor = pair[0]
-    #     acceptor = pair[1]
-    #     donor_Hs = [atom for atom in donor.adjacent_atoms if atom.atom_type.element == 'H']
-    #     distance = cdist(np.array([donor.coords]), np.array([acceptor.coords]))[0,0]
-    #     distances.append((distance, donor, acceptor))
-    #     if HydrogenBondType.check_distance(distance):
-    #         print("HIT")
-
+    print("testing Hbond interaction between molecules in the receptor ligand association")
+    rec_lig_inxs = rec_lig_assoc.profile_interactions([HydrogenBondType])

@@ -75,11 +75,13 @@ the same coordinate system.
             member._system = self
         self._system_type = system_type
         self._molecule_types = MoleculeTypeLibrary()
+        for member in members:
+            self._molecule_types.add_type(member.molecule_type, mol_name=member.molecule_type.name)
         self._system_associations = None
 
     def __repr__(self):
         return str(self.__class__)
-    
+
     @property
     def system_type(self):
         return self._system_type
@@ -133,20 +135,21 @@ if __name__ == "__main__":
     ben_mol = ben_type.to_molecule(0)
     trypsin_mol = trypsin_type.to_molecule(0)
 
+    from mast.system import System, SystemType
     print("making a SystemType")
     systype = SystemType({'name': 'trypsin-benzamidine-complex'})
     print("making a system")
     trpsys = System([ben_mol, trypsin_mol], system_type=systype)
     print(trpsys.system_type)
     print(trpsys.molecule_types)
+    print(ben_mol._in_system)
+    print(ben_mol.system)
+    print(trypsin_mol._in_system)
+    print(trypsin_mol.system)
     mols = trpsys.molecules
     print(mols)
     mol_sels = trpsys.molecules_sel
     print(mol_sels)
-    print("Associations:")
-    print(trpsys.associations)
-    print("Finding the system's features")
-    trpsys.find_features()
 
     from mast.interactions import AssociationType, SystemAssociation
     print("making AssociationType")

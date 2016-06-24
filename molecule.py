@@ -5,13 +5,10 @@ import os.path as osp
 from itertools import product
 import math
 
-import mast
-import mast.interactions
 from mast.selection import CoordArray, CoordArraySelection, \
     Point, IndexedSelection, SelectionDict, SelectionList, \
     SELECTION_REGISTRY, sel_reg_counter, \
     SelectionType, SelectionTypeLibrary
-
 from mast.interactions import InteractionType
 
 __all__ = ['Atom', 'AtomTypeLibrary', 'AtomType', 'Bond', 'MoleculeType', 'MoleculeTypeLibrary',
@@ -45,7 +42,7 @@ class Atom(Point):
 
 
     def __repr__(self):
-        return "Atom{0}{1}".format(self.atom_type, self.coords)
+        return str(self.__class__)
 
     @property
     def atom_type(self):
@@ -61,6 +58,23 @@ class Atom(Point):
                             None)
             assert molecule
             return molecule
+
+    @property
+    def system(self):
+        from mast.system import System
+
+        if self._in_system is False:
+            return None
+        elif self._in_molecule is False:
+            system = next((sel for sel in self.get_selections()
+                           if isinstance(sel, System)),
+                          None)
+            assert system
+            return system
+        else:
+            system = self.molecule.system
+            assert system
+            return system
 
     @property
     def bonds(self):
@@ -143,7 +157,7 @@ class MoleculeTypeLibrary(SelectionTypeLibrary):
 
     def add_type(self, mol_type, mol_name, rename=False):
         # type check that input types are MoleculeTypes
-        assert issubclass(type(mol_type)), \
+        assert issubclass(type(mol_type), MoleculeType), \
             "mol_type must be a subclass of MoleculeType, not {}".format(
                 type(mol_type))
         return super().add_type(mol_type, mol_name, rename=rename)
@@ -312,13 +326,12 @@ class Molecule(SelectionDict):
             raise TypeError("mol_input must be either a MoleculeType or a sequence of Atoms")
 
         super().__init__(selection_dict=molecule_dict)
-        self._in_system = False
-        self._system = None
         self._features = None
         self._feature_families = None
         self._feature_family_selections = None
         self._feature_types = None
         self._feature_type_selections = None
+        self._internal_interactions = None
         if mol_type is None:
             mol_type = MoleculeType({})
         self._molecule_type = mol_type
@@ -330,6 +343,8 @@ class Molecule(SelectionDict):
         # set that each atom is in a molecule now
         for atom in self.atoms:
             atom._in_molecule = True
+            if self._in_system is True:
+                atom._in_system = True
             self._atom_types.add_type(atom.atom_type, atom.atom_type.name, rename=True)
 
 
@@ -384,7 +399,15 @@ class Molecule(SelectionDict):
 
     @property
     def system(self):
-        return self._system
+        from mast.system import System
+        if self._in_system is False:
+            return None
+        else:
+            system = next((sel for sel in self.get_selections()
+                           if isinstance(sel, System)),
+                          None)
+            assert system
+            return system
 
     @property
     def external_mol_reps(self):
@@ -466,6 +489,10 @@ class Molecule(SelectionDict):
         import pandas as pd
         return pd.DataFrame(self.features, orient='index')
 
+    @property
+    def internal_interactions(self):
+        return self._internal_interactions
+
     def profile_interactions(self, interaction_types):
         assert all([issubclass(itype, InteractionType) for itype in interaction_types]), \
                    "All interaction_types must be a subclass of InteractionType"
@@ -475,17 +502,20 @@ class Molecule(SelectionDict):
             # collect the specific features for each family
             family_features = {}
             for family in interaction_type.feature_families:
+                # get the features from the molecule that are of the family
                 try:
                     family_features[family] = self.family_selections[family].values()
                 except KeyError:
+                    # if there is none of a feature family then the
+                    # interaction will not exist
                     print("No {0} features in {1} for profiling {2}".format(
                         family, self, interaction_type))
                     return None
 
-            # pass these to the check class method of the InteractionType
+            # pass these to the find_hits method of the InteractionType
             interactions[str(interaction_type)] = interaction_type.find_hits(**family_features)
 
-        return interactions
+        self._internal_interactions = interactions
 
 if __name__ == "__main__":
 
@@ -539,6 +569,7 @@ if __name__ == "__main__":
     atoms = []
     pka_atom_type_library = AtomTypeLibrary()
     for atom_idx in range(len(pka_type.atoms)):
+        
         atom_type = AtomType(pka_type.atom_data(atom_idx))
         atom_types.append(atom_type)
 
