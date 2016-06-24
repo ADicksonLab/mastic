@@ -1,22 +1,82 @@
 """ The interactions module. """
 
+from itertools import product
+
 from scipy.spatial.distance import cdist
 import numpy as np
 import numpy.linalg as la
 
-from mast.selection import AssociationType
-from mast.system import SystemAssociation, System
+from mast.selection import SelectionList, SelectionType
 
 __all__ = ['Interaction', 'HydrogenBondInx',
            'InteractionType', 'HydrogenBondType']
+class InteractionError(Exception):
+    pass
+
+class Association(SelectionList):
+    def __init__(self, association_list=None, association_type=None):
+        super().__init__(selection_list=association_list)
+        self._association_type = association_type
+
+    @property
+    def association_type(self):
+        return self._association_type
+
+
+class AssociationType(SelectionType):
+    def __init__(self, assoc_dict=None):
+        super().__init__(attr_dict=assoc_dict)
+
+class SystemAssociation(Association):
+    def __init__(self, members=None, association_type=None, system=None):
+        print(system, id(system))
+        # print([bool(member in system) for member in members])
+        # print([(member.molecule.system, id(member.molecule.system)) for member in members])
+        # if all([(member in system) for member in members]):
+        #     super().__init__(association_list=members, association_type=association_type)
+        # else:
+        #     raise ValueError("Members of a SystemAssociation must all be in the same system")
+
+        super().__init__(association_list=members, association_type=association_type)
+        self._system = system
+
+    @property
+    def system(self):
+        return self._system
+
+    def profile_interactions(self, interaction_types):
+        for interaction_type in interaction_types:
+            interaction_type()
+
 
 class InteractionType(AssociationType):
     """ Prototype class for all intermolecular interactions."""
-    def __init__(self, description=None):
-        super().__init__(description=description)
+    def __init__(self, inx_attrs=None):
+        super().__init__(attr_dict=inx_attrs)
         self._feature_families = None
         self._feature_types = None
 
+    @classmethod
+    def check(cls, *args, **kwargs):
+        raise NotImplementedError
+
+    @classmethod
+    def find_hits(cls, **kwargs):
+        # make sure all the necessary key word argument families were passed
+        for family in cls._feature_families:
+            assert family in kwargs.keys(), \
+                "{0} feature family must be in keyword arguments".format(
+                    family)
+        # make sure there are no extra key word argument families
+        for key in kwargs:
+            assert key in cls._feature_families, \
+                "{0} is not a feature needed for finding hits for {1}".format(
+                    key, cls)
+
+
+# from the RDKit feature definition database (.fdef)
+HBOND_FEATURE_FAMILIES = ['Donor', 'Acceptor']
+HBOND_FEATURE_TYPES = []
 # Max. distance between hydrogen bond donor and acceptor (Hubbard & Haider, 2001) + 0.6 A
 HBOND_DIST_MAX = 4.1
 # Min. angle at the hydrogen bond donor (Hubbard & Haider, 2001) + 10
@@ -24,26 +84,81 @@ HBOND_DON_ANGLE_MIN = 100
 class HydrogenBondType(InteractionType):
     """ Class for checking validity of a HydrogenBondInx."""
 
+    def __init__(self, hbond_attrs=None):
+        super().__init__(attr_dict=hbond_attrs)
+
+    _feature_families = HBOND_FEATURE_FAMILIES
+    feature_families = _feature_families
+    _donor_key = 'Donor'
+    _acceptor_key = 'Acceptor'
+    _feature_types = HBOND_FEATURE_TYPES
+    feature_type = _feature_types
+
+    def __repr__(self):
+        return "HydrogenBond"
+
+    @classmethod
+    def find_hits(cls, **kwargs):
+        # check that the keys ar okay in parent class
+        super().find_hits(**kwargs)
+
+        # Hbond specific stuff
+        donors = kwargs[cls._donor_key]
+        acceptors = kwargs[cls._acceptor_key]
+        donor_Hs = []
+        # find Hs for all donors and make Donor-H pairs
+        for donor in donors:
+            Hs = [atom for atom in donor.adjacent_atoms if
+                        atom.atom_type.element == 'H']
+            for H in Hs:
+                donor_Hs.append((donor, H))
+        # make pairs of Donor-H and acceptors
+        hits = []
+        pairs = product(donor_Hs, acceptors)
+        for pair in pairs:
+            donor_atom = pair[0][0]
+            h_atom = pair[0][1]
+            acceptor_atom = pair[1]
+            # try to make a HydrogenBondInx object, which calls check
+            try:
+                # if it succeeds add it to the list of H-Bonds
+                hbond = HydrogenBondInx(donor=donor_atom, H=h_atom, acceptor=acceptor_atom)
+                print("HIT")
+                print(hbond)
+
+            # else continue to the next pairing
+            except InteractionError:
+                continue
+
+            hits.append(hbond)
+
+        return hits
+
     @classmethod
     def check(cls, donor_atom, h_atom, acceptor_atom):
+        """Checks if the 3 atoms qualify as a hydrogen bond. Returns a tuple
+(bool, float, float) where the first element is whether or not it
+qualified, the second and third are the distance and angle
+respectively. Angle may be None if distance failed to qualify.
+
+        """
         distance = cdist(np.array([donor_atom.coords]), np.array([acceptor_atom.coords]))[0,0]
-        print("distance:", distance)
-        if not cls.check_distance(distance):
-            return False
+        if cls.check_distance(distance) is False:
+            return (False, distance, None)
 
         v1 = donor_atom.coords + h_atom.coords
         v2 = h_atom.coords + acceptor_atom.coords
         angle = np.arccos(np.dot(v1,v2)/(la.norm(v1) * la.norm(v2)))
-        print("angle:", angle)
-        if not cls.check_angle(angle):
-            return False
+        if cls.check_angle(angle) is False:
+            return (False, distance, angle)
 
-        return True
+        print("check is True")
+        return (True, distance, angle)
 
     @classmethod
     def check_distance(cls, distance):
         if distance < HBOND_DIST_MAX:
-            print("distance HIT")
+            print("distance:{} HIT".format(distance))
             return True
         else:
             return False
@@ -51,7 +166,7 @@ class HydrogenBondType(InteractionType):
     @classmethod
     def check_angle(cls, angle):
         if angle < HBOND_DON_ANGLE_MIN:
-            print("angle HIT")
+            print("angle: {} HIT".format(angle))
             return True
         else:
             return False
@@ -62,12 +177,13 @@ information about an about the interaction.
 
     """
 
-    def __init__(self, members=None, interaction_type=None):
-        super().__init__(members=members)
+    def __init__(self, members=None, interaction_type=None, system=None):
+        super().__init__(members=members, system=system)
         if not interaction_type:
             interaction_type = InteractionType()
 
-        if not issubclass(type(interaction_type), InteractionType):
+        print(interaction_type, InteractionType)
+        if not issubclass(interaction_type, InteractionType):
             raise TypeError(
                 "interaction_type must be a subclass of InteractionType, not {}".format(
                 type(interaction_type)))
@@ -82,40 +198,46 @@ class HydrogenBondInx(Interaction):
 
     """
 
-    def __init__(self, donor=None, acceptor=None):
-        description = "Hydrogen-Bond Interaction"
+    def __init__(self, donor=None, H=None, acceptor=None):
 
-        # TODO get the distances
-        distance=None
-        angle=None
+        okay, distance, angle = HydrogenBondType.check(donor, H, acceptor)
+        if not okay:
+            if angle is None:
+                raise InteractionError(
+                    """donor: {0}
+H: {1}
+acceptor: {2}
+distance = {3} FAILED
+                    angle = not calculated""".format(donor, H, acceptor, distance))
 
-        super().__init__()
-        # type checking of these using HydrogenBondType
+            else:
+                raise InteractionError(
+                    """donor: {0}
+H: {1}
+acceptor: {2}
+distance = {3}
+                    angle = {4} FAILED""".format(donor, H, acceptor, distance, angle))
+
+        # success, finish creating interaction
+
+        atom_system = donor.molecule.system
+        super().__init__(members=[donor,H,acceptor],
+                         interaction_type=HydrogenBondType,
+                         system=atom_system)
         self._interaction_type = HydrogenBondType
-
-        try:
-            if HydrogenBondType.donor(donor):
-                self._donor = donor
-            else:
-                raise ValueError("Donor, {}, is not valid".format(donor))
-            if HydrogenBondType.acceptor(acceptor):
-                self._acceptor = acceptor
-            else:
-                raise ValueError("Acceptor, {}, is not valid".format(acceptor))
-            if HydrogenBondType.distance(distance):
-                self._distance = distance
-            else:
-                raise ValueError("distance, {}, is not valid".format(distance))
-            if HydrogenBondType.angle(angle):
-                self._angle = angle
-            else:
-                raise ValueError("Angle, {}, is not valid".format(angle))
-        except ValueError:
-            print("not a HydrogenBondType Interaction")
-
+        self._donor = donor
+        self._H = H
+        self._acceptor = acceptor
+        self._distance = distance
+        self._angle = angle
+        print("ValueErrors passed")
     @property
     def donor(self):
         return self._donor
+
+    @property
+    def H(self):
+        return self._H
 
     @property
     def acceptor(self):
@@ -136,59 +258,63 @@ if __name__ == "__main__":
     import os.path as osp
     from copy import copy
 
+    from mast.interactions import HydrogenBondType, InteractionType
+
     trypsin_dir = osp.expanduser("~/Dropbox/lab/trypsin")
-    trypsin_pdb_path = osp.join(trypsin_dir, "trypsin.pdb")
-    trypsin = Chem.MolFromPDBFile(trypsin_pdb_path, removeHs=False)
-    # trypsin = Chem.AddHs(trypsin)
-    ben_pdb_path = osp.join(trypsin_dir, "BEN.pdb")
-    ben = Chem.MolFromPDBFile(ben_pdb_path, removeHs=False)
-    ben = Chem.AddHs(ben)
-    ben_Hs_embed = copy(ben)
-    # AllChem.EmbedMolecule(ben)
-    # AllChem.UFFOptimizeMolecule(ben_Hs)
+    trypsin_pdb_path = osp.join(trypsin_dir,  "trypsin_Hs.pdb")
+    trypsin = Chem.MolFromPDBFile(trypsin_pdb_path, removeHs=False, sanitize=False)
+    ben_pdb_path = osp.join(trypsin_dir, "BEN_Hs.pdb")
+    ben = Chem.MolFromPDBFile(ben_pdb_path, removeHs=False, sanitize=False)
 
     from mast.molecule import RDKitMoleculeType
 
     print("loading RDKit molecules")
-    trypsin_type = RDKitMoleculeType(trypsin, mol_type="trypsin")
-    ben_type = RDKitMoleculeType(ben, mol_type="BEN")
+    trypsin_type = RDKitMoleculeType(trypsin, mol_name="trypsin")
+    ben_type = RDKitMoleculeType(ben, mol_name="BEN")
     print("loading into mast.Molecules")
     ben_mol = ben_type.to_molecule(0)
     trypsin_mol = trypsin_type.to_molecule(0)
 
-    print("making a system")
-    tryp_sys = System([ben_mol, trypsin_mol])
+    from mast.system import System
+    print( "making a system")
+    trypsys = System([ben_mol, trypsin_mol])
+    print("finding all features")
+    trypsys.find_features()
 
-    print("making SystemAssociation")
-    rec_lig_assoc = SystemAssociation(members=[tryp_sys[0],tryp_sys[1]],
-                                                     system=tryp_sys)
+    print("finding Hbonds in BEN")
+    ben_hbonds = ben_mol.profile_interactions([HydrogenBondType])
+    print("finding Hbonds in trypsin")
+    tryp_hbonds = trypsin_mol.profile_interactions([HydrogenBondType])
 
-    print("finding BEN features")
-    ben_mol.find_features()
-    print(ben_mol.feature_families)
-    print(ben_mol.feature_types)
-    print(ben_mol.family_selections)
-    print(ben_mol.type_selections)
-    # error in my environment that doesn't allow for pandas
-    # print(ben_mol.feature_dataframe)
-    print("finding trypsin features")
-    trypsin_mol.find_features()
+    # print("making SystemAssociation for receptor-ligand complex")
+    # rec_lig_attrs = {}
+    # rec_lig_attrs['ligand_type'] = ben_type
+    # rec_lig_attrs['receptor_type'] = trypsin_type
+    # rec_lig_attrs['name'] = 'trypsin-benzamidine-complex'
+    # rec_lig_type = AssociationType(rec_lig_attrs)
+    # rec_lig_assoc = SystemAssociation(members=[trypsys[0],trypsys[1]],
+    #                                                  system=trypsys,
+    #                                   association_type=rec_lig_type)
+    # rec_lig_assoc = SystemAssociation(members=[trypsys[0],trypsys[1]],
+    #                                                  system=trypsys)
 
-    print("testing an Hbond interaction")
-    donors = ben_mol.family_selections['Donor']
-    donor_keys = list(donors.keys())
-    acceptors = trypsin_mol.family_selections['Acceptor']
-    acceptor_keys = list(acceptors.keys())
 
-    from itertools import product
-    # test all pairs for if they are hydrogen bonded
-    h_bonds = []
-    for pair in product(donors.values(), acceptors.values()):
-        donor = pair[0]
-        acceptor = pair[1]
-        donor_Hs = [atom for atom in donor.adjacent_atoms if atom.atom_type.element == 'H']
-        distance = cdist(np.array([donor.coords]), np.array([acceptor.coords]))[0,0]
-        print(distance)
-        if HydrogenBondType.check_distance(distance):
-            print("HIT")
+    # print( "testing Hbond interaction between molecules")
+    # donors = ben_mol.family_selections['Donor']
+    # donor_keys = list(donors.keys())
+    # acceptors = trypsin_mol.family_selections['Acceptor']
+    # acceptor_keys = list(acceptors.keys())
+
+    # from itertools import product
+    # # test all pairs for if they are hydrogen bonded
+    # h_bonds = []
+    # distances = []
+    # for pair in product(donors.values(), acceptors.values()):
+    #     donor = pair[0]
+    #     acceptor = pair[1]
+    #     donor_Hs = [atom for atom in donor.adjacent_atoms if atom.atom_type.element == 'H']
+    #     distance = cdist(np.array([donor.coords]), np.array([acceptor.coords]))[0,0]
+    #     distances.append((distance, donor, acceptor))
+    #     if HydrogenBondType.check_distance(distance):
+    #         print("HIT")
 

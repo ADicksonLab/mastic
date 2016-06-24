@@ -8,7 +8,9 @@ from itertools import product
 
 __all__ = ['SelectionMember', 'GenericSelection', 'IndexedSelection',
            'SelectionDict', 'SelectionList', 'CoordArray',
-           'CoordArraySelection', 'Point', 'SELECTION_REGISTRY', 'sel_reg_counter']
+           'CoordArraySelection', 'SelectionType', 'SelectionTypeLibrary',
+           'Association', 'AssociationType', 'Point',
+           'SELECTION_REGISTRY', 'sel_reg_counter']
 
 SELECTION_REGISTRY = {}
 sel_reg_counter = 0
@@ -38,7 +40,7 @@ class SelectionMember(object):
         self.registry = {}
 
     def __repr__(self):
-        return self.member.__repr__()
+        return str(self.__class__)
 
     def get_selections(self):
         global SELECTION_REGISTRY
@@ -58,7 +60,8 @@ class GenericSelection(SelectionMember, col.UserDict, ty.Mapping[SelectionIDs, S
         self.sel_ids = SelectionIDs
 
     def __repr__(self):
-        return "{0}[{1}]".format(self.container, self.sel_ids)
+        return str(self.__class__)
+        # return "{0}[{1}]".format(self.container, self.sel_ids)
 
 class IndexedSelection(GenericSelection[int, Selected]):
     def __init__(self, container: ty.Sequence, sel: ty.Sequence[int]):
@@ -78,7 +81,7 @@ class IndexedSelection(GenericSelection[int, Selected]):
             self[sel_idx].registry[self.sel_reg_id] = sel_idx
 
     def __repr__(self):
-        return str(dict(self))
+        return str(self.__class__)
 
 class SelectionDict(SelectionMember, col.UserDict):
     """Creates a dictionary of collections of SelectionMembers.
@@ -114,7 +117,7 @@ e.g. {'strings' : [StringSelection, StringSelection] 'ints' :
                     value.registry[self.sel_reg_id] = key
 
     def __repr__(self):
-        return str(self.data)
+        return str(self.__class__)
 
 
 class SelectionList(SelectionMember, col.UserList):
@@ -145,7 +148,7 @@ class SelectionList(SelectionMember, col.UserList):
                     value.registry[self.sel_reg_id] = key
 
     def __repr__(self):
-        return str(self.data)
+        return str(self.__class__)
 
 class CoordArray(SelectionMember):
     def __init__(self, array):
@@ -220,7 +223,7 @@ class CoordArraySelection(GenericSelection[int, np.ndarray]):
             self.container.registry[self.sel_reg_id] = sel_idx
 
     def __repr__(self):
-        return str(dict(self))
+        return str(self.__class__)
 
     @property
     def _coords(self):
@@ -274,22 +277,6 @@ class Point(CoordArraySelection):
             "Other must be a subclass of Point, not {}".format(type(other))
         return np.any(np.isclose(self.coords, other.coords))
 
-class Association(SelectionList):
-    def __init__(self, association_list=None, association_type=None):
-        super().__init__(selection_list=association_list)
-        self._association_type = association_type
-
-    @property
-    def association_type(self):
-        return self._association_type
-
-class AssociationType(object):
-    def __init__(self, description=None):
-        self._description = description
-
-    @property
-    def description(self):
-        return self._description
 
 class SelectionType(object):
     """Base type for other Types."""
@@ -379,8 +366,10 @@ AtomType already in the library.
                     return True
         return False
 
-
 if __name__ == "__main__":
+
+    from mast.interactions import Association
+    
     # test GenericSelection
     gensel = GenericSelection([SelectionMember(None)])
     print(gensel)

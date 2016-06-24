@@ -5,10 +5,17 @@ import os.path as osp
 from itertools import product
 import math
 
+import mast
+import mast.interactions
 from mast.selection import CoordArray, CoordArraySelection, \
     Point, IndexedSelection, SelectionDict, SelectionList, \
     SELECTION_REGISTRY, sel_reg_counter, \
     SelectionType, SelectionTypeLibrary
+
+from mast.interactions import InteractionType
+
+__all__ = ['Atom', 'AtomTypeLibrary', 'AtomType', 'Bond', 'MoleculeType', 'MoleculeTypeLibrary',
+           'RDKitMoleculeType', 'Molecule', ]
 
 DIM_NUM_3D = 3
 
@@ -306,6 +313,7 @@ class Molecule(SelectionDict):
 
         super().__init__(selection_dict=molecule_dict)
         self._in_system = False
+        self._system = None
         self._features = None
         self._feature_families = None
         self._feature_family_selections = None
@@ -373,6 +381,10 @@ class Molecule(SelectionDict):
     @property
     def angles(self):
         return self.data['angles']
+
+    @property
+    def system(self):
+        return self._system
 
     @property
     def external_mol_reps(self):
@@ -454,6 +466,26 @@ class Molecule(SelectionDict):
         import pandas as pd
         return pd.DataFrame(self.features, orient='index')
 
+    def profile_interactions(self, interaction_types):
+        assert all([issubclass(itype, InteractionType) for itype in interaction_types]), \
+                   "All interaction_types must be a subclass of InteractionType"
+        # go through each interaction_type and check for hits
+        interactions = {}
+        for interaction_type in interaction_types:
+            # collect the specific features for each family
+            family_features = {}
+            for family in interaction_type.feature_families:
+                try:
+                    family_features[family] = self.family_selections[family].values()
+                except KeyError:
+                    print("No {0} features in {1} for profiling {2}".format(
+                        family, self, interaction_type))
+                    return None
+
+            # pass these to the check class method of the InteractionType
+            interactions[str(interaction_type)] = interaction_type.find_hits(**family_features)
+
+        return interactions
 
 if __name__ == "__main__":
 

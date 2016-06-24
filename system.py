@@ -2,9 +2,11 @@
 from itertools import product, combinations
 import collections as col
 
-from mast.selection import SelectionList, Association, IndexedSelection, \
+from mast.selection import SelectionList, IndexedSelection, \
     SelectionType, SelectionTypeLibrary
 from mast.molecule import Atom, Molecule, MoleculeTypeLibrary, MoleculeType
+
+__all__ = ['overlaps', 'SystemType', 'System', 'SystemAssociation']
 
 def overlaps(members):
     """Check to see if members overlap.
@@ -63,17 +65,21 @@ the same coordinate system.
             "molecule system members cannot be overlapping"
 
         if system_type:
-            assert issubclass(system_type, SystemType), \
+            assert issubclass(type(system_type), SystemType), \
                 "system_type must be a subclass of SystemType, not {}".format(
                     type(system_type))
 
         super().__init__(selection_list=members)
-        for member in member:
+        for member in members:
             member._in_system = True
+            member._system = self
         self._system_type = system_type
         self._molecule_types = MoleculeTypeLibrary()
         self._system_associations = None
 
+    def __repr__(self):
+        return str(self.__class__)
+    
     @property
     def system_type(self):
         return self._system_type
@@ -105,43 +111,24 @@ the same coordinate system.
     def find_features(self):
         """Find features in all members of the system. Currently only molecules."""
 
-        for mol in molecules:
+        for mol in self.molecules:
             mol.find_features()
-
-class SystemAssociation(Association):
-    def __init__(self, members=None, association_type=None, system=None):
-
-        if all([(mol in system) for mol in members]):
-            super().__init__(association_list=members, association_type=association_type)
-        else:
-            raise ValueError("Members of a SystemAssociation must all be in the same system")
-
-        self._system = system
-
-    @property
-    def system(self):
-        return self._system
-
-    def profile_interactions(self, interaction_types):
-        for interaction_type in interaction_types:
-            interaction_type()
-
 
 if __name__ == "__main__":
 
     from rdkit import Chem
     import os.path as osp
     trypsin_dir = osp.expanduser("~/Dropbox/lab/trypsin")
-    trypsin_pdb_path = osp.join(trypsin_dir, "trypsin.pdb")
-    trypsin = Chem.MolFromPDBFile(trypsin_pdb_path, removeHs=False)
-    ben_pdb_path = osp.join(trypsin_dir, "BEN.pdb")
-    ben = Chem.MolFromPDBFile(ben_pdb_path, removeHs=False)
+    trypsin_pdb_path = osp.join(trypsin_dir, "trypsin_Hs.pdb")
+    trypsin = Chem.MolFromPDBFile(trypsin_pdb_path, removeHs=False, sanitize=False)
+    ben_pdb_path = osp.join(trypsin_dir, "BEN_Hs.pdb")
+    ben = Chem.MolFromPDBFile(ben_pdb_path, removeHs=False, sanitize=False)
 
     from mast.molecule import RDKitMoleculeType
 
     print("loading RDKit molecules")
-    trypsin_type = RDKitMoleculeType(trypsin, mol_type="trypsin")
-    ben_type = RDKitMoleculeType(ben, mol_type="BEN")
+    trypsin_type = RDKitMoleculeType(trypsin, mol_name="trypsin")
+    ben_type = RDKitMoleculeType(ben, mol_name="BEN")
     print("loading into mast.Molecules")
     ben_mol = ben_type.to_molecule(0)
     trypsin_mol = trypsin_type.to_molecule(0)
@@ -149,20 +136,32 @@ if __name__ == "__main__":
     print("making a SystemType")
     systype = SystemType({'name': 'trypsin-benzamidine-complex'})
     print("making a system")
-    tryp_sys = System([ben_mol, trypsin_mol], system_type=systype)
+    trpsys = System([ben_mol, trypsin_mol], system_type=systype)
+    print(trpsys.system_type)
+    print(trpsys.molecule_types)
+    mols = trpsys.molecules
+    print(mols)
+    mol_sels = trpsys.molecules_sel
+    print(mol_sels)
+    print("Associations:")
+    print(trpsys.associations)
+    print("Finding the system's features")
+    trpsys.find_features()
 
+    from mast.interactions import AssociationType, SystemAssociation
+    print("making AssociationType")
+    rec_lig_attrs = {}
+    rec_lig_attrs['ligand_type'] = ben_type
+    rec_lig_attrs['receptor_type'] = trypsin_type
+    rec_lig_attrs['name'] = 'trypsin-benzamidine-complex'
+    rec_lig_type = AssociationType(rec_lig_attrs)
+    print(rec_lig_type)
     print("making SystemAssociation")
-    rec_lig_assoc = SystemAssociation(members=[tryp_sys[0],tryp_sys[1]],
-                                                     system=tryp_sys)
-
-
-    ligand = IndexedSelection(rec_lig_assoc, [0])
-    receptor = IndexedSelection(rec_lig_assoc, [1])
+    rec_lig_assoc = SystemAssociation(members=[trpsys[0],trpsys[1]],
+                                                     system=trpsys,
+                                      association_type=rec_lig_type)
 
     print(rec_lig_assoc[0].registry)
     print(rec_lig_assoc[1].registry)
-    print(rec_lig_assoc[0].get_selections())
 
-    print("finding BEN features")
-    ben_mol.find_features()
 
