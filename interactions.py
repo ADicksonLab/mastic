@@ -1,11 +1,12 @@
 """ The interactions module. """
 
-from itertools import product
+from itertools import product, combinations
 
 from scipy.spatial.distance import cdist
 import numpy as np
 import numpy.linalg as la
 
+import mast
 from mast.selection import SelectionList, SelectionType
 
 __all__ = ['Interaction', 'HydrogenBondInx',
@@ -50,11 +51,12 @@ class SystemAssociation(Association):
     def interactions(self):
         return self._interactions
 
-    def profile_interactions(self, interaction_types):
+    def profile_interactions(self, interaction_types, between=mast.Molecule):
         """Profiles all interactions of all features for everything in the
 association.
 
         """
+
         assert all([issubclass(itype, InteractionType) for itype in interaction_types]), \
                    "All interaction_types must be a subclass of InteractionType"
         # go through each interaction_type and check for hits
@@ -75,16 +77,27 @@ association.
             all_inxs = interaction_type.find_hits(**family_features)
 
             # separate into intra- and inter-member interactions
+            intramember_inxs = []
+            intermember_inxs = []
             for inx in all_inxs:
-                inx.members
+                # get the selections of type `between`
+                selections = []
+                for member in inx.members:
+                    selections.append([selection for member in member.get_selections()
+                                  if isinstance(selection, between)])
 
-            intermember_interactions[str(interaction_type)]
+                # if they are all in the same selection they are in
+                # the same member
+                if all([pair for pair in combinations(selections, 2)
+                                            if pair[0] is pair[1]]):
+                    intramember_inxs.append(inx)
+                else:
+                    intermember_inxs.append(inx)
 
+        # TODO handle the intramember_interactions
 
+        # set the interactions for only the intermember interactions
         self._interactions = intermember_interactions
-
-
-
 
 class InteractionType(AssociationType):
     """ Prototype class for all intermolecular interactions."""
