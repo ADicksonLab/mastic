@@ -7,6 +7,7 @@ import numpy as np
 import numpy.linalg as la
 
 import mast
+import mast.molecule
 from mast.selection import SelectionList, SelectionType
 
 __all__ = ['Interaction', 'HydrogenBondInx',
@@ -51,7 +52,7 @@ class SystemAssociation(Association):
     def interactions(self):
         return self._interactions
 
-    def profile_interactions(self, interaction_types, between=mast.Molecule):
+    def profile_interactions(self, interaction_types, between=None):
         """Profiles all interactions of all features for everything in the
 association.
 
@@ -65,13 +66,11 @@ association.
             # collect the specific features for each family
             family_features = {}
             for family in interaction_type.feature_families:
-                for member in self.members:
+                for member in self:
                     try:
                         family_features[family] = member.family_selections[family].values()
                     except KeyError:
-                        print("No {0} features in {1} for profiling {2}".format(
-                            family, self, interaction_type))
-                        return None
+                        continue
 
             # pass these to the check class method of the InteractionType
             all_inxs = interaction_type.find_hits(**family_features)
@@ -82,7 +81,7 @@ association.
             for inx in all_inxs:
                 # get the selections of type `between`
                 selections = []
-                for member in inx.members:
+                for member in inx:
                     selections.append([selection for member in member.get_selections()
                                   if isinstance(selection, between)])
 
@@ -346,5 +345,6 @@ if __name__ == "__main__":
                                                      system=trypsys)
 
 
+    from mast.molecule import Molecule
     print("testing Hbond interaction between molecules in the receptor ligand association")
-    rec_lig_inxs = rec_lig_assoc.profile_interactions([HydrogenBondType])
+    rec_lig_assoc.profile_interactions([HydrogenBondType], between=Molecule)

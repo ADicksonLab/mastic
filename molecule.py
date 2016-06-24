@@ -84,8 +84,17 @@ class Atom(Point):
             # TODO really weird bug where isinstance(Molecule(), Bond)
             # evaluates to True!!!! Need to find out why that is. For
             # now just test to make sure it is not a Molecule
-            bonds = [sel for sel in self.get_selections() \
-                     if (isinstance(sel, Bond) and not isinstance(sel, Molecule))]
+            print("WE IN HERE")
+            print(self)
+            print(Bond)
+            print(Molecule)
+            print(self.get_selections())
+            bonds = []
+            for sel in self.get_selections():
+                print(sel)
+                if isinstance(sel, Bond):
+                    if not isinstance(sel, Molecule):
+                        bonds.append(sel)
 
             assert bonds
             return bonds
@@ -102,7 +111,7 @@ class Atom(Point):
             curr_atom = bond[curr_atom_idx]
             other_atom_idx = next((idx for idx in bond.keys() if idx != curr_atom_idx), None)
             other_atom = bond[other_atom_idx]
-            assert curr_atom is not other_atom, "Cannot be bound to itself"
+            assert curr_atom is not other_atom, "{} cannot be bound to itself".format(self)
             adjacent_atoms.append(other_atom)
         return adjacent_atoms
 
