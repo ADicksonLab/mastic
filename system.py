@@ -1,5 +1,4 @@
 """ The system module. """
-from itertools import product, combinations
 import collections as col
 
 from mast.selection import SelectionList, IndexedSelection, \
@@ -13,6 +12,7 @@ def overlaps(members):
 
     """
 
+    from itertools import combinations
     pairs = combinations(members, 2)
     try:
         pair = next(pairs)

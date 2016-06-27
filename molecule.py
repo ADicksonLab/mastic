@@ -1,9 +1,6 @@
 import numpy as np
 import collections as col
-from functools import reduce
 import os.path as osp
-from itertools import product
-import math
 
 from mast.selection import CoordArray, CoordArraySelection, \
     Point, IndexedSelection, SelectionDict, SelectionList, \
@@ -456,6 +453,8 @@ class Molecule(SelectionDict):
         assert isinstance(other, Molecule), \
             "Other must be type Molecule, not {}".format(type(other))
 
+        from itertools import product
+        
         pairs = product(self.atoms, other.atoms)
         try:
             pair = next(pairs)

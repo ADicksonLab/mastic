@@ -1,8 +1,4 @@
 """ The interactions module. """
-
-from itertools import product, combinations
-
-from scipy.spatial.distance import cdist
 import numpy as np
 import numpy.linalg as la
 
@@ -57,6 +53,8 @@ association. the between flag sets the inter-selection interactions to be profil
 E.g.: association.profile_interactions([HydrogenBondType], between=Molecule)
 
         """
+        from itertools import combinations
+
         assert not between is None, "between must be provided"
         assert all([issubclass(itype, InteractionType) for itype in interaction_types]), \
                    "All interaction_types must be a subclass of InteractionType"
@@ -151,6 +149,7 @@ class HydrogenBondType(InteractionType):
     @classmethod
     def find_hits(cls, **kwargs):
         """ Takes in key-word arguments for the donors and acceptor atoms"""
+        from itertools import product
         # check that the keys ar okay in parent class
         super().find_hits(**kwargs)
 
@@ -192,6 +191,7 @@ qualified, the second and third are the distance and angle
 respectively. Angle may be None if distance failed to qualify.
 
         """
+        from scipy.spatial.distance import cdist
         distance = cdist(np.array([donor_atom.coords]), np.array([acceptor_atom.coords]))[0,0]
         if cls.check_distance(distance) is False:
             return (False, distance, None)
@@ -213,6 +213,7 @@ respectively. Angle may be None if distance failed to qualify.
 
     @classmethod
     def check_angle(cls, angle):
+        # TODO should it be less than a value as well?
         if angle > HBOND_DON_ANGLE_MIN:
             return True
         else:

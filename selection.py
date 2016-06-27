@@ -1,10 +1,7 @@
 import numpy as np
 import collections as col
-import typing as ty
 import collections.abc as colabc
 from copy import copy
-from functools import reduce, partial
-from itertools import product
 
 __all__ = ['SelectionMember', 'GenericSelection', 'IndexedSelection',
            'SelectionDict', 'SelectionList', 'CoordArray',
@@ -54,10 +51,8 @@ class SelectionMember(object):
         global SELECTION_REGISTRY
         return [SELECTION_REGISTRY[sel_id] for sel_id in self.registry.keys()]
 
-Selected = ty.TypeVar('Selected')
-SelectionIDs = ty.TypeVar('SelectionIDs')
 class GenericSelection(SelectionMember, col.UserDict):
-    def __init__(self, container: ty.Container):
+    def __init__(self, container):
         super().__init__(self)
         assert '__getitem__' in dir(container), \
             "container must implement `__getitem__`, {} does not".format(
@@ -65,14 +60,14 @@ class GenericSelection(SelectionMember, col.UserDict):
         assert container, "container must have at least one SelectionMember element"
 
         self.container = container
-        self.sel_ids = SelectionIDs
+        # self.sel_ids = SelectionIDs
 
     def __repr__(self):
         return str(self.__class__)
         # return "{0}[{1}]".format(self.container, self.sel_ids)
 
 class IndexedSelection(GenericSelection):
-    def __init__(self, container: ty.Sequence, sel: ty.Sequence[int]):
+    def __init__(self, container, sel):
         super().__init__(container)
         assert issubclass(type(container[0]), SelectionMember), \
             "container members must be a subclass of SelectionMember, not {}".format(
@@ -198,7 +193,7 @@ and return the index of the new coordinate in the array.
         return self.shape[0] - 1
 
 class CoordArraySelection(GenericSelection):
-    def __init__(self, array: CoordArray, sel: ty.Sequence[int]):
+    def __init__(self, array, sel):
         super().__init__(array)
 
         # global register_selection
@@ -230,7 +225,7 @@ class CoordArraySelection(GenericSelection):
 
     @property
     def _coords(self):
-        return reduce(lambda x,y: np.concatenate((x,y), axis=0), list(self.values()))
+        return np.array(list(self.values()))
 
     @property
     def coords(self):
@@ -364,6 +359,7 @@ AtomType already in the library.
 
         """
 
+        from itertools import product
         for pair in product(self.data.values(), [a_type]):
                 if pair[1] == pair[0]:
                     return True
