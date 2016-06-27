@@ -137,7 +137,9 @@ if __name__ == "__main__":
 
     from mast.system import System, SystemType
     print("making a SystemType")
-    systype = SystemType({'name': 'trypsin-benzamidine-complex'})
+    systype = SystemType({'name' : 'trypsin-benzamidine-complex',
+                          'trypsin_type' : trypsin_type,
+                          'benzamidine_type' : ben_type,})
     print("making a system")
     trpsys = System([ben_mol, trypsin_mol], system_type=systype)
     print(trpsys.system_type)

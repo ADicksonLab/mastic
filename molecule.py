@@ -81,18 +81,8 @@ class Atom(Point):
         if self._in_bond is False:
             return None
         else:
-            from mast.molecule import Bond, Molecule
-            # TODO really weird bug where isinstance(Molecule(), Bond)
-            # evaluates to True!!!! Need to find out why that is. For
-            # now just test to make sure it is not a Molecule
-            print("WE IN HERE")
-            print(self)
-            print(Bond)
-            print(Molecule)
-            print(self.get_selections())
             bonds = []
             for sel in self.get_selections():
-                print(sel)
                 if isinstance(sel, Bond):
                     if not isinstance(sel, Molecule):
                         bonds.append(sel)
@@ -310,6 +300,30 @@ the molecule.
 
         return Molecule(atoms, bonds, angles, mol_type=self, external_mol_rep=(RDKitMoleculeType, self))
 
+    def to_molecule_from_coords(self, coords):
+        """ Construct a Molecule using input coordinates with mapped indices"""
+
+        coord_array = CoordArray(coords)
+
+        # Make atoms out of the coord array
+        self.make_atom_type_library()
+        atom_idxs = range(self.molecule.GetNumAtoms())
+        atoms = []
+        for atom_idx in atom_idxs:
+            atom_type = self.atom_type_library[atom_idx]
+            atom = Atom(atom_array=coord_array, array_idx=atom_idx, atom_type=atom_type)
+            atoms.append(atom)
+
+        # handle bonds
+        bonds = []
+        for bond in self.molecule.GetBonds():
+            bonds.append(Bond(atoms, (bond.GetBeginAtomIdx(), bond.GetEndAtomIdx())))
+
+        # TODO handle and create angles
+        angles = None
+
+        return Molecule(atoms, bonds, angles, mol_type=self, external_mol_rep=(RDKitMoleculeType, self))
+
 
 class Molecule(SelectionDict):
     def __init__(self, mol_input, *args, **kwargs):
@@ -359,7 +373,7 @@ class Molecule(SelectionDict):
 
 
     @classmethod
-    def type_constructor(cls, mol_type):
+    def type_constructor(cls, mol_type, coords=None):
         raise NotImplementedError
 
 
@@ -377,7 +391,7 @@ class Molecule(SelectionDict):
 
 
 
-        molecule_dict= {'atoms' : atoms, 'bonds' : bonds, 'angles': angles}
+        molecule_dict = {'atoms' : atoms, 'bonds' : bonds, 'angles': angles}
         return molecule_dict
 
     @property
@@ -419,6 +433,10 @@ class Molecule(SelectionDict):
             assert system
             return system
 
+    @property
+    def atom_coords(self):
+        coords = np.array([atom.coords for atom in self.atoms])
+        return coords
     @property
     def external_mol_reps(self):
         return self._external_mol_reps
@@ -523,7 +541,7 @@ class Molecule(SelectionDict):
                     return None
 
             # pass these to the find_hits method of the InteractionType
-            interactions[str(interaction_type)] = interaction_type.find_hits(**family_features)
+            interactions[interaction_type] = interaction_type.find_hits(**family_features)
 
         self._internal_interactions = interactions
 
@@ -653,3 +671,6 @@ if __name__ == "__main__":
     print("finding features using mast.molecule method")
     pka_mol.find_features()
     print(pka_mol.features)
+
+    print("using type_constructor")
+    pka_mol2 = pka_type.to_molecule_from_coords(pka_mol.atom_coords)

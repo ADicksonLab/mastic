@@ -52,10 +52,12 @@ class SystemAssociation(Association):
 
     def profile_interactions(self, interaction_types, between=None):
         """Profiles all interactions of all features for everything in the
-association.
+association. the between flag sets the inter-selection interactions to be profiled.
+
+E.g.: association.profile_interactions([HydrogenBondType], between=Molecule)
 
         """
-
+        assert not between is None, "between must be provided"
         assert all([issubclass(itype, InteractionType) for itype in interaction_types]), \
                    "All interaction_types must be a subclass of InteractionType"
         # go through each interaction_type and check for hits
@@ -194,9 +196,9 @@ respectively. Angle may be None if distance failed to qualify.
         if cls.check_distance(distance) is False:
             return (False, distance, None)
 
-        v1 = donor_atom.coords + h_atom.coords
-        v2 = h_atom.coords + acceptor_atom.coords
-        angle = np.arccos(np.dot(v1,v2)/(la.norm(v1) * la.norm(v2)))
+        v1 = donor_atom.coords - h_atom.coords
+        v2 = h_atom.coords - acceptor_atom.coords
+        angle = np.degrees(np.arccos(np.dot(v1,v2)/(la.norm(v1) * la.norm(v2))))
         if cls.check_angle(angle) is False:
             return (False, distance, angle)
 
@@ -211,7 +213,7 @@ respectively. Angle may be None if distance failed to qualify.
 
     @classmethod
     def check_angle(cls, angle):
-        if angle < HBOND_DON_ANGLE_MIN:
+        if angle > HBOND_DON_ANGLE_MIN:
             return True
         else:
             return False
