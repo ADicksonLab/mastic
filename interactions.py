@@ -6,8 +6,6 @@ from scipy.spatial.distance import cdist
 import numpy as np
 import numpy.linalg as la
 
-import mast
-import mast.molecule
 from mast.selection import SelectionList, SelectionType
 
 __all__ = ['Interaction', 'HydrogenBondInx',
@@ -82,8 +80,8 @@ association.
                 # get the selections of type `between`
                 selections = []
                 for member in inx:
-                    selections.append([selection for member in member.get_selections()
-                                  if isinstance(selection, between)])
+                    selections.append([member for member in member.get_selections()
+                                  if isinstance(member, between)])
 
                 # if they are all in the same selection they are in
                 # the same member
@@ -93,10 +91,12 @@ association.
                 else:
                     intermember_inxs.append(inx)
 
+            interactions[interaction_type] = intermember_inxs
+
         # TODO handle the intramember_interactions
 
         # set the interactions for only the intermember interactions
-        self._interactions = intermember_interactions
+        self._interactions = interactions
 
 class InteractionType(AssociationType):
     """ Prototype class for all intermolecular interactions."""

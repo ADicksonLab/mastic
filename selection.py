@@ -9,7 +9,7 @@ from itertools import product
 __all__ = ['SelectionMember', 'GenericSelection', 'IndexedSelection',
            'SelectionDict', 'SelectionList', 'CoordArray',
            'CoordArraySelection', 'SelectionType', 'SelectionTypeLibrary',
-           'Association', 'AssociationType', 'Point',
+           'Point',
            'SELECTION_REGISTRY', 'sel_reg_counter']
 
 SELECTION_REGISTRY = {}
@@ -56,7 +56,7 @@ class SelectionMember(object):
 
 Selected = ty.TypeVar('Selected')
 SelectionIDs = ty.TypeVar('SelectionIDs')
-class GenericSelection(SelectionMember, col.UserDict, ty.Mapping[SelectionIDs, Selected]):
+class GenericSelection(SelectionMember, col.UserDict):
     def __init__(self, container: ty.Container):
         super().__init__(self)
         assert '__getitem__' in dir(container), \
@@ -71,7 +71,7 @@ class GenericSelection(SelectionMember, col.UserDict, ty.Mapping[SelectionIDs, S
         return str(self.__class__)
         # return "{0}[{1}]".format(self.container, self.sel_ids)
 
-class IndexedSelection(GenericSelection[int, Selected]):
+class IndexedSelection(GenericSelection):
     def __init__(self, container: ty.Sequence, sel: ty.Sequence[int]):
         super().__init__(container)
         assert issubclass(type(container[0]), SelectionMember), \
@@ -197,7 +197,7 @@ and return the index of the new coordinate in the array.
         # return the index of the added coordinate
         return self.shape[0] - 1
 
-class CoordArraySelection(GenericSelection[int, np.ndarray]):
+class CoordArraySelection(GenericSelection):
     def __init__(self, array: CoordArray, sel: ty.Sequence[int]):
         super().__init__(array)
 
@@ -373,6 +373,8 @@ if __name__ == "__main__":
 
     from mast.interactions import Association
 
+    from mast.selection import *
+
     # test GenericSelection
     gensel = GenericSelection([SelectionMember(None)])
     print(gensel)
@@ -392,7 +394,7 @@ if __name__ == "__main__":
 
     # test a selection from a list of SelectionMembers as a new type
     strings = [SelectionMember('a'), SelectionMember('b'), SelectionMember('c')]
-    class StrSelection(IndexedSelection[int, str]):
+    class StrSelection(IndexedSelection):
         def __init__(self, strings: ty.Sequence[str], sel: ty.Sequence[int]):
             super().__init__(strings, sel)
 

@@ -81,6 +81,7 @@ class Atom(Point):
         if self._in_bond is False:
             return None
         else:
+            from mast.molecule import Bond, Molecule
             # TODO really weird bug where isinstance(Molecule(), Bond)
             # evaluates to True!!!! Need to find out why that is. For
             # now just test to make sure it is not a Molecule
@@ -528,6 +529,8 @@ class Molecule(SelectionDict):
 
 if __name__ == "__main__":
 
+    from mast.molecule import Bond, Molecule, Atom, \
+        MoleculeType, AtomType, RDKitMoleculeType, AtomTypeLibrary, MoleculeTypeLibrary
     print("making an CoordArray for atoms")
     array = np.array([[0,0,0], [0,0,1], [1,0,0]])
     atom_array = CoordArray(array)
