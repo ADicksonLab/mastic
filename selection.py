@@ -225,7 +225,8 @@ class CoordArraySelection(GenericSelection):
 
     @property
     def _coords(self):
-        return np.array(list(self.values()))
+        from functools import reduce
+        return reduce(lambda x,y: np.concatenate((x,y)), [value for value in self.values()])
 
     @property
     def coords(self):

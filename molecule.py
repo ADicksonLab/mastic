@@ -166,8 +166,11 @@ class RDKitMoleculeType(MoleculeType):
         self.rdkit_mol = self.molecule
         self.name = mol_name
         self._features = None
-        self._atom_type_library = None
-
+        self._atom_type_library = self.make_atom_type_library()
+        self._features = None
+        self._feature_families = None
+        self._feature_types = None
+        
     @property
     def atoms(self):
         return [atom for atom in self.molecule.GetAtoms()]
@@ -240,6 +243,11 @@ the molecule.
             features[feature.GetId()] = feature_info
 
         self._features = features
+        self._feature_families = col.defaultdict(list)
+        self._feature_types = col.defaultdict(list)
+        for idx, info in self._features.items():
+            self._feature_families[info['family']].append(idx)
+            self._feature_types[info['type']].append(idx)
 
 
     def make_atom_type_library(self, type_name='name'):
@@ -277,25 +285,7 @@ the molecule.
             position = np.array([position.x, position.y, position.z])
             positions.append(position)
         positions = np.array(positions)
-        coord_array = CoordArray(positions)
-
-        # Make atoms out of the coord array
-        self.make_atom_type_library()
-        atoms = []
-        for atom_idx in atom_idxs:
-            atom_type = self.atom_type_library[atom_idx]
-            atom = Atom(atom_array=coord_array, array_idx=atom_idx, atom_type=atom_type)
-            atoms.append(atom)
-
-        # handle bonds
-        bonds = []
-        for bond in self.molecule.GetBonds():
-            bonds.append(Bond(atoms, (bond.GetBeginAtomIdx(), bond.GetEndAtomIdx())))
-
-        # TODO handle and create angles
-        angles = None
-
-        return Molecule(atoms, bonds, angles, mol_type=self, external_mol_rep=(RDKitMoleculeType, self))
+        return self.to_molecule_from_coords(positions)
 
     def to_molecule_from_coords(self, coords):
         """ Construct a Molecule using input coordinates with mapped indices"""
@@ -341,16 +331,12 @@ class Molecule(SelectionDict):
         if issubclass(type(mol_input), MoleculeType):
             molecule_dict = Molecule.type_constructor(mol_input, *args, **kwargs)
         elif issubclass(type(mol_input), col.Sequence):
-            print("atoms constructor")
             molecule_dict = Molecule.atoms_constructor(mol_input, *args, **kwargs)
         else:
             raise TypeError("mol_input must be either a MoleculeType or a sequence of Atoms")
 
         super().__init__(selection_dict=molecule_dict)
-        self._features = None
-        self._feature_families = None
-        self._feature_family_selections = None
-        self._feature_types = None
+        self._feature_family_selections = {}
         self._feature_type_selections = None
         self._internal_interactions = None
         if mol_type is None:
@@ -454,7 +440,7 @@ class Molecule(SelectionDict):
             "Other must be type Molecule, not {}".format(type(other))
 
         from itertools import product
-        
+
         pairs = product(self.atoms, other.atoms)
         try:
             pair = next(pairs)
@@ -473,27 +459,20 @@ class Molecule(SelectionDict):
                     flag = False
         return False
 
-    def find_features(self):
-        # find the features
-        self._external_mol_reps[RDKitMoleculeType].find_features()
-        self._feature_families = col.defaultdict(list)
-        self._feature_types = col.defaultdict(list)
-        for idx, info in self.features.items():
-            self._feature_families[info['family']].append(idx)
-            self._feature_types[info['type']].append(idx)
+    def make_feature_selections(self):
+        family_selections = col.defaultdict(list)
+        type_selections = col.defaultdict(list)
+        for idx, feature in self._external_mol_reps[RDKitMoleculeType].features.items():
+            atom_idxs = list(feature['atom_ids'])
+            # make the selection
+            feature_selection = IndexedSelection(self.atoms, atom_idxs)
+            # add it to it's families selections
+            family_selections[feature['family']].append(feature_selection)
+            # add it to it's type's selections
+            type_selections[feature['type']].append(feature_selection)
 
-        # make selections out of these to each feature
-        # for families
-        self._feature_family_selections = SelectionDict()
-        for family, idxs in self._feature_families.items():
-            atom_idxs = self._feature_families[family]
-            self._feature_family_selections[family] = IndexedSelection(self.atoms, atom_idxs)
-
-        # for types
-        self._feature_type_selections = SelectionDict()
-        for ftype, idxs in self._feature_types.items():
-            atom_idxs = self._feature_types[ftype]
-            self._feature_type_selections[ftype] = IndexedSelection(self.atoms, atom_idxs)
+        self._feature_family_selections = SelectionDict(family_selections)
+        self._feature_type_selections = SelectionDict(type_selections)
 
     @property
     def family_selections(self):
@@ -505,11 +484,11 @@ class Molecule(SelectionDict):
 
     @property
     def feature_families(self):
-        return set(self._feature_families.keys())
+        return set(self._external_mol_reps[RDKitMoleculeType]._feature_families.keys())
 
     @property
     def feature_types(self):
-        return set(self._feature_types.keys())
+        return set(self._external_mol_reps[RDKitMoleculeType]._feature_types.keys())
 
     @property
     def feature_dataframe(self):
@@ -526,12 +505,12 @@ class Molecule(SelectionDict):
         # go through each interaction_type and check for hits
         interactions = {}
         for interaction_type in interaction_types:
-            # collect the specific features for each family
-            family_features = {}
+            # collect the specific feature selections for each family
+            family_feature_sels = {}
             for family in interaction_type.feature_families:
                 # get the features from the molecule that are of the family
                 try:
-                    family_features[family] = self.family_selections[family].values()
+                    family_feature_sels[family] = self.family_selections[family]
                 except KeyError:
                     # if there is none of a feature family then the
                     # interaction will not exist
@@ -540,7 +519,7 @@ class Molecule(SelectionDict):
                     return None
 
             # pass these to the find_hits method of the InteractionType
-            interactions[interaction_type] = interaction_type.find_hits(**family_features)
+            interactions[interaction_type] = interaction_type.find_hits(**family_feature_sels)
 
         self._internal_interactions = interactions
 

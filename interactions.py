@@ -66,13 +66,13 @@ E.g.: association.profile_interactions([HydrogenBondType], between=Molecule)
             for family in interaction_type.feature_families:
                 for member in self:
                     try:
-                        family_features[family] = member.family_selections[family].values()
+                        family_features[family] = member.family_selections[family]
                     except KeyError:
+                        print("No {0} in {1}".format(family, member))
                         continue
 
             # pass these to the check class method of the InteractionType
             all_inxs = interaction_type.find_hits(**family_features)
-
             # separate into intra- and inter-member interactions
             intramember_inxs = []
             intermember_inxs = []
@@ -82,7 +82,6 @@ E.g.: association.profile_interactions([HydrogenBondType], between=Molecule)
                 for member in inx:
                     selections.append([member for member in member.get_selections()
                                   if isinstance(member, between)])
-
                 # if they are all in the same selection they are in
                 # the same member
                 if all([pair for pair in combinations(selections, 2)
@@ -148,7 +147,8 @@ class HydrogenBondType(InteractionType):
 
     @classmethod
     def find_hits(cls, **kwargs):
-        """ Takes in key-word arguments for the donors and acceptor atoms"""
+        """Takes in key-word arguments for the donors and acceptor atom
+IndexedSelections. As an interface find_hits must take in more generic selections."""
         from itertools import product
         # check that the keys ar okay in parent class
         super().find_hits(**kwargs)
@@ -159,12 +159,18 @@ class HydrogenBondType(InteractionType):
         donor_Hs = []
         # find Hs for all donors and make Donor-H pairs
         for donor in donors:
+            # donors are given in as INdexedSelections by the
+            # interface must get the atom
+            donor = list(donor.values())[0]
             Hs = [atom for atom in donor.adjacent_atoms if
                         atom.atom_type.element == 'H']
             for H in Hs:
                 donor_Hs.append((donor, H))
         # make pairs of Donor-H and acceptors
         hits = []
+        # acceptors are given in as IndexedSelections
+        # make pairs of them to compare
+        acceptors = [list(acceptor.values())[0] for acceptor in acceptors]
         pairs = product(donor_Hs, acceptors)
         for pair in pairs:
             donor_atom = pair[0][0]
@@ -186,9 +192,9 @@ class HydrogenBondType(InteractionType):
     @classmethod
     def check(cls, donor_atom, h_atom, acceptor_atom):
         """Checks if the 3 atoms qualify as a hydrogen bond. Returns a tuple
-(bool, float, float) where the first element is whether or not it
-qualified, the second and third are the distance and angle
-respectively. Angle may be None if distance failed to qualify.
+        (bool, float, float) where the first element is whether or not it
+        qualified, the second and third are the distance and angle
+        respectively. Angle may be None if distance failed to qualify.
 
         """
         from scipy.spatial.distance import cdist
@@ -197,7 +203,7 @@ respectively. Angle may be None if distance failed to qualify.
             return (False, distance, None)
 
         v1 = donor_atom.coords - h_atom.coords
-        v2 = h_atom.coords - acceptor_atom.coords
+        v2 = acceptor_atom.coords - h_atom.coords
         angle = np.degrees(np.arccos(np.dot(v1,v2)/(la.norm(v1) * la.norm(v2))))
         if cls.check_angle(angle) is False:
             return (False, distance, angle)
@@ -213,7 +219,6 @@ respectively. Angle may be None if distance failed to qualify.
 
     @classmethod
     def check_angle(cls, angle):
-        # TODO should it be less than a value as well?
         if angle > HBOND_DON_ANGLE_MIN:
             return True
         else:
