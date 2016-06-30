@@ -54,6 +54,7 @@ E.g.: association.profile_interactions([HydrogenBondType], between=Molecule)
 
         """
         from itertools import combinations
+        from collections import defaultdict
 
         assert not between is None, "between must be provided"
         assert all([issubclass(itype, InteractionType) for itype in interaction_types]), \
@@ -62,11 +63,11 @@ E.g.: association.profile_interactions([HydrogenBondType], between=Molecule)
         interactions = {}
         for interaction_type in interaction_types:
             # collect the specific features for each family
-            family_features = {}
+            family_features = defaultdict(list)
             for family in interaction_type.feature_families:
                 for member in self:
                     try:
-                        family_features[family] = member.family_selections[family]
+                        family_features[family].extend(member.family_selections[family])
                     except KeyError:
                         print("No {0} in {1}".format(family, member))
                         continue
@@ -80,12 +81,20 @@ E.g.: association.profile_interactions([HydrogenBondType], between=Molecule)
                 # get the selections of type `between`
                 selections = []
                 for member in inx:
-                    selections.append([member for member in member.get_selections()
-                                  if isinstance(member, between)])
+                    member_sels = [member for member in member.get_selections()]
+                    for sel in member_sels:
+                        if isinstance(sel, between):
+                            selections.append(sel)
                 # if they are all in the same selection they are in
                 # the same member
-                if all([pair for pair in combinations(selections, 2)
-                                            if pair[0] is pair[1]]):
+                sel_pairs = combinations(selections, 2)
+                intra = True
+                for pair in sel_pairs:
+                    if pair[0] is pair[1]:
+                        pass
+                    else:
+                        intra = False
+                if intra:
                     intramember_inxs.append(inx)
                 else:
                     intermember_inxs.append(inx)
