@@ -6,6 +6,85 @@ from mast.selection import SelectionList, SelectionType
 
 __all__ = ['Interaction', 'HydrogenBondInx',
            'InteractionType', 'HydrogenBondType']
+
+
+
+# families and types from the RDKit feature definition database
+# (.fdef)
+HBOND_FEATURE_FAMILIES = ['Donor', 'Acceptor']
+HBOND_FEATURE_TYPES = []
+
+PISTACK_FEATURE_FAMILIES = []
+PISTACK_FEATURE_TYPES = []
+
+HYDROPH_FEATURE_FAMILIES = []
+HYDROPH_FEATURE_TYPES = []
+
+PICATION_FEATURE_FAMILIES = []
+PICATION_FEATURE_TYPES = []
+
+SALTBRIDGE_FEATURE_FAMILIES = []
+SALTBRIDGE_FEATURE_TYPES = []
+
+HALOGEN_FEATURE_FAMILIES = []
+HALOGEN_FEATURE_TYPES = []
+
+WATER_BRIDGE_FEATURE_FAMILIES = []
+WATER_BRIDGE_FEATURE_TYPES = []
+
+METAL_FEATURE_FAMILIES = []
+METAL_FEATURE_TYPES = []
+
+# Determines allowed deviation from planarity in aromatic rings
+AROMATIC_PLANARITY = 5.0
+
+# Max. distance between hydrogen bond donor and acceptor (Hubbard & Haider, 2001) + 0.6 A
+HBOND_DIST_MAX = 4.1
+# Min. angle at the hydrogen bond donor (Hubbard & Haider, 2001) + 10
+HBOND_DON_ANGLE_MIN = 100
+
+
+# Max. distance for parallel or offset pistacking (McGaughey, 1998)
+PISTACK_DIST_MAX = 7.5
+# Max. Deviation from parallel or perpendicular orientation (in degrees)
+PISTACK_ANG_DEV = 30
+# Maximum offset of the two rings (corresponds to the radius of benzene + 0.5 A)
+PISTACK_OFFSET_MAX = 2.0
+
+# Some distance thresholds were extended (max. 1.0A) if too restrictive too account for low-quality structures
+# Distance cutoff for detection of hydrophobic contacts
+HYDROPH_DIST_MAX = 4.0
+
+# Max. distance between charged atom and aromatic ring center (Gallivan and Dougherty, 1999)
+PICATION_DIST_MAX = 6.0
+
+# Max. distance between centers of charge for salt bridges (Barlow and Thornton, 1983) + 1.5
+SALTBRIDGE_DIST_MAX = 5.5
+
+# Max. distance between oxy. and halogen (Halogen bonds in biological molecules., Auffinger)+0.5
+HALOGEN_DIST_MAX = 4.0
+# Optimal acceptor angle (Halogen bonds in biological molecules., Auffinger)
+HALOGEN_ACC_ANGLE = 120
+# Optimal donor angle (Halogen bonds in biological molecules., Auffinger)
+HALOGEN_DON_ANGLE = 165
+# Max. deviation from optimal angle
+HALOGEN_ANGLE_DEV = 30
+
+# Min. distance between water oxygen and polar atom (Jiang et al., 2005) -0.1
+WATER_BRIDGE_MINDIST = 2.5
+# Max. distance between water oxygen and polar atom (Jiang et al., 2005) +0.4
+WATER_BRIDGE_MAXDIST = 4.0
+# Min. angle between acceptor, water oxygen and donor hydrogen (Jiang et al., 2005) - 5
+WATER_BRIDGE_OMEGA_MIN = 75
+# Max. angle between acceptor, water oxygen and donor hydrogen (Jiang et al., 2005)
+WATER_BRIDGE_OMEGA_MAX = 140
+# Min. angle between water oxygen, donor hydrogen and donor atom (Jiang et al., 2005)
+WATER_BRIDGE_THETA_MIN = 100
+
+# Max. distance between metal ion and interacting atom (Harding, 2001)
+METAL_DIST_MAX = 3.0
+
+
 class InteractionError(Exception):
     pass
 
@@ -106,6 +185,7 @@ E.g.: association.profile_interactions([HydrogenBondType], between=Molecule)
         # set the interactions for only the intermember interactions
         self._interactions = interactions
 
+
 class InteractionType(AssociationType):
     """ Prototype class for all intermolecular interactions."""
     def __init__(self, inx_attrs=None):
@@ -131,13 +211,7 @@ class InteractionType(AssociationType):
                     key, cls)
 
 
-# from the RDKit feature definition database (.fdef)
-HBOND_FEATURE_FAMILIES = ['Donor', 'Acceptor']
-HBOND_FEATURE_TYPES = []
-# Max. distance between hydrogen bond donor and acceptor (Hubbard & Haider, 2001) + 0.6 A
-HBOND_DIST_MAX = 4.1
-# Min. angle at the hydrogen bond donor (Hubbard & Haider, 2001) + 10
-HBOND_DON_ANGLE_MIN = 100
+
 class HydrogenBondType(InteractionType):
     """ Class for checking validity of a HydrogenBondInx."""
 
@@ -152,7 +226,7 @@ class HydrogenBondType(InteractionType):
     feature_type = _feature_types
 
     def __repr__(self):
-        return "HydrogenBond"
+        return str(self.__class__)
 
     @classmethod
     def find_hits(cls, **kwargs):
@@ -232,6 +306,80 @@ IndexedSelections. As an interface find_hits must take in more generic selection
             return True
         else:
             return False
+
+class PiStackingType(InteractionType):
+
+    def __init__(self, pi_stacking_attr=None):
+        super().__init__(attr_dict=pi_stacking_attrs)
+    _feature_families = PISTACK_FEATURE_FAMILIES
+    feature_families = _feature_families
+    _feature1_key = 'Key1'
+    _feature2_key = 'Key2'
+    _feature_types = PISTACK_FEATURE_TYPES
+    feature_type = _feature_types
+
+    def __repr__(self):
+        return str(self.__class__)
+
+    @classmethod
+    def find_hits(cls, **kwargs):
+        """Takes in key-word arguments for the features. """
+
+        from itertools import product
+        # check that the keys ar okay in parent class
+        super().find_hits(**kwargs)
+
+        # pi_stacking specific stuff
+        feature1 = kwargs[cls._feature1_key]
+        feature2 = kwargs[cls._feature2_key]
+        hits = []
+        # make pairs of them to compare
+        pairs = product(feature1, feature2)
+        for pair in pairs:
+            features = feature_dict(pair)
+            # try to make a PiStacking object, which calls check
+            try:
+                # if it succeeds add it to the list of H-Bonds
+                pi_stacking = PiStacking(**features)
+
+            # else continue to the next pairing
+            except InteractionError:
+                continue
+
+            hits.append(pi_stacking)
+
+        return hits
+
+    @classmethod
+    def check(cls, feature1=None, feature2=None):
+        """Check if the input features qualify for this type of
+        interaction.
+
+        returns (okay, param1, param2,...)"""
+        param1 = calc_param1(feature1, feature2)
+        if cls.check_param1(param1) is False:
+            return (False, param1, None)
+
+        param2 = calc_param2(feature1, feature2)
+        if cls.check_param2(param2) is False:
+            return (False, param1, param2)
+
+        return (True, param1, param2)
+
+    @classmethod
+    def check_param1(cls, param1):
+        if True:
+            return True
+        else:
+            return False
+
+    @classmethod
+    def check_param2(cls, param2):
+        if True:
+            return True
+        else:
+            return False
+
 
 class Interaction(SystemAssociation):
     """Base class for associating Selections from a SelectionList with
@@ -331,15 +479,24 @@ if __name__ == "__main__":
     print("loading RDKit molecules")
     trypsin_type = RDKitMoleculeType(trypsin, mol_name="trypsin")
     ben_type = RDKitMoleculeType(ben, mol_name="BEN")
+
+    print("finding features")
+    ben_type.find_features()
+    trypsin_type.find_features()
+
     print("loading into mast.Molecules")
     ben_mol = ben_type.to_molecule(0)
     trypsin_mol = trypsin_type.to_molecule(0)
 
-    from mast.system import System
     print( "making a system")
+    from mast.system import System
     trypsys = System([ben_mol, trypsin_mol])
-    print("finding all features")
+
+    print("finding system features")
     trypsys.find_features()
+
+    print("setting feature selections")
+    trypsys.make_feature_selections()
 
     print("finding Hbonds in BEN")
     ben_mol.profile_interactions([HydrogenBondType])

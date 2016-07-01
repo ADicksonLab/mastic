@@ -12,6 +12,11 @@ __all__ = ['SelectionMember', 'GenericSelection', 'IndexedSelection',
 SELECTION_REGISTRY = {}
 sel_reg_counter = 0
 
+def clear_registry():
+    global SELECTION_REGISTRY
+    del SELECTION_REGISTRY
+    SELECTION_REGISTRY = {}
+
 # TODO might want to make the keys the id(selection) however would
 # then need to write stuff to tear down selections and remove them
 # from the registry.
@@ -27,6 +32,7 @@ it's key in the registry
     SELECTION_REGISTRY[sel_reg_id] = selection
 
     return sel_reg_id
+
 
 
 class SelectionMember(object):

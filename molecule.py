@@ -215,14 +215,14 @@ dictionary.
         if monomer_info:
             atom_dict['monomer_type'] = monomer_info.GetMonomerType()
             atom_dict['pdb_name'] = monomer_info.GetName().strip()
-            atom_dict['pdb_chain_id'] = monomer_info.GetChainID()
+            # atom_dict['pdb_chain_id'] = monomer_info.GetChainID()
             atom_dict['pdb_insertion_code'] = monomer_info.GetInsertionCode()
-            atom_dict['pdb_heteroatom'] = monomer_info.IsHeteroAtom()
+            # atom_dict['pdb_heteroatom'] = monomer_info.IsHeteroAtom()
             atom_dict['pdb_occupancy'] = monomer_info.GetOccupancy()
             atom_dict['pdb_residue_name'] = monomer_info.GetResidueName()
             atom_dict['pdb_residue_number'] = monomer_info.GetResidueNumber()
             atom_dict['pdb_serial_number'] = monomer_info.GetSerialNumber()
-            atom_dict['pdb_segment_number'] = monomer_info.GetSegmentNumber()
+            # atom_dict['pdb_segment_number'] = monomer_info.GetSegmentNumber()
             atom_dict['pdb_temp_factor'] = monomer_info.GetTempFactor()
 
         atom_dict['rdkit_mol_idx'] = atom.GetIdx()

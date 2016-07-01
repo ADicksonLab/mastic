@@ -40,6 +40,8 @@ method.
         super().__init__(attr_dict=system_attrs)
 
 
+        # TODO move functionality from System to here
+
 class System(SelectionList):
     """System that contains non-overlapping molecules, assumed to be in
 the same coordinate system.
@@ -86,10 +88,12 @@ the same coordinate system.
     def system_type(self):
         return self._system_type
 
+    # TODO move to SystemType
     @property
     def molecule_types(self):
         return self._molecule_types
 
+    # TODO move to SystemType
     def add_molecule_type(self, mol_type, mol_name=None):
         if not mol_name:
             mol_name = mol_type.name
@@ -106,15 +110,20 @@ the same coordinate system.
         mol_indices = [i for i, member in enumerate(self) if issubclass(type(member), Molecule)]
         return IndexedSelection(self, mol_indices)
 
+    # TODO move to SystemType
     @property
     def associations(self):
         return self._system_associations
-
+    # TODO move to SystemType
     def find_features(self):
         """Find features in all members of the system. Currently only molecules."""
+        for mol_type in self.molecule_types.values():
+            mol_type.find_features()
 
+    def make_feature_selections(self):
+        """Make feature selections for all current features in the system's molecules"""
         for mol in self.molecules:
-            mol.find_features()
+            mol.make_feature_selections()
 
 if __name__ == "__main__":
 
