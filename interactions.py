@@ -160,7 +160,7 @@ E.g.: association.profile_interactions([HydrogenBondType], between=Molecule)
                 # get the selections of type `between`
                 selections = []
                 for member in inx:
-                    member_sels = [member for member in member.get_selections()]
+                    member_sels = [member for key, member in member.registry]
                     for sel in member_sels:
                         if isinstance(sel, between):
                             selections.append(sel)
@@ -261,13 +261,11 @@ IndexedSelections. As an interface find_hits must take in more generic selection
             acceptor_atom = pair[1]
             # try to make a HydrogenBondInx object, which calls check
             try:
-                # if it succeeds add it to the list of H-Bonds
                 hbond = HydrogenBondInx(donor=donor_atom, H=h_atom, acceptor=acceptor_atom)
-
             # else continue to the next pairing
             except InteractionError:
                 continue
-
+            # if it succeeds add it to the list of H-Bonds
             hits.append(hbond)
 
         return hits
@@ -310,6 +308,18 @@ IndexedSelections. As an interface find_hits must take in more generic selection
             return True
         else:
             return False
+
+    @classmethod
+    def pdb_serial_output(self, inxs, path, delim=","):
+        """Output the pdb serial numbers (index in pdb) of the donor and
+        acceptor in each HBond to a file:
+
+        donor_1, acceptor_1
+        donor_2, acceptor_2"""
+
+        with open(path, 'w') as wf:
+            for inx in inxs:
+                wf.write("{0}{1}{2}".format(inx.donor, delim, inx.acceptor))
 
 class PiStackingType(InteractionType):
 

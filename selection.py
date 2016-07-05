@@ -6,41 +6,15 @@ from copy import copy
 __all__ = ['SelectionMember', 'GenericSelection', 'IndexedSelection',
            'SelectionDict', 'SelectionList', 'CoordArray',
            'CoordArraySelection', 'SelectionType', 'SelectionTypeLibrary',
-           'Point',
-           'SELECTION_REGISTRY', 'sel_reg_counter']
-
-SELECTION_REGISTRY = {}
-sel_reg_counter = 0
-
-def clear_registry():
-    global SELECTION_REGISTRY
-    del SELECTION_REGISTRY
-    SELECTION_REGISTRY = {}
-
-# TODO might want to make the keys the id(selection) however would
-# then need to write stuff to tear down selections and remove them
-# from the registry.
-def register_selection(selection):
-    """Register a selection in the global SELECTION_REGISTRY and return
-it's key in the registry
-
-    """
-    global sel_reg_counter
-    global SELECTION_REGISTRY
-    sel_reg_counter += 1
-    sel_reg_id = sel_reg_counter
-    SELECTION_REGISTRY[sel_reg_id] = selection
-
-    return sel_reg_id
-
-
+           'Point',]
 
 class SelectionMember(object):
     def __init__(self, member):
         super().__init__()
         self.member = member
-        # {selection_registry_id : id_in_selection}
-        self.registry = {}
+
+        # list of selections
+        self._registry = []
 
         # TODO move this to a SystemMember class for mixing in later
         self._in_system = False
@@ -54,8 +28,14 @@ class SelectionMember(object):
         return str(self.__class__)
 
     def get_selections(self):
-        global SELECTION_REGISTRY
-        return [SELECTION_REGISTRY[sel_id] for sel_id in self.registry.keys()]
+        return self._registry
+
+    @property
+    def registry(self):
+        return self._registry
+
+    def register_selection(self, key, selection):
+        self._registry.append((key, selection))
 
 class GenericSelection(SelectionMember, col.UserDict):
     def __init__(self, container):
@@ -79,18 +59,30 @@ class IndexedSelection(GenericSelection):
             "container members must be a subclass of SelectionMember, not {}".format(
                 type(container[0]))
 
-        # register this selection
-        self.sel_reg_id = register_selection(self)
-
         # make the selections from container
         self.sel_ids = sel
         for sel_idx in sel:
             self[sel_idx] = container[sel_idx]
             # set this selection in the SelectionMember registry
-            self[sel_idx].registry[self.sel_reg_id] = sel_idx
+            self[sel_idx].register_selection(sel_idx, self)
 
     def __repr__(self):
         return str(self.__class__)
+
+    def register_selection_members(self, key, selection):
+        """ Register the selections in this objects registry in it's selections"""
+
+        # TODO currently doesn't store the key for this selection,
+        # only the toplevel one
+        for this_key, selmemb in self.data.items():
+            selmemb.register_selection(key, selection)
+
+    def register_selection(self, key, selection):
+        """ Register a selection of this object."""
+        self._registry.append((key, selection))
+        # let the children selection members know they are now a part
+        # of a higher-order selection
+        self.register_selection_members(key, selection)
 
 class SelectionDict(SelectionMember, col.UserDict):
     """Creates a dictionary of collections of SelectionMembers.
@@ -104,9 +96,6 @@ e.g. {'strings' : [StringSelection, StringSelection] 'ints' :
 
         super().__init__(selection_dict)
 
-        # register this selection
-        self.sel_reg_id = register_selection(self)
-
         # add the selection_dict to the data
         if selection_dict:
             assert issubclass(type(selection_dict), col.Mapping), \
@@ -117,13 +106,16 @@ e.g. {'strings' : [StringSelection, StringSelection] 'ints' :
         # if values in the selection_dict are SelectionMembers update
         # their registries
         for key, value in self.data.items():
+            # if there are multiple
             try:
                 for member in value:
+
                     if issubclass(type(member), SelectionMember):
-                        member.registry[self.sel_reg_id] = key
+                        member.register_selection(key, self)
+            # if there is only one
             except TypeError:
                 if issubclass(type(value), SelectionMember):
-                    value.registry[self.sel_reg_id] = key
+                    value.register_selection(key, self)
 
     def __repr__(self):
         return str(self.__class__)
@@ -136,9 +128,6 @@ class SelectionList(SelectionMember, col.UserList):
 
         super().__init__(selection_list)
 
-        # register this selection
-        self.sel_reg_id = register_selection(self)
-
         if selection_list:
             assert issubclass(type(selection_list), col.Sequence), \
                 "selection_dict must be a subclass of collections.Sequence, not {}".format(
@@ -149,7 +138,7 @@ class SelectionList(SelectionMember, col.UserList):
         # their registries
         for idx, member in enumerate(self.data):
             if issubclass(type(member), SelectionMember):
-                member.registry[self.sel_reg_id] = idx
+                member.register_selection(idx, self)
 
     def __repr__(self):
         return str(self.__class__)
@@ -202,9 +191,6 @@ class CoordArraySelection(GenericSelection):
     def __init__(self, array, sel):
         super().__init__(array)
 
-        # global register_selection
-        self.sel_reg_id = register_selection(self)
-
         # TODO add support for slices
         assert type(sel) in [int, list], \
             "sel must be either a positive int, list of positive ints or a slice"
@@ -224,7 +210,7 @@ class CoordArraySelection(GenericSelection):
             # slices like this are views into the array
             self[sel_idx] = self.container[sel_idx:(sel_idx+1)]
             # set this selection in the CoordArray registry
-            self.container.registry[self.sel_reg_id] = sel_idx
+            self.container.register_selection(sel_idx, self)
 
     def __repr__(self):
         return str(self.__class__)
@@ -398,7 +384,7 @@ if __name__ == "__main__":
     # test a selection from a list of SelectionMembers as a new type
     strings = [SelectionMember('a'), SelectionMember('b'), SelectionMember('c')]
     class StrSelection(IndexedSelection):
-        def __init__(self, strings: ty.Sequence[str], sel: ty.Sequence[int]):
+        def __init__(self, strings, sel):
             super().__init__(strings, sel)
 
     stringsel = StrSelection(strings, [0])
@@ -412,8 +398,6 @@ if __name__ == "__main__":
     print(coordsel)
     print(coordsel.coords)
 
-    print("SELECTION_REGISTRY:", SELECTION_REGISTRY)
-
     print("making Point with it's own CoordArray")
     point_coord = np.array([0,1,0])
     point1 = Point(point_coord)
@@ -424,7 +408,6 @@ if __name__ == "__main__":
     point2 = Point(point_coord, coord_array=coords)
     print(point2)
     print(point2.coords)
-    print("SELECTION_REGISTRY:", SELECTION_REGISTRY)
 
     print("testing point overlaps")
     print(point1.overlaps(point2))
@@ -440,13 +423,13 @@ if __name__ == "__main__":
     print(seldict2.registry)
     print("retrieving a seldict from it's members registries")
     selected_member = seldict2['points'][0]
-    selector_id, selmember_id = selected_member.registry.popitem()
-    print(SELECTION_REGISTRY[selector_id][selmember_id])
+    registry_selector = selected_member.registry[0][1]
+    print(registry_selector)
     print("is the original point in this list?")
-    print(selected_member in SELECTION_REGISTRY[selector_id][selmember_id])
+    print(selected_member in registry_selector['points'])
     print("getting the other points in this selection")
     print("other_points in seldict2")
-    other_points = [p for p in SELECTION_REGISTRY[selector_id][selmember_id] if p is not selected_member]
+    other_points = [p for p in registry_selector if p is not selected_member]
 
     print("registries from seldict2 selections")
     print("point1: ", point1.registry)

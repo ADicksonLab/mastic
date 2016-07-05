@@ -4,7 +4,6 @@ import os.path as osp
 
 from mast.selection import CoordArray, CoordArraySelection, \
     Point, IndexedSelection, SelectionDict, SelectionList, \
-    SELECTION_REGISTRY, sel_reg_counter, \
     SelectionType, SelectionTypeLibrary
 from mast.interactions import InteractionType
 
@@ -50,7 +49,7 @@ class Atom(Point):
         if self._in_molecule is False:
             return None
         else:
-            molecule = next((sel for sel in self.get_selections()
+            molecule = next((sel for key, sel in self.registry
                              if isinstance(sel, Molecule)),
                             None)
             assert molecule
@@ -63,7 +62,7 @@ class Atom(Point):
         if self._in_system is False:
             return None
         elif self._in_molecule is False:
-            system = next((sel for sel in self.get_selections()
+            system = next((sel for key, sel in self.registry
                            if isinstance(sel, System)),
                           None)
             assert system
@@ -79,7 +78,7 @@ class Atom(Point):
             return None
         else:
             bonds = []
-            for sel in self.get_selections():
+            for key, sel in self.registry:
                 if isinstance(sel, Bond):
                     if not isinstance(sel, Molecule):
                         bonds.append(sel)
@@ -94,12 +93,8 @@ class Atom(Point):
         # collect adjacent atoms
         adjacent_atoms = []
         for bond in self.bonds:
-            # this atom's index in the bond
-            curr_atom_idx = self.registry[bond.sel_reg_id]
-            curr_atom = bond[curr_atom_idx]
-            other_atom_idx = next((idx for idx in bond.keys() if idx != curr_atom_idx), None)
-            other_atom = bond[other_atom_idx]
-            assert curr_atom is not other_atom, "{} cannot be bound to itself".format(self)
+            other_atom = next((a for a in bond.atoms if a is not self), None)
+            assert self is not other_atom, "{} cannot be bound to itself".format(self)
             adjacent_atoms.append(other_atom)
         return adjacent_atoms
 
@@ -417,7 +412,7 @@ class Molecule(SelectionDict):
         if self._in_system is False:
             return None
         else:
-            system = next((sel for sel in self.get_selections()
+            system = next((sel for key, sel in self.registry
                            if isinstance(sel, System)),
                           None)
             assert system
@@ -626,12 +621,8 @@ if __name__ == "__main__":
     print(atoms[0].bonds)
     print("get the other atom in the bond")
     bond = atoms[0].bonds[0]
-    curr_atom_idx = atoms[0].registry[bond.sel_reg_id]
-    curr_atom = bond[curr_atom_idx]
-    other_atom_idx = next((idx for idx in bond.keys() if idx != curr_atom_idx), None)
-    other_atom = bond[other_atom_idx]
-    print("idx:", other_atom_idx, "atom:", other_atom)
-    print("same atom", curr_atom is atoms[curr_atom_idx])
+    other_atom = next((a for a in bond.atoms if a is not atoms[0]))
+
     print("same thing using the method")
     print(atoms[0].adjacent_atoms)
     # angles still stubbed out for now
