@@ -287,7 +287,11 @@ IndexedSelections. As an interface find_hits must take in more generic selection
 
         v1 = donor_atom.coords - h_atom.coords
         v2 = acceptor_atom.coords - h_atom.coords
-        angle = np.degrees(np.arccos(np.dot(v1,v2)/(la.norm(v1) * la.norm(v2))))
+        try:
+            angle = np.degrees(np.arccos(np.dot(v1,v2)/(la.norm(v1) * la.norm(v2))))
+        except RuntimeWarning:
+            print("v1: {0} \n"
+                  "v2: {1}".format(v1, v2))
         if cls.check_angle(angle) is False:
             return (False, distance, angle)
 
