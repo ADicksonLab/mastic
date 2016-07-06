@@ -319,7 +319,9 @@ IndexedSelections. As an interface find_hits must take in more generic selection
 
         with open(path, 'w') as wf:
             for inx in inxs:
-                wf.write("{0}{1}{2}".format(inx.donor, delim, inx.acceptor))
+                wf.write("{0}{1}{2}\n".format(inx.donor.atom_type.pdb_serial_number,
+                                              delim,
+                                              inx.acceptor.atom_type.pdb_serial_number))
 
 class PiStackingType(InteractionType):
 
@@ -453,6 +455,7 @@ distance = {3}
         self._acceptor = acceptor
         self._distance = distance
         self._angle = angle
+
     @property
     def donor(self):
         return self._donor
@@ -473,6 +476,46 @@ distance = {3}
     def angle(self):
         return self._angle
 
+    def pp(self):
+
+        string = ("{self_str}\n"
+                  "donor: {donor_el}\n"
+                  "       coords = {donor_coords}\n"
+                  "       pdb_serial = {donor_serial}\n"
+                  "       pdb_residue_name = {donor_resname}\n"
+                  "       pdb_residue_index = {donor_resnum}\n"
+                  "acceptor: {acceptor_el}\n"
+                  "          coords = {acceptor_coords}\n"
+                  "          pdb_serial = {acceptor_serial}\n"
+                  "          pdb_residue_name = {acceptor_resname}\n"
+                  "          pdb_residue_index = {acceptor_resnum}\n"
+                  "distance: {distance}\n"
+                  "angle: {angle}\n").format(
+                      self_str = str(self),
+                      donor_el = self.donor.atom_type.element,
+                      donor_coords = tuple(self.donor.coords),
+                      donor_mol_name = self.donor.molecule.molecule_type.name,
+                      donor_serial = self.donor.atom_type.pdb_serial_number,
+                      donor_resname = self.donor.atom_type.pdb_residue_name,
+                      donor_resnum = self.donor.atom_type.pdb_residue_number,
+                      acceptor_el = self.acceptor.atom_type.element,
+                      acceptor_coords = tuple(self.acceptor.coords),
+                      acceptor_mol_name = self.acceptor.molecule.molecule_type.name,
+                      acceptor_serial = self.acceptor.atom_type.pdb_serial_number,
+                      acceptor_resname = self.acceptor.atom_type.pdb_residue_name,
+                      acceptor_resnum = self.acceptor.atom_type.pdb_residue_number,
+                      distance = self.distance,
+                      angle = self.angle,
+                 )
+
+        print(string)
+
+    def pickle(self, path):
+        import sys
+        sys.setrecursionlimit(10000)
+        import pickle
+        with open(path, 'wb') as wf:
+            pickle.dump(self, wf)
 
 if __name__ == "__main__":
     from rdkit import Chem
