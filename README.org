@@ -43,7 +43,7 @@ My experience was that while this is convenient for simple systems more complica
 4) Optional type system (via python type hints and mypy) for developing and debugging the construction of molecules and systems.
 5) API for accessing databases of Features.
 
-** Usage
+* Usage
 The immediate "killer feature" will be for easily profiling intermolecular interactions, but there is definitely potential for use in setting up complex multi-molecular systems, structural analyses, and complex distance metric calculations in enhanced sampling simulations.
 
 I have so far used it to profile hydrogen bonds between a protein and ligand for 4,000 conformations.
