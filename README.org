@@ -1,4 +1,56 @@
+* Goals
+MAST is currently in beta and so much might still change.
+
+The original impetus that led to writing MAST was a need to have a general and flexible framework for interacting with macromolecules (particular biomolecules) in order to implement complex selections and queries for profiling of intermolecular interactions on large sets of data.
+
+While there are a few other high-quality projects that provide APIs for macromolecules the goals and fundamental designs of these libraries did not meet my needs.
+Primarily, the underlying representations are biased towards protein structures and other polymers due to the historical development of force fields for proteins.
+As such amino acid "residues" are usually part of the fundamental datastructures even in modern libraries.
+Design decisions like this and others are essentially isomorphic to the way textbooks write about these molecules.
+My experience was that while this is convenient for simple systems more complicated systems with many proteins, small molecules, etc. quickly become difficult to query and manipulate.
+
+Overarching Goals:
+1) An abstract layer for representing multi-atom structures and selections that is extensible via object-oriented programming in Python.
+2) An applied layer of advanced subclasses that represents the objects (Features) which are more isomorphic to textbook knowledge including:
+   - Organic chemistry features e.g. functional groups
+   - Intermolecular interactions, e.g. hydrogen-bonding, pi-pi stacking etc.
+   - Protein secondary and tertiary features
+   - Proteins
+   - Amino acid residues
+   - Receptor-ligand relationships
+   - Multimeric protein complexes
+   - Molecular dynamics systems
+   - Dummy atoms
+   - Typed pseudo-atoms
+   - Pseudo-atom constructs, e.g. pharmacophores
+
+3) An extensible command line interface "porcelain" for performing  common workflows, including:
+   - profiling of intraprotein intermolecular interactions, e.g. for rcsb data, molecular dynamics trajectories, etc.
+   - profiling of receptor-ligand interactions
+   - profiling of protein-protein interactions
+
+Design Goals:
+1) Separation of types (i.e. classes; e.g. protein topology) and instances (i.e. type + coordinates).
+2) Separation and development of both expressive and complete patterns.
+2) Ability to incorporate data from many other libraries representations easily via an extensible interface.
+3) Ability to use portions of this library as a stable and fairly future-proof solution across the python ecosystem.
+4) Minimal core dependencies, with optional features provided by other libraries.
+
+Other goals:
+1) Language agnostic file-format for storing objects and preserving complex relations within them, i.e. hdf5.
+2) Ability to export representations to many other commonly used formats (PDB dialects perhaps?).
+3) Optimization and parallelization built in.
+4) Optional type system (via python type hints and mypy) for developing and debugging the construction of molecules and systems.
+5) API for accessing databases of Features.
+
+The immediate "killer feature" will be for easily profiling intermolecular interactions, but there is definitely potential for use in setting up complex multi-molecular systems, structural analyses, and complex distance metric calculations in enhanced sampling simulations.
+
+
+
+
+
 * Version numbers
 
 See [[http://semver.org/]] for version number meanings.
 
+Version 1.0.0 will be released whenever the abstract layer API is stable. Subsequent 1.X.y releases will be made as applied and porcelain layer features are added.
