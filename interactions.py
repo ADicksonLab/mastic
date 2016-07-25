@@ -4,8 +4,8 @@ import numpy.linalg as la
 
 from mast.selection import SelectionList, SelectionType
 
-__all__ = ['Interaction', 'HydrogenBondInx',
-           'InteractionType', 'HydrogenBondType']
+__all__ = ['Interaction', 'HydrogenBondInx', 'NoHHydrogenBondInx'
+           'InteractionType', 'HydrogenBondType', 'NoHHydrogenBondType']
 
 
 
@@ -262,6 +262,126 @@ IndexedSelections. As an interface find_hits must take in more generic selection
             # try to make a HydrogenBondInx object, which calls check
             try:
                 hbond = HydrogenBondInx(donor=donor_atom, H=h_atom, acceptor=acceptor_atom)
+            # else continue to the next pairing
+            except InteractionError:
+                continue
+            # if it succeeds add it to the list of H-Bonds
+            hits.append(hbond)
+
+        return hits
+
+    @classmethod
+    def check(cls, donor_atom, h_atom, acceptor_atom):
+        """Checks if the 3 atoms qualify as a hydrogen bond. Returns a tuple
+        (bool, float, float) where the first element is whether or not it
+        qualified, the second and third are the distance and angle
+        respectively. Angle may be None if distance failed to qualify.
+
+        """
+        from scipy.spatial.distance import cdist
+        distance = cdist(np.array([donor_atom.coords]), np.array([acceptor_atom.coords]))[0,0]
+        if cls.check_distance(distance) is False:
+            return (False, distance, None)
+
+        v1 = donor_atom.coords - h_atom.coords
+        v2 = acceptor_atom.coords - h_atom.coords
+        try:
+            angle = np.degrees(np.arccos(np.dot(v1,v2)/(la.norm(v1) * la.norm(v2))))
+        except RuntimeWarning:
+            print("v1: {0} \n"
+                  "v2: {1}".format(v1, v2))
+        if cls.check_angle(angle) is False:
+            return (False, distance, angle)
+
+        return (True, distance, angle)
+
+    @classmethod
+    def check_distance(cls, distance):
+        if distance < HBOND_DIST_MAX:
+            return True
+        else:
+            return False
+
+    @classmethod
+    def check_angle(cls, angle):
+        if angle > HBOND_DON_ANGLE_MIN:
+            return True
+        else:
+            return False
+
+    @classmethod
+    def pdb_serial_output(self, inxs, path, delim=","):
+        """Output the pdb serial numbers (index in pdb) of the donor and
+        acceptor in each HBond to a file:
+
+        donor_1, acceptor_1
+        donor_2, acceptor_2"""
+
+        with open(path, 'w') as wf:
+            for inx in inxs:
+                wf.write("{0}{1}{2}\n".format(inx.donor.atom_type.pdb_serial_number,
+                                              delim,
+                                              inx.acceptor.atom_type.pdb_serial_number))
+
+
+class NoHHydrogenBondType(InteractionType):
+    """Class for checking validity of a NoHHydrogenBondInx. Different
+from HydrogenBondType in that having the hydrogens present is not necessary."""
+
+    def __init__(self, hbond_attrs=None):
+        super().__init__(attr_dict=hbond_attrs)
+
+    _feature_families = HBOND_FEATURE_FAMILIES
+    feature_families = _feature_families
+    _donor_key = 'Donor'
+    _acceptor_key = 'Acceptor'
+    _feature_types = HBOND_FEATURE_TYPES
+    feature_type = _feature_types
+
+    def __repr__(self):
+        return str(self.__class__)
+
+    @classmethod
+    def find_hits(cls, **kwargs):
+        """Takes in key-word arguments for the donors and acceptor atom
+IndexedSelections. As an interface find_hits must take in more generic selections."""
+        from itertools import product
+        # check that the keys ar okay in parent class
+        super().find_hits(**kwargs)
+
+        # Hbond specific stuff
+        donors = kwargs[cls._donor_key]
+        acceptors = kwargs[cls._acceptor_key]
+        donor_Hs = []
+        # determine the virtual Hydrogens the donor would have
+        for donor in donors:
+            # donors are given in an IndexedSelections by the
+            # interface, must get the atom from this to use
+            donor = list(donor.values())[0]
+            # get the inferred number of hydrogen bonds
+            # TODO dependent on RDKit setting the num_Hs attribute
+            num_virtual_Hs = donor.num_Hs
+            adj_atoms = donor.adjacent_atoms
+            # make a pseudo atom for each virtual hydrogen
+            H_coords = virtual_H_coords(donor, adj_atoms, num_virtual_Hs)
+            # make pairs of the pseudo-atoms and donors
+            for H_coord in H_coords:
+                # create a pseudo-atom
+                H = PseudoAtom(coords=H_coords)
+                donor_Hs.append((donor, H))
+        # make pairs of Donor-H and acceptors
+        hits = []
+        # acceptors are given in as IndexedSelections
+        # make pairs of them to compare
+        acceptors = [list(acceptor.values())[0] for acceptor in acceptors]
+        pairs = product(donor_Hs, acceptors)
+        for pair in pairs:
+            donor_atom = pair[0][0]
+            h_atom = pair[0][1]
+            acceptor_atom = pair[1]
+            # try to make a HydrogenBondInx object, which calls check
+            try:
+                hbond = NoHHydrogenBondInx(donor=donor_atom, pseudo_H=h_atom, acceptor=acceptor_atom)
             # else continue to the next pairing
             except InteractionError:
                 continue

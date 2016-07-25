@@ -1,0 +1,98 @@
+* Module Structure
+
+** selection.py
+*** SelectionMember(object)
+
+**** GenericSelection(SelectionMember, collections.UserDict)
+
+***** IndexedSelection(GenericSelection)
+
+***** CoordArraySelection(GenericSelection)
+
+****** Point
+**** SelectionDict(SelectionMember, collections.UserDict)
+
+**** SelectionList(SelectionMember, collections.UserList)
+
+**** CoordArray(SelectionMember)
+
+
+*** SelectionType(object)
+*** SelectionTypeLibrary(col.UserDict)
+
+** molecule.py
+
+** system.py
+
+** interactions.py
+
+* Class Structure
+
+** SelectionMember(object)
+
+*** GenericSelection(SelectionMember, collections.UserDict)
+
+**** IndexedSelection(GenericSelection)
+***** Bond(IndexedSelection)
+
+**** CoordArraySelection(GenericSelection)
+
+***** Point(CoordArraySelection)
+
+****** Atom(Point)
+
+*** SelectionDict(SelectionMember, collections.UserDict)
+
+**** Molecule
+
+*** SelectionList(SelectionMember, collections.UserList)
+**** System(SelectionList)
+**** Association(SelectionList)
+***** SystemAssociation(Association)
+****** Interaction(SystemAssociation)
+******* HydrogenBondInx(Interaction)
+******* NoHHydrogenBondInx(Interaction)
+******* PiStackingInx(Interaction)
+
+*** CoordArray(SelectionMember)
+
+
+** SelectionType(object)
+*** AtomType(SelectionType)
+
+*** MoleculeType(SelectionType)
+**** RDKitMoleculeType(MoleculeType)
+
+*** SystemType(SelectionType)
+*** AssociationType(SelectionType)
+**** InteractionType(AssociationType)
+***** HydrogenBondType(InteractionType)
+***** NoHHydrogenBondType(InteractionType)
+***** PiStackingType(InteractionType)
+Currently is a prototype.
+
+** SelectionTypeLibrary(col.UserDict)
+*** AtomTypeLibrary(SelectionTypeLibrary)
+*** MoleculeTypeLibrary(SelectionTypeLibrary)
+
+** Exception
+*** InteractionError(Exception)
+
+* TODOs
+
+
+** TODO refactor RDKitMoleculeType class into reader and MoleculeType class
+
+Most of what is in RDKitMoleculeType should be in MoleculeType and
+RDKitMoleculeType just needs to be a thin wrapper of MoleculeType with
+the to_molecule_from_conformer(conf_idx) function and a get conformer
+function.
+
+That way we can read in an RDKitMoleculeType and use that to cast to
+the mast agnostic MoleculeType for production.
+
+** TODO make the SystemType and AssociationType classes mean something
+
+Currently they are just stubs. They should have their own libraries.
+
+** TODO handle and create angles in MoleculeType

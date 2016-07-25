@@ -165,7 +165,7 @@ class RDKitMoleculeType(MoleculeType):
         self._features = None
         self._feature_families = None
         self._feature_types = None
-        
+
     @property
     def atoms(self):
         return [atom for atom in self.molecule.GetAtoms()]
