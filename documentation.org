@@ -77,9 +77,13 @@ Currently is a prototype.
 
 ** Exception
 *** InteractionError(Exception)
-
+* Templates
+** InxType
 * TODOs
 
+** TODO write unit tests
+
+** TODO write logging facilities
 
 ** TODO refactor RDKitMoleculeType class into reader and MoleculeType class
 
@@ -95,4 +99,13 @@ the mast agnostic MoleculeType for production.
 
 Currently they are just stubs. They should have their own libraries.
 
+** TODO make the SystemMember class
+
+This will handle the functions for being a part of a system.
+
+I want to implement a function that recursively searches the registry
+for something that is in a system for this.
+
 ** TODO handle and create angles in MoleculeType
+** TODO allow for parametrized overlap tolerances in Molecule.overlaps
+** TODO handle intramember_interactions in Association.profile_interactions

@@ -70,7 +70,7 @@ class IndexedSelection(GenericSelection):
         return str(self.__class__)
 
     def register_selection_members(self, key, selection):
-        """ Register the selections in this objects registry in it's selections"""
+        """ Register this object in the child selections of another selection."""
 
         # TODO currently doesn't store the key for this selection,
         # only the toplevel one
@@ -78,7 +78,7 @@ class IndexedSelection(GenericSelection):
             selmemb.register_selection(key, selection)
 
     def register_selection(self, key, selection):
-        """ Register a selection of this object."""
+        """ Register this IndexedSelection in a selection's registry."""
         self._registry.append((key, selection))
         # let the children selection members know they are now a part
         # of a higher-order selection
