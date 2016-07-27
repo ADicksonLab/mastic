@@ -1,4 +1,4 @@
-"""Abstract basic classes for building classes that are selection
+"""Basic classes for building classes that are selection
 capable and selection aware.
 
 """
@@ -42,6 +42,7 @@ class SelectionMember(object):
     """
 
     def __init__(self, member):
+
         super().__init__()
         self.member = member
 
@@ -60,13 +61,50 @@ class SelectionMember(object):
         return str(self.__class__)
 
     def get_selections(self):
+        """Returns all the selection objects referred to in the registry."""
         return self._registry
 
     @property
     def registry(self):
+        """The selections this SelectionMember is a part of.
+        Each entry is a tuple (key, selection), where the key is the
+        way of accessing this SelectionMember from the selection with
+        __getitem__.
+
+        Examples
+        --------
+
+        If the SelectionMember is not part of a selection it will be empty:
+        >>> a = SelectionMember('a')
+        >>> a.registry
+        []
+
+        When a properly implemented selection is made:
+        >>> idxsel = IndexedSelection([a], sel=[0])
+        >>> a.registry
+        [(0, <class 'mast.selection.IndexedSelection'>)]
+
+        >>> a.registry[0][1][a.registry[0][0]] is a
+        True
+
+        Be careful with making temporary selections because the
+        reference is still referenced in the registry and can cause a
+        "memory leak":
+        >>> len(a.registry)
+        1
+        >>> IndexedSelection([a], sel=[0])
+        <class 'mast.selection.IndexedSelection'>
+        >>> len(a.registry)
+        2
+
+        """
         return self._registry
 
     def register_selection(self, key, selection):
+        """Adds a selection and this SelectionMembers key to __getitem__ from
+        that selection to the registry.
+
+        """
         self._registry.append((key, selection))
 
 class GenericSelection(SelectionMember, col.UserDict):
@@ -93,6 +131,7 @@ class GenericSelection(SelectionMember, col.UserDict):
 
     """
     def __init__(self, container):
+
         super().__init__(self)
         assert '__getitem__' in dir(container), \
             "container must implement `__getitem__`, {} does not".format(
@@ -131,7 +170,7 @@ class IndexedSelection(GenericSelection):
     >>> idxsel[0].registry
     [(0, <class 'mast.selection.IndexedSelection'>)]
 
-"""
+    """
     def __init__(self, container, sel):
         super().__init__(container)
         assert issubclass(type(container[0]), SelectionMember), \
@@ -157,7 +196,9 @@ class IndexedSelection(GenericSelection):
             selmemb.register_selection(key, selection)
 
     def register_selection(self, key, selection):
-        """ Register this IndexedSelection in a selection's registry."""
+        """ Overrides SelectionMember.register_selection, first adds selection
+        to it's registry then triggers adding it to it's children's registries."""
+
         self._registry.append((key, selection))
         # let the children selection members know they are now a part
         # of a higher-order selection
@@ -504,30 +545,7 @@ class SelectionTypeLibrary(col.UserDict):
     >>> len(seltype_lib)
     2
 
-    You can check to see if the attributes for a type match one in library.
-    >>> seltype_dup = SelectionType({'name': 'a'})
-    >>> seltype_lib.attributes_match(seltype_dup)
-    True
-
-    And if you try to add it with the same name it will make no
-    entry silently:
-    >>> seltype_lib.add_type(seltype_dup, type_name=seltype_dup.name)
-    >>> len(seltype_lib)
-    2
-
-    However, giving it a new name will add it:
-    >>> seltype_lib.add_type(seltype_dup, type_name='a_dup')
-    >>> len(seltype_lib)
-    3
-
-    Adding a type with the same name but different attributes raises
-    an error, e.g:
-        seltype.add_type(seltype, type_name=seltype2.name)
-
-    But you can set the rename flag to make it automatically rename types
-    with numbers:
-    >>> seltype_lib.add_type(new_seltype, type_name='a', rename=True)
-    >>> seltype_lib['a1'].name
+    >>> seltype_lib['a'].name
     'a'
 
     """
@@ -537,11 +555,46 @@ class SelectionTypeLibrary(col.UserDict):
         self._names_counter = {}
 
     def add_type(self, a_type, type_name, rename=False):
-        """adds a SelectionType to the SelectionTypeLibrary using the
-type_name.  If you try to add a duplicate with the same name it is
-silently ignored. If you try to add a type with the same name as one
-in the library but with different attributes it will raise an
-error.
+        """Adds a SelectionType to the SelectionTypeLibrary using the
+        type_name.
+
+        Examples
+        --------
+
+        >>> seltype_lib = SelectionTypeLibrary()
+        >>> seltype = SelectionType({'name' : 'a'})
+        >>> seltype2 = SelectionType({'name':'b'})
+        >>> seltype_dup = SelectionType({'name': 'a'})
+        >>> seltype_lib.add_type(seltype, type_name=seltype.name)
+        >>> seltype_lib.add_type(seltype2, type_name=seltype2.name)
+        >>> len(seltype_lib)
+        2
+
+        If you try to add an entry with the same name it will make no
+        entry silently:
+
+        >>> seltype_lib.add_type(seltype_dup, type_name=seltype_dup.name)
+        >>> len(seltype_lib)
+        2
+
+        However, giving it a new name will add it:
+
+        >>> seltype_lib.add_type(seltype_dup, type_name='a_dup')
+        >>> len(seltype_lib)
+        3
+
+
+        Adding a type with the same name but different attributes raises
+        an error, e.g:
+            seltype.add_type(new_seltype, type_name=seltype2.name)
+
+        But you can set the rename flag to make it automatically rename types
+        with numbers:
+
+        >>> new_seltype = SelectionType({'name' : 'z'})
+        >>> seltype_lib.add_type(new_seltype, type_name='a', rename=True)
+        >>> seltype_lib['a1'].name
+        'z'
 
         """
 
@@ -570,8 +623,18 @@ error.
             self._names_counter[type_name] += 1
 
     def attributes_match(self, a_type):
-        """Check if the attributes of an AtomType are equivalent to any
-AtomType already in the library.
+        """Check if the attributes of a SelectionType are equivalent to any
+        SelectionType already in the library.
+
+        Examples
+        --------
+
+        >>> seltype_lib = SelectionTypeLibrary()
+        >>> seltype = SelectionType({'name' : 'a'})
+        >>> seltype_lib.add_type(seltype, type_name='a')
+        >>> seltype_dup = SelectionType({'name': 'a'})
+        >>> seltype_lib.attributes_match(seltype_dup)
+        True
 
         """
 
@@ -582,119 +645,4 @@ AtomType already in the library.
         return False
 
 if __name__ == "__main__":
-
-    from mast.interactions import Association
-
-    from mast.selection import *
-
-    # test GenericSelection
-    gensel = GenericSelection([SelectionMember(None)])
-    print(gensel)
-
-    # test SelectionMember
-    string_selmember = SelectionMember('a')
-    print(string_selmember)
-
-    # test IndexedSelection
-    selmembers = [SelectionMember(i) for i in [0,1,2]]
-    print("selmembers[0] is a part of these selections", selmembers[0].get_selections())
-    idxsel = IndexedSelection(selmembers, [0,2])
-    print("idxsel", idxsel)
-    print("selmembers[0] is a part of these selections", selmembers[0].get_selections())
-    idxsel2 = IndexedSelection(selmembers, [0,1])
-    print("selmembers[0] is a part of these selections", selmembers[0].get_selections())
-
-    # test a selection from a list of SelectionMembers as a new type
-    strings = [SelectionMember('a'), SelectionMember('b'), SelectionMember('c')]
-    class StrSelection(IndexedSelection):
-        def __init__(self, strings, sel):
-            super().__init__(strings, sel)
-
-    stringsel = StrSelection(strings, [0])
-    print(stringsel)
-
-    array = np.array([[0,0,0], [1,1,1], [2,2,2]])
-    print("making CoordArray")
-    coords = CoordArray(array)
-    print("making CoordArraySelection")
-    coordsel = CoordArraySelection(coords, [0,1])
-    print(coordsel)
-    print(coordsel.coords)
-
-    print("making Point with it's own CoordArray")
-    point_coord = np.array([0,1,0])
-    point1 = Point(point_coord)
-    print(point1)
-    print(point1.coords)
-    print("making Point in previous CoordArray")
-    point_coord = np.array([0,1,0])
-    point2 = Point(point_coord, coord_array=coords)
-    print(point2)
-    print(point2.coords)
-
-    print("testing point overlaps")
-    print(point1.overlaps(point2))
-
-    print("Making SelectionDict")
-    seldict = SelectionDict()
-    print(seldict)
-    print(seldict.registry)
-    seldict2 = SelectionDict({'points' : [point1, point2],
-                              'strings' : strings,
-                              'coords' : [coordsel, CoordArraySelection(coords, [1,2])]})
-    print(seldict2)
-    print(seldict2.registry)
-    print("retrieving a seldict from it's members registries")
-    selected_member = seldict2['points'][0]
-    registry_selector = selected_member.registry[0][1]
-    print(registry_selector)
-    print("is the original point in this list?")
-    print(selected_member in registry_selector['points'])
-    print("getting the other points in this selection")
-    print("other_points in seldict2")
-    other_points = [p for p in registry_selector if p is not selected_member]
-
-    print("registries from seldict2 selections")
-    print("point1: ", point1.registry)
-    print("point2: ", point2.registry)
-    print("strings[0]: ", strings[0].registry)
-    print("coordsel: ", coordsel.registry)
-
-    print("Making SelectionList")
-    sellist = SelectionList()
-    print(sellist)
-    print(sellist.registry)
-    sellist2 = SelectionList([point1, point2])
-    print(sellist2)
-    print(sellist2.registry)
-
-    print("Making Association")
-    assoc = Association(association_list=[point1, point2], association_type=None)
-    print(assoc)
-
-    print("testing Type base classes")
-    print("making SelectionTypes")
-    seltype = SelectionType({'name':'a'})
-    seltype2 = SelectionType({'name':'b'})
-
-    print("making SelectionTypeLibrarys")
-    seltype_lib = SelectionTypeLibrary()
-    seltype_lib.add_type(seltype, type_name=seltype.name)
-    seltype_lib.add_type(seltype2, type_name=seltype2.name)
-    print("the library with two types")
-    print(seltype_lib)
-    seltype_dup = SelectionType({'name': 'a'})
-    print("A duplicate type, attributes_match result:")
-    print(seltype_lib.attributes_match(seltype_dup))
-    seltype_lib.add_type(seltype_dup, type_name=seltype_dup.name)
-    print("Adding it with the same name makes no new entry")
-    print(seltype_lib)
-    seltype_lib.add_type(seltype_dup, type_name='a_dup')
-    print("Using a different name will add it though")
-    print(seltype_lib)
-    print("If you add a type with the same name but different attributes,"
-          " it default raises an error. Set rename flag to true if you want to"
-          " allow it to rename the type. Default is just numbering")
-    new_seltype = SelectionType({'name':'a', 'newattr':0})
-    seltype_lib.add_type(new_seltype, type_name='a', rename=True)
-    print(seltype_lib)
+    pass
