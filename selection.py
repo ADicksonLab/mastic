@@ -438,13 +438,23 @@ class Point(CoordArraySelection):
         False
 
         """
+
         assert issubclass(type(other), Point), \
             "Other must be a subclass of Point, not {}".format(type(other))
         return np.all(np.isclose(self.coords, other.coords))
 
 
 class SelectionType(object):
-    """Base type for other Types."""
+    """Base type for other Types.
+
+    >>> class MyType(SelectionType):
+    ...     def __init__(self, attr_dict=None):
+    ...         super().__init__(attr_dict=attr_dict)
+
+    >>> attrs = {'color' : 'blue',
+    ...          'favorability' : 7 }
+    >>> mytype_type = MyType(attr_dict=attrs)
+    """
 
     def __init__(self, attr_dict=None):
         if attr_dict:
@@ -476,10 +486,49 @@ class SelectionType(object):
             return False
 
 class SelectionTypeLibrary(col.UserDict):
-    """Class that keeps track of a collection of types with methods for
-querying matches to attributes of types in the library, to reduce
-duplication, promote standardization of attributes, and keep clear
-naming distinctions.
+    """Keeps track of a collection of types with methods for
+    querying matches to attributes of types in the library, to reduce
+    duplication, promote standardization of attributes, and keep clear
+    naming distinctions.
+
+    Examples
+    --------
+
+    >>> seltype_lib = SelectionTypeLibrary()
+    >>> seltype_lib
+    {}
+    >>> seltype = SelectionType({'name' : 'a'})
+    >>> seltype2 = SelectionType({'name':'b'})
+    >>> seltype_lib.add_type(seltype, type_name=seltype.name)
+    >>> seltype_lib.add_type(seltype2, type_name=seltype2.name)
+    >>> len(seltype_lib)
+    2
+
+    You can check to see if the attributes for a type match one in library.
+    >>> seltype_dup = SelectionType({'name': 'a'})
+    >>> seltype_lib.attributes_match(seltype_dup)
+    True
+
+    And if you try to add it with the same name it will make no
+    entry silently:
+    >>> seltype_lib.add_type(seltype_dup, type_name=seltype_dup.name)
+    >>> len(seltype_lib)
+    2
+
+    However, giving it a new name will add it:
+    >>> seltype_lib.add_type(seltype_dup, type_name='a_dup')
+    >>> len(seltype_lib)
+    3
+
+    Adding a type with the same name but different attributes raises
+    an error, e.g:
+        seltype.add_type(seltype, type_name=seltype2.name)
+
+    But you can set the rename flag to make it automatically rename types
+    with numbers:
+    >>> seltype_lib.add_type(new_seltype, type_name='a', rename=True)
+    >>> seltype_lib['a1'].name
+    'a'
 
     """
 

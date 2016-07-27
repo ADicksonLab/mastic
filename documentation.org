@@ -127,6 +127,20 @@ and you access them with all the typical list methods.
 The IndexedSelection will just be a dictionary with keys enforced to
 be >= 0 ints.
 
+
+** TODO comparisons in the SelectionType class
+
+I don't know if this is very stable way to do things currently as it
+relies on the __dict__ which might not reflect all attributes,
+e.g. for things in __slots__ which I might use.
+
+** TODO SelectionType factory
+
+It seems that there should be something for defining a class of
+SelectionTypes such that they must have certain attributes.
+
+This sounds like a factory, must figure this out.
+
 ** TODO refactor SelectionList to ContainerList
 ** TODO refactor RDKitMoleculeType class into reader and MoleculeType class
 
