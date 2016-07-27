@@ -85,6 +85,49 @@ Currently is a prototype.
 
 ** TODO write logging facilities
 
+** TODO refactor SelectionDict to ContainerDict and create KeySelection
+Right now the SelectionDict can contain bare containers of selections.
+This should be put into two separate classes:
+
+1. ContainerDict :: keeping records of many containers of SelectionMembers
+2. KeySelection :: A selection where elements are addressed by a defined key
+
+Does this warrant the need for a Container class?
+
+** TODO Container class implementation
+A class for this would reduce redundancy in checking whether each
+element is a SelectionMember.
+
+Should allow for insertion of bare containers, like lists, and have
+them internally cast to Container classes.
+
+And then the user has the option of declaring them beforehand or not.
+
+** TODO cast elements of containers to SelectionMembers if not specified
+Should make it possibly to simply make a Selection from
+#+BEGIN_SRC python
+  idxsel = IndexedSelection([1,2,3,4], sel=[0,2])
+  idxsel[0]
+
+  # returns SelectionMember(1)
+#+END_SRC
+
+** TODO Selection class
+
+Right now it makes a dictionary with the keys being the indices from
+the sel key-word argument passed in.
+
+Maybe this can stay the same but this leads to obnoxious behavior in
+which you don't have a simple list to iterate through but dictionary
+records.
+
+Thus I want just a Selection class that simply puts them into a list
+and you access them with all the typical list methods.
+
+The IndexedSelection will just be a dictionary with keys enforced to
+be >= 0 ints.
+
+** TODO refactor SelectionList to ContainerList
 ** TODO refactor RDKitMoleculeType class into reader and MoleculeType class
 
 Most of what is in RDKitMoleculeType should be in MoleculeType and

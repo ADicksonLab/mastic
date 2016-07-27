@@ -1,3 +1,8 @@
+"""Abstract basic classes for building classes that are selection
+capable and selection aware.
+
+"""
+
 import numpy as np
 import collections as col
 import collections.abc as colabc
@@ -9,6 +14,33 @@ __all__ = ['SelectionMember', 'GenericSelection', 'IndexedSelection',
            'Point',]
 
 class SelectionMember(object):
+    """The base class that allows an object to be part of a
+    selection. Implements a registry which is used to keep track of
+    which selections it is a part of. Selection type classes must
+    implement a mechanism to add themselves to this registry.
+
+    Examples
+    --------
+
+    SelectionMember simply wraps an object:
+
+    >>> SelectionMember('a')
+    <class 'mast.selection.SelectionMember'>
+
+    Which you can access:
+
+    >>> a = SelectionMember('a')
+    >>> a.member
+    'a'
+
+    And can access the selections which have registered themselves as
+    containing this SelectionMember:
+
+    >>> a.registry
+    []
+
+    """
+
     def __init__(self, member):
         super().__init__()
         self.member = member
@@ -38,6 +70,28 @@ class SelectionMember(object):
         self._registry.append((key, selection))
 
 class GenericSelection(SelectionMember, col.UserDict):
+    """The most basic class for making selections of SelectionMember
+    objects. Requires only the container to be selected from, but not
+    which are selected, see subclasses for this implementation.
+
+    Examples
+    --------
+
+    The container of SelectionMembers from which to select from:
+    >>> container = [SelectionMember('a'), SelectionMember('b')]
+    >>> gensel = GenericSelection(container)
+    >>> gensel
+    <class 'mast.selection.GenericSelection'>
+
+    The container can be accessed:
+    >>> gensel.container
+    [<class 'mast.selection.SelectionMember'>, <class 'mast.selection.SelectionMember'>]
+
+    See IndexedSelection, and CoordArraySelection for classes with the
+    selection mechanism implemented.
+
+
+    """
     def __init__(self, container):
         super().__init__(self)
         assert '__getitem__' in dir(container), \
@@ -53,6 +107,31 @@ class GenericSelection(SelectionMember, col.UserDict):
         # return "{0}[{1}]".format(self.container, self.sel_ids)
 
 class IndexedSelection(GenericSelection):
+    """ A selection of a container by indices.
+
+    Example
+    -------
+
+    Make non-contiguous selections from a container:
+
+    >>> container = [SelectionMember(str) for str in ['a','b','c']]
+    >>> idxsel = IndexedSelection(container, sel=[0,2])
+    >>> idxsel
+    <class 'mast.selection.IndexedSelection'>
+
+    Access via dictionary syntax:
+
+    >>> idxsel[0]
+    <class 'mast.selection.SelectionMember'>
+    >>> idxsel[0].member
+    'a'
+
+    The registry for the SelectionMember knows it is selected:
+
+    >>> idxsel[0].registry
+    [(0, <class 'mast.selection.IndexedSelection'>)]
+
+"""
     def __init__(self, container, sel):
         super().__init__(container)
         assert issubclass(type(container[0]), SelectionMember), \
@@ -85,7 +164,7 @@ class IndexedSelection(GenericSelection):
         self.register_selection_members(key, selection)
 
 class SelectionDict(SelectionMember, col.UserDict):
-    """Creates a dictionary of collections of SelectionMembers.
+    """ A dictionary of collections of SelectionMembers.
 e.g. {'strings' : [StringSelection, StringSelection] 'ints' :
 [IntSelection, IntSelection]}
 
@@ -144,6 +223,31 @@ class SelectionList(SelectionMember, col.UserList):
         return str(self.__class__)
 
 class CoordArray(SelectionMember):
+    """A numpy array that is SelectionMember.
+
+    Examples
+    --------
+
+    Just wraps some array:
+    >>> from numpy import array
+
+    e.g. the 3D coordinates of 3 points
+    >>> arr = array([[0,0,0], [1,1,1], [2,2,2]])
+    >>> coords = CoordArray(arr)
+    >>> coords
+    <class 'mast.selection.CoordArray'>
+    >>> coords.coords
+    array([[0, 0, 0],
+           [1, 1, 1],
+           [2, 2, 2]])
+
+    Except we can add coords like records in a table, and the index of
+    the new record is returned:
+
+    >>> coords.add_coord(array([3,3,3]))
+    3
+
+    """
     def __init__(self, array):
         assert isinstance(array, np.ndarray), \
             "array must be a numpy.ndarray, not {}".format(
@@ -170,8 +274,8 @@ class CoordArray(SelectionMember):
         return self.coords.shape
 
     def add_coord(self, new_coord):
-        """Given a 1-D coordinate array will add this coordinate to the array
-and return the index of the new coordinate in the array.
+        """Adds 1-D coordinate array and returns the index of the new
+        coordinate in the array.
 
         """
         assert isinstance(new_coord, np.ndarray), \
@@ -188,6 +292,25 @@ and return the index of the new coordinate in the array.
         return self.shape[0] - 1
 
 class CoordArraySelection(GenericSelection):
+    """ A selection of coordinates records from a CoordArray.
+
+    Examples
+    --------
+
+    >>> import numpy as np
+    >>> arr = np.array([[0,0,0], [1,1,1], [2,2,2]])
+
+    >>> coords = CoordArray(arr)
+
+    >>> coordsel = CoordArraySelection(coords, [0,2])
+    >>> coordsel
+    <class 'mast.selection.CoordArraySelection'>
+    >>> coordsel[0]
+    array([[0, 0, 0]])
+    >>> coordsel[2]
+    array([[2, 2, 2]])
+
+    """
     def __init__(self, array, sel):
         super().__init__(array)
 
@@ -225,6 +348,45 @@ class CoordArraySelection(GenericSelection):
         return self._coords
 
 class Point(CoordArraySelection):
+    """An n-dimensional point possibly drawn from an existing CoordArray.
+
+    Examples
+    --------
+
+    Without a pre-existing CoordArray the point will make it's own:
+    >>> import numpy as np
+
+    >>> point_coord = np.array([0,1,0])
+
+    >>> point1 = Point(point_coord)
+    >>> point1
+    <class 'mast.selection.Point'>
+    >>> point1.container.coords
+    array([[0, 1, 0]])
+
+    However, many points made this way will be fragmented and will not
+    benefit from fast numpy operations on arrays. So if you have a lot of
+    related points, make a CoordArray first and then make selections
+    from that:
+
+    >>> import numpy as np
+    >>> arr = np.array([[0,0,0], [1,1,1], [2,2,2]])
+    >>> coords = CoordArray(arr)
+
+    To make a new point and add it to an existing CoordArray:
+
+    >>> point2 = Point(point_coord, coord_array=coords)
+    >>> point2.container.coords
+    array([[0, 0, 0],
+           [1, 1, 1],
+           [2, 2, 2],
+           [0, 1, 0]])
+
+    >>> coords.registry
+    [(3, <class 'mast.selection.Point'>)]
+
+    """
+
     def __init__(self, coords=None, coord_array=None, array_idx=None):
 
         # if not given a CoordArray just make our own using coords kwarg
@@ -264,9 +426,21 @@ class Point(CoordArraySelection):
         return self._coords[0]
 
     def overlaps(self, other):
+        """ Test if this point overlaps with another Point.
+
+        Examples
+        --------
+
+        >>> import numpy as np
+        >>> point1 = Point(np.array([0.0, 0.0, 0.0]))
+        >>> point2 = Point(np.array([0.0, 0.0, 1.0]))
+        >>> point1.overlaps(point2)
+        False
+
+        """
         assert issubclass(type(other), Point), \
             "Other must be a subclass of Point, not {}".format(type(other))
-        return np.any(np.isclose(self.coords, other.coords))
+        return np.all(np.isclose(self.coords, other.coords))
 
 
 class SelectionType(object):
