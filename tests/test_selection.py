@@ -1,6 +1,9 @@
 import doctest
 import unittest
 
+import numpy as np
+import numpy.testing as npt
+
 from mast import selection
 import mast.selection as mastsel
 
@@ -115,6 +118,34 @@ class TestIndexedSelection(unittest.TestCase):
     def test_getitem(self):
         for idx in self.selection_idxs:
             self.assertEqual(self.idx_selection[idx], self.selection_members[idx])
+
+    def test_selection_member_self_retrieval(self):
+        for sel_memb in self.selection_members:
+            for key, selection in sel_memb.registry:
+                self.assertEqual(selection[key], sel_memb)
+
+class TestCoordArray(unittest.TestCase):
+
+    def setUp(self):
+        self.array = np.array([[0,0,0], [1,1,1], [2,2,2]])
+        self.coords = mastsel.CoordArray(self.array)
+        self.new_coord = np.array([3,3,3])
+
+    def test_add_coord(self):
+        target_array = np.array([[0,0,0], [1,1,1], [2,2,2], [3,3,3]])
+        self.assertEqual(self.coords.add_coord(self.new_coord), 3)
+        npt.assert_equal(self.coords.coords, target_array)
+        with self.assertRaises(AssertionError):
+            self.coords.add_coord(np.array([4,4,4,4]))
+            self.coords.add_coord(np.array([2,2]))
+            self.coords.add_coord(np.array([]))
+            self.coords.add_coord([])
+            self.coords.add_coord({'a', 1})
+
+    def test_coord_setter(self):
+        with self.assertRaises(AssertionError):
+            self.coords.add_coord([])
+            self.coords.add_coord({'a', 1})
 
 if __name__ == "__main__":
     # doctests

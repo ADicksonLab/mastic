@@ -85,6 +85,10 @@ Currently is a prototype.
 
 ** TODO write logging facilities
 
+** TODO Docstring for register_selection
+
+SHould have an example of a GenericSelection subclass using this.
+
 ** TODO refactor SelectionDict to ContainerDict and create KeySelection
 Right now the SelectionDict can contain bare containers of selections.
 This should be put into two separate classes:
@@ -112,7 +116,7 @@ Should make it possibly to simply make a Selection from
   # returns SelectionMember(1)
 #+END_SRC
 
-** TODO Selection class
+** DONE Selection class
 
 Right now it makes a dictionary with the keys being the indices from
 the sel key-word argument passed in.
@@ -129,8 +133,8 @@ be >= 0 ints.
 
 *** DONE class
 
-*** TODO docstring
-*** TODO tests
+*** DONE docstring
+*** DONE tests
 
 ** TODO comparisons in the SelectionType class
 

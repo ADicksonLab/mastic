@@ -334,10 +334,10 @@ class CoordArray(SelectionMember):
     --------
 
     Just wraps some array:
-    >>> from numpy import array
+    >>> import numpy as np
 
     e.g. the 3D coordinates of 3 points
-    >>> arr = array([[0,0,0], [1,1,1], [2,2,2]])
+    >>> arr = np.array([[0,0,0], [1,1,1], [2,2,2]])
     >>> coords = CoordArray(arr)
     >>> coords
     <class 'mast.selection.CoordArray'>
@@ -349,7 +349,7 @@ class CoordArray(SelectionMember):
     Except we can add coords like records in a table, and the index of
     the new record is returned:
 
-    >>> coords.add_coord(array([3,3,3]))
+    >>> coords.add_coord(np.array([3,3,3]))
     3
 
     """
