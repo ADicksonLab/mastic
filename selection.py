@@ -211,6 +211,19 @@ class Selection(GenericSelection, col.UserList):
     def __init__(self, container, sel):
         super().__init__(container)
 
+        # handle sel inputs
+        # TODO add support for slices
+        assert type(sel) in [int, list], \
+            "sel must be either a positive int, list of positive ints or a slice"
+
+        if isinstance(sel, int):
+            assert sel >=0, "an integer sel must be non-negative, {}".format(sel)
+            sel = [sel]
+        elif isinstance(sel, list):
+            assert sel, "a list sel must be nonempty, {}".format(sel)
+            assert all([(lambda x: False if x < 0 else True)(b) for b in sel]), \
+                "all values in selection keys must be non-negative"
+
         assert all([issubclass(type(member), SelectionMember) for member in container]), \
             "container members must be a subclass of SelectionMember"
 
@@ -268,64 +281,6 @@ class IndexedSelection(GenericSelection, col.UserDict):
     def __repr__(self):
         return str(self.__class__)
 
-class SelectionDict(SelectionMember, col.UserDict):
-    """ A dictionary of collections of SelectionMembers.
-e.g. {'strings' : [StringSelection, StringSelection] 'ints' :
-[IntSelection, IntSelection]}
-
-    """
-    def __init__(self, selection_dict=None):
-        if not selection_dict:
-            self.data = {}
-
-        super().__init__(selection_dict)
-
-        # add the selection_dict to the data
-        if selection_dict:
-            assert issubclass(type(selection_dict), col.Mapping), \
-                "selection_dict must be a subclass of collections.Mapping, not {}".format(
-                    type(selection_dict))
-            self.data = selection_dict
-
-        # if values in the selection_dict are SelectionMembers update
-        # their registries
-        for key, value in self.data.items():
-            # if there are multiple
-            try:
-                for member in value:
-
-                    if issubclass(type(member), SelectionMember):
-                        member.register_selection(key, self)
-            # if there is only one
-            except TypeError:
-                if issubclass(type(value), SelectionMember):
-                    value.register_selection(key, self)
-
-    def __repr__(self):
-        return str(self.__class__)
-
-
-class SelectionList(SelectionMember, col.UserList):
-    def __init__(self, selection_list=None):
-        if not selection_list:
-            self.data = []
-
-        super().__init__(selection_list)
-
-        if selection_list:
-            assert issubclass(type(selection_list), col.Sequence), \
-                "selection_dict must be a subclass of collections.Sequence, not {}".format(
-                    type(selection_list))
-            self.data = selection_list
-
-        # if values in the selection_list are SelectionMembers update
-        # their registries
-        for idx, member in enumerate(self.data):
-            if issubclass(type(member), SelectionMember):
-                member.register_selection(idx, self)
-
-    def __repr__(self):
-        return str(self.__class__)
 
 class CoordArray(SelectionMember):
     """A numpy array that is SelectionMember.
@@ -353,6 +308,7 @@ class CoordArray(SelectionMember):
     3
 
     """
+
     def __init__(self, array):
         assert isinstance(array, np.ndarray), \
             "array must be a numpy.ndarray, not {}".format(
@@ -396,7 +352,7 @@ class CoordArray(SelectionMember):
         # return the index of the added coordinate
         return self.shape[0] - 1
 
-class CoordArraySelection(GenericSelection, col.UserDict):
+class CoordArraySelection(GenericSelection):
     """ A selection of coordinates records from a CoordArray.
 
     Examples
@@ -404,26 +360,30 @@ class CoordArraySelection(GenericSelection, col.UserDict):
 
     >>> import numpy as np
     >>> arr = np.array([[0,0,0], [1,1,1], [2,2,2]])
-
     >>> coords = CoordArray(arr)
-
     >>> coordsel = CoordArraySelection(coords, [0,2])
     >>> coordsel
     <class 'mast.selection.CoordArraySelection'>
     >>> coordsel[0]
-    array([[0, 0, 0]])
-    >>> coordsel[2]
-    array([[2, 2, 2]])
+    array([0, 0, 0])
+    >>> coordsel[1]
+    array([2, 2, 2])
 
     """
+
     def __init__(self, array, sel):
+
+        assert issubclass(type(array), CoordArray), \
+            "array must be a subclass of CoordArray, not {}".format(
+                type(array))
+
         super().__init__(array)
 
+        # handle sel inputs
         # TODO add support for slices
         assert type(sel) in [int, list], \
             "sel must be either a positive int, list of positive ints or a slice"
 
-        # handle sel inputs
         if isinstance(sel, int):
             assert sel >=0, "an integer sel must be non-negative, {}".format(sel)
             sel = [sel]
@@ -432,13 +392,17 @@ class CoordArraySelection(GenericSelection, col.UserDict):
             assert all([(lambda x: False if x < 0 else True)(b) for b in sel]), \
                 "all values in selection keys must be non-negative"
 
+
         # make selections as views from the array
         self.sel_ids = sel
+        self.data = []
         for sel_idx in sel:
-            # slices like this are views into the array
-            self[sel_idx] = self.container[sel_idx:(sel_idx+1)]
+            self.data.append(self.container[sel_idx:(sel_idx+1)][0])
             # set this selection in the CoordArray registry
             self.container.register_selection(sel_idx, self)
+
+    def __getitem__(self, idx):
+        return self.data[idx]
 
     def __repr__(self):
         return str(self.__class__)
@@ -446,10 +410,11 @@ class CoordArraySelection(GenericSelection, col.UserDict):
     @property
     def _coords(self):
         from functools import reduce
-        return reduce(lambda x,y: np.concatenate((x,y)), [value for value in self.values()])
+        return reduce(lambda x,y: np.concatenate((x,y)), [[value] for value in self.data])
 
     @property
     def coords(self):
+        """ Array of only the selected coordinates. """
         return self._coords
 
 class Point(CoordArraySelection):
@@ -707,6 +672,66 @@ class SelectionTypeLibrary(col.UserDict):
                 if pair[1] == pair[0]:
                     return True
         return False
+
+
+class SelectionDict(SelectionMember, col.UserDict):
+    """ A dictionary of collections of SelectionMembers.
+e.g. {'strings' : [StringSelection, StringSelection] 'ints' :
+[IntSelection, IntSelection]}
+
+    """
+    def __init__(self, selection_dict=None):
+        if not selection_dict:
+            self.data = {}
+
+        super().__init__(selection_dict)
+
+        # add the selection_dict to the data
+        if selection_dict:
+            assert issubclass(type(selection_dict), col.Mapping), \
+                "selection_dict must be a subclass of collections.Mapping, not {}".format(
+                    type(selection_dict))
+            self.data = selection_dict
+
+        # if values in the selection_dict are SelectionMembers update
+        # their registries
+        for key, value in self.data.items():
+            # if there are multiple
+            try:
+                for member in value:
+
+                    if issubclass(type(member), SelectionMember):
+                        member.register_selection(key, self)
+            # if there is only one
+            except TypeError:
+                if issubclass(type(value), SelectionMember):
+                    value.register_selection(key, self)
+
+    def __repr__(self):
+        return str(self.__class__)
+
+
+class SelectionList(SelectionMember, col.UserList):
+    def __init__(self, selection_list=None):
+        if not selection_list:
+            self.data = []
+
+        super().__init__(selection_list)
+
+        if selection_list:
+            assert issubclass(type(selection_list), col.Sequence), \
+                "selection_dict must be a subclass of collections.Sequence, not {}".format(
+                    type(selection_list))
+            self.data = selection_list
+
+        # if values in the selection_list are SelectionMembers update
+        # their registries
+        for idx, member in enumerate(self.data):
+            if issubclass(type(member), SelectionMember):
+                member.register_selection(idx, self)
+
+    def __repr__(self):
+        return str(self.__class__)
 
 if __name__ == "__main__":
     pass

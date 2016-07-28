@@ -66,6 +66,16 @@ class TestSelection(unittest.TestCase):
     def tearDown(self):
         pass
 
+    def test_constructor(self):
+        with self.assertRaises(AssertionError):
+            mastsel.Selection(self.selection_members, 'a')
+            mastsel.Selection(self.selection_members, ['a','b'])
+            mastsel.Selection(self.selection_members, -1)
+            mastsel.Selection(self.selection_members, [-1,-2])
+            mastsel.Selection(self.selection_members, [-1,2])
+            mastsel.Selection(self.selection_members, [])
+            mastsel.Selection(self.members, [1])
+
     def test_getitem(self):
         # the second element is the third from members
         self.assertEqual(self.selection[1], self.selection_members[self.sel_idxs[1]])
@@ -146,6 +156,78 @@ class TestCoordArray(unittest.TestCase):
         with self.assertRaises(AssertionError):
             self.coords.add_coord([])
             self.coords.add_coord({'a', 1})
+
+
+class TestCoordArraySelection(unittest.TestCase):
+
+    def setUp(self):
+        self.array = np.array([[0,0,0], [1,1,1], [2,2,2]])
+        self.coords = mastsel.CoordArray(self.array)
+        self.sel_idxs = [0,2]
+        self.coord_selection = mastsel.CoordArraySelection(self.coords, self.sel_idxs)
+
+    def tearDown(self):
+        pass
+
+    def test_constructor(self):
+        with self.assertRaises(AssertionError):
+            mastsel.CoordArraySelection(self.coords, 'a')
+            mastsel.CoordArraySelection(self.coords, ['a','b'])
+            mastsel.CoordArraySelection(self.coords, -1)
+            mastsel.CoordArraySelection(self.coords, [-1,-2])
+            mastsel.CoordArraySelection(self.coords, [-1,2])
+            mastsel.CoordArraySelection(self.coords, [])
+            mastsel.CoordArraySelection({}, [1])
+
+    def test_getitem(self):
+        for i, idx in enumerate(self.sel_idxs):
+            npt.assert_equal(self.coord_selection.container[idx], self.array[idx])
+            npt.assert_equal(self.coord_selection.data[i], self.array[idx])
+            npt.assert_equal(self.coord_selection[i], self.array[idx])
+
+    def test_coords(self):
+        target_coords = np.array([[0,0,0], [2,2,2]])
+        npt.assert_equal(target_coords, self.coord_selection.coords)
+
+class TestPoint(unittest.TestCase):
+
+    def setUp(self):
+        self.point1_coord = np.array([0,1,0])
+        self.point1 = mastsel.Point(self.point1_coord)
+
+        self.array = np.array([[0,0,0], [1,1,1], [2,2,2]])
+        self.coord_array = mastsel.CoordArray(self.array)
+
+        self.point2_coord = self.coord_array[0]
+        self.point2 = mastsel.Point(self.point2_coord)
+
+        self.point3_coord = np.array([0,1,0])
+        self.point3 = mastsel.Point(self.point3_coord)
+
+        self.bad_point_2d = mastsel.CoordArray(np.array([0,1]))
+        self.bad_point_4d = mastsel.CoordArray(np.array([0,1,2,3]))
+    def tearDown(self):
+        pass
+
+    def test_constructor(self):
+        with self.assertRaises(AssertionError):
+
+            # wrong dimension points
+            mastsel.Point(self.bad_point_2d)
+            mastsel.Point(self.bad_point_4d)
+
+            # from existing CoordArray
+            mastsel.Point(coord_array=np.array([1,2,3]))
+            mastsel.Point(coord_array=self.coord_array, array_idx=3)
+            mastsel.Point(coord_array=self.coord_array, array_idx='b')
+
+    def test_overlaps(self):
+        self.assertFalse(self.point1.overlaps(self.point2))
+        self.assertTrue(self.point1.overlaps(self.point3))
+        with self.assertRaises(AssertionError):
+            self.point1.overlaps(np.array([0,1,0]))
+            self.point1.overlaps([0,1,0])
+
 
 if __name__ == "__main__":
     # doctests

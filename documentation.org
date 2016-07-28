@@ -142,10 +142,14 @@ I don't know if this is very stable way to do things currently as it
 relies on the __dict__ which might not reflect all attributes,
 e.g. for things in __slots__ which I might use.
 
-** TODO CoordArraySelection refactor inheritance
+** DONE CoordArraySelection refactor inheritance
 
 Do I want it to be a dictionary style or Selection inheritance.
 FIgure this out and change in code.
+
+It now just behaves like a list with a manually added data attribute
+and a __getitem__ method.
+
 ** TODO SelectionType factory
 
 It seems that there should be something for defining a class of
