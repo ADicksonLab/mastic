@@ -12,3 +12,8 @@ print(selections_1)
 
 selections_None = container[0].get_selections(level=None)
 print(selections_None)
+
+
+print(container[0].get_selections(level=5))
+
+print(container[1].get_selections(level=3))

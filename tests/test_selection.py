@@ -18,17 +18,19 @@ class TestSelectionMember(unittest.TestCase):
     def test_member(self):
         self.assertEqual(self.selection_member.member, self.member)
 
-    def test_registry(self):
+
+    def test_unselected_registry(self):
         self.assertEqual(self.selection_member.registry, [])
-        sel = mastsel.Selection([self.selection_member], [0])
-        self.assertIn((0, sel), self.selection_member.registry)
 
     def test_repr(self):
         pass
 
     def test_get_selections(self):
         sel = mastsel.Selection([self.selection_member], [0])
+        # recursive
         self.assertIn(sel, self.selection_member.get_selections())
+        # non-recursive
+        self.assertIn(sel, self.selection_member.get_selections(level=0))
 
     def test_register_selection(self):
         pass
@@ -61,18 +63,15 @@ class TestSelection(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_slicing(self):
+    def test_getitem(self):
         # the second element is the third from members
-        self.assertEquals(self.selection[1], self.selection_members[self.sel_idxs[1]])
+        self.assertEqual(self.selection[1], self.selection_members[self.sel_idxs[1]])
 
+    def test_selection_member_self_retrieval(self):
+        for sel_memb in self.selection_members:
+            for key, selection in sel_memb.registry:
+                self.assertEqual(selection[key], sel_memb)
 
-    def test_register_selection(self):
-        # simply make sure the selection was registered in each member
-        for member in self.selection:
-            self.assertIn(self.selection, member.get_selections())
-            # and that we can retrieve it
-            for key, selection in member.registry:
-                self.assertEquals(member, selection[key])
 
 class TestChainedSelection(unittest.TestCase):
      # set up Selection -0-> [Selection -0-> [SelectionMember]]
@@ -84,9 +83,38 @@ class TestChainedSelection(unittest.TestCase):
        self.meta_selection = mastsel.Selection(self.selection_container, [0])
 
     def test_chained_registry_assignment(self):
+        # the first level is in the recursive get
+        self.assertIn(self.selection, self.selection_members[0].get_selections())
+        # the first level is in the level=0 get
+        self.assertIn(self.selection, self.selection_members[0].get_selections(level=0))
+        # specifying too many levels is ignored silently
+        self.assertIn(self.selection, self.selection_members[0].get_selections(level=3))
+
+        # the second level selection is in the recursive get
         self.assertIn(self.meta_selection, self.selection_members[0].get_selections())
-        self.assertNotIn(self.meta_selection, self.selection_members[1].get_selections())
-        
+        # the second level selection is not in the level=0 get
+        self.assertNotIn(self.meta_selection, self.selection_members[0].get_selections(level=0))
+        # the second level selection is in the level=1 get
+        self.assertIn(self.meta_selection, self.selection_members[0].get_selections(level=1))
+
+        for unselected_member in self.selection_members[1:]:
+            # neither selection is in any other SelectionMember
+            self.assertEqual(unselected_member.get_selections(), [])
+
+class TestIndexedSelection(unittest.TestCase):
+
+    def setUp(self):
+       self.members = ['a', 'b', 'c']
+       self.selection_members = [mastsel.SelectionMember(sel) for sel in self.members]
+       self.selection_idxs = [0, 2]
+       self.idx_selection = mastsel.IndexedSelection(self.selection_members, self.selection_idxs)
+
+    def tearDown(self):
+        pass
+
+    def test_getitem(self):
+        for idx in self.selection_idxs:
+            self.assertEqual(self.idx_selection[idx], self.selection_members[idx])
 
 if __name__ == "__main__":
     # doctests

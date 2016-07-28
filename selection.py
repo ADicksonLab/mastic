@@ -64,7 +64,35 @@ class SelectionMember(object):
         """Returns all the selection objects referred to in the registry,
         recursively to the level specified, default is all.
 
+        Examples
+        --------
+
+        Get all the selections this SelectionMember is a part of:
+
+        >>> container = [SelectionMember('a'), SelectionMember('b'), SelectionMember('c')]
+        >>> selection = Selection(container, [0])
+        >>> container[0].get_selections()[0] is selection
+        True
+
+        If these selections then become part of other selections we
+        want to get all of them recursively:
+
+        >>> len(container[0].get_selections())
+        1
+        >>> meta_selection = Selection([selection], [0])
+        >>> len(container[0].get_selections())
+        2
+
+        For a specific depth of selections:
+
+        >>> len(container[0].get_selections(level=0))
+        1
+
+        >>> len(container[0].get_selections(level=1))
+        2
+
         """
+
         # get the selections on this level
         selections = [tup[-1] for tup in self._registry]
         # return them if the level is at 0
@@ -165,23 +193,6 @@ class GenericSelection(SelectionMember):
         return str(self.__class__)
         # return "{0}[{1}]".format(self.container, self.sel_ids)
 
-    # def register_selection_members(self, key, selection):
-    #     """ Register this object in the child selections of another selection."""
-
-    #     # TODO currently doesn't store the key for this selection,
-    #     # only the toplevel one
-    #     for this_key, selmemb in self.data.items():
-    #         selmemb.register_selection(key, selection)
-
-    def register_selection(self, key, selection):
-        """ Extends SelectionMember.register_selection, first adds selection
-        to it's registry then triggers adding it to it's children's registries."""
-
-        super().register_selection(key, selection)
-        # let the children selection members know they are now a part
-        # of a higher-order selection
-        # self.register_selection_members(key, selection)
-
 class Selection(GenericSelection, col.UserList):
     """ A simple selection of a container.
 
@@ -212,6 +223,9 @@ class Selection(GenericSelection, col.UserList):
             # set this selection in the SelectionMember registry
             member.register_selection(idx, self)
             idx += 1
+
+class KeySelection(GenericSelection, col.UserDict):
+    pass
 
 class IndexedSelection(GenericSelection, col.UserDict):
     """ A selection of a container by indices.
