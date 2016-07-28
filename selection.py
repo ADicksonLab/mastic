@@ -60,9 +60,29 @@ class SelectionMember(object):
     def __repr__(self):
         return str(self.__class__)
 
-    def get_selections(self):
-        """Returns all the selection objects referred to in the registry."""
-        return [tup[-1] for tup in self._registry]
+    def get_selections(self, level=None):
+        """Returns all the selection objects referred to in the registry,
+        recursively to the level specified, default is all.
+
+        """
+        # get the selections on this level
+        selections = [tup[-1] for tup in self._registry]
+        # return them if the level is at 0
+        if level == 0:
+            return selections
+        # otherwise get new selections from lower levels
+        new_selections = []
+        # from each selection
+        for selection in selections:
+            # if the level is not infinite reduce the level depth and continue
+            if level is not None:
+                new_selections.extend(selection.get_selections(level - 1))
+            else:
+                new_selections.extend(selection.get_selections(level))
+
+        selections.extend(list(new_selections))
+
+        return selections
 
     @property
     def registry(self):
@@ -145,13 +165,13 @@ class GenericSelection(SelectionMember):
         return str(self.__class__)
         # return "{0}[{1}]".format(self.container, self.sel_ids)
 
-    def register_selection_members(self, key, selection):
-        """ Register this object in the child selections of another selection."""
+    # def register_selection_members(self, key, selection):
+    #     """ Register this object in the child selections of another selection."""
 
-        # TODO currently doesn't store the key for this selection,
-        # only the toplevel one
-        for this_key, selmemb in self.data.items():
-            selmemb.register_selection(key, selection)
+    #     # TODO currently doesn't store the key for this selection,
+    #     # only the toplevel one
+    #     for this_key, selmemb in self.data.items():
+    #         selmemb.register_selection(key, selection)
 
     def register_selection(self, key, selection):
         """ Extends SelectionMember.register_selection, first adds selection
@@ -160,7 +180,7 @@ class GenericSelection(SelectionMember):
         super().register_selection(key, selection)
         # let the children selection members know they are now a part
         # of a higher-order selection
-        self.register_selection_members(key, selection)
+        # self.register_selection_members(key, selection)
 
 class Selection(GenericSelection, col.UserList):
     """ A simple selection of a container.
