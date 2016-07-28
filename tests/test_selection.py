@@ -20,15 +20,20 @@ class TestSelectionMember(unittest.TestCase):
 
     def test_registry(self):
         self.assertEqual(self.selection_member.registry, [])
+        sel = mastsel.Selection([self.selection_member], [0])
+        self.assertIn((0, sel), self.selection_member.registry)
 
     def test_repr(self):
         pass
 
     def test_get_selections(self):
-        self.selection_member.get_selections()
+        sel = mastsel.Selection([self.selection_member], [0])
+        self.assertIn(sel, self.selection_member.get_selections())
 
     def test_register_selection(self):
         pass
+
+
 
 if __name__ == "__main__":
     # doctests

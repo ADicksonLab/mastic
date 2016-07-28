@@ -62,7 +62,7 @@ class SelectionMember(object):
 
     def get_selections(self):
         """Returns all the selection objects referred to in the registry."""
-        return self._registry
+        return [tup[-1] for tup in self._registry]
 
     @property
     def registry(self):
@@ -107,7 +107,7 @@ class SelectionMember(object):
         """
         self._registry.append((key, selection))
 
-class GenericSelection(SelectionMember, col.UserDict):
+class GenericSelection(SelectionMember):
     """The most basic class for making selections of SelectionMember
     objects. Requires only the container to be selected from, but not
     which are selected, see subclasses for this implementation.
@@ -145,7 +145,55 @@ class GenericSelection(SelectionMember, col.UserDict):
         return str(self.__class__)
         # return "{0}[{1}]".format(self.container, self.sel_ids)
 
-class IndexedSelection(GenericSelection):
+    def register_selection_members(self, key, selection):
+        """ Register this object in the child selections of another selection."""
+
+        # TODO currently doesn't store the key for this selection,
+        # only the toplevel one
+        for this_key, selmemb in self.data.items():
+            selmemb.register_selection(key, selection)
+
+    def register_selection(self, key, selection):
+        """ Extends SelectionMember.register_selection, first adds selection
+        to it's registry then triggers adding it to it's children's registries."""
+
+        super().register_selection(key, selection)
+        # let the children selection members know they are now a part
+        # of a higher-order selection
+        self.register_selection_members(key, selection)
+
+class Selection(GenericSelection, col.UserList):
+    """ A simple selection of a container.
+
+    Examples
+    --------
+
+    >>> container = [SelectionMember(str) for str in ['a','b','c']]
+    >>> selection = Selection(container, sel=[0,2])
+    >>> selection[0].member
+    'a'
+    >>> selection[1].member
+    'c'
+
+    """
+
+    def __init__(self, container, sel):
+        super().__init__(container)
+
+        assert all([issubclass(type(member), SelectionMember) for member in container]), \
+            "container members must be a subclass of SelectionMember"
+
+        # make the selections from container
+        self.sel_ids = sel
+        idx = 0
+        for sel_idx in sel:
+            member = container[sel_idx]
+            self.append(member)
+            # set this selection in the SelectionMember registry
+            member.register_selection(idx, self)
+            idx += 1
+
+class IndexedSelection(GenericSelection, col.UserDict):
     """ A selection of a container by indices.
 
     Example
@@ -173,9 +221,8 @@ class IndexedSelection(GenericSelection):
     """
     def __init__(self, container, sel):
         super().__init__(container)
-        assert issubclass(type(container[0]), SelectionMember), \
-            "container members must be a subclass of SelectionMember, not {}".format(
-                type(container[0]))
+        assert all([issubclass(type(member), SelectionMember) for member in container]), \
+            "container members must be a subclass of SelectionMember"
 
         # make the selections from container
         self.sel_ids = sel
@@ -186,23 +233,6 @@ class IndexedSelection(GenericSelection):
 
     def __repr__(self):
         return str(self.__class__)
-
-    def register_selection_members(self, key, selection):
-        """ Register this object in the child selections of another selection."""
-
-        # TODO currently doesn't store the key for this selection,
-        # only the toplevel one
-        for this_key, selmemb in self.data.items():
-            selmemb.register_selection(key, selection)
-
-    def register_selection(self, key, selection):
-        """ Overrides SelectionMember.register_selection, first adds selection
-        to it's registry then triggers adding it to it's children's registries."""
-
-        self._registry.append((key, selection))
-        # let the children selection members know they are now a part
-        # of a higher-order selection
-        self.register_selection_members(key, selection)
 
 class SelectionDict(SelectionMember, col.UserDict):
     """ A dictionary of collections of SelectionMembers.
@@ -332,7 +362,7 @@ class CoordArray(SelectionMember):
         # return the index of the added coordinate
         return self.shape[0] - 1
 
-class CoordArraySelection(GenericSelection):
+class CoordArraySelection(GenericSelection, col.UserDict):
     """ A selection of coordinates records from a CoordArray.
 
     Examples
