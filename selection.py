@@ -513,6 +513,14 @@ class Point(CoordArraySelection):
             "Other must be a subclass of Point, not {}".format(type(other))
         return np.all(np.isclose(self.coords, other.coords))
 
+class SelectionTypeFactory(object):
+
+    @staticmethod
+    def create_type(attr_list, class_name):
+        class NewClass(SelectionType):
+            def __init__(self, attr_list, class_name):
+                for 
+
 
 class SelectionType(object):
     """Base type for other Types.

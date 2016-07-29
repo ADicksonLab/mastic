@@ -245,6 +245,7 @@ class TestSelectionTypeLibrary(unittest.TestCase):
         pass
 
 if __name__ == "__main__":
+    from mast import selection
     # doctests
     print("\n\n\n Doc Tests\n-----------")
     nfail, ntests = doctest.testmod(selection, verbose=True)

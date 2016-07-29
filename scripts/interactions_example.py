@@ -3,7 +3,8 @@ from rdkit.Chem import AllChem
 import os.path as osp
 from copy import copy
 
-from mast.interactions import HydrogenBondType, InteractionType, AssociationType
+from mast.interactions import HydrogenBondType, InteractionType, \
+    AssociationType, SystemAssociation
 
 trypsin_dir = osp.expanduser("~/Dropbox/lab/trypsin")
 trypsin_pdb_path = osp.join(trypsin_dir,  "trypsin_Hs.pdb")
@@ -11,7 +12,7 @@ trypsin = Chem.MolFromPDBFile(trypsin_pdb_path, removeHs=False, sanitize=False)
 ben_pdb_path = osp.join(trypsin_dir, "BEN_Hs.pdb")
 ben = Chem.MolFromPDBFile(ben_pdb_path, removeHs=False, sanitize=False)
 
-from mast.molecule import RDKitMoleculeType
+from mast.molecule import RDKitMoleculeType, Molecule
 
 print("loading RDKit molecules")
 trypsin_type = RDKitMoleculeType(trypsin, mol_name="trypsin")
