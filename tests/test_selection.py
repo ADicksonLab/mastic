@@ -228,6 +228,21 @@ class TestPoint(unittest.TestCase):
             self.point1.overlaps(np.array([0,1,0]))
             self.point1.overlaps([0,1,0])
 
+class TestSelectionType(unittest.TestCase):
+
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+class TestSelectionTypeLibrary(unittest.TestCase):
+
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
 
 if __name__ == "__main__":
     # doctests
