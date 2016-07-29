@@ -95,7 +95,11 @@ Currently is a prototype.
 *** TODO system.py
 *** TODO interactions.py
 
+
 ** TODO write logging facilities
+
+** TODO Atom.__getitem__ should retrieve something more meaningful
+Like say the dimension component.
 
 ** TODO Docstring for register_selection
 
