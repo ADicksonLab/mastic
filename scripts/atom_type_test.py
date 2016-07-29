@@ -66,20 +66,20 @@ HAtomType = atom_type_factory(H_attrs, 'HAtomType')
 C_attrs = {'atomic_num' : 12, 'element' : 'C'}
 CAtomType = atom_type_factory(C_attrs, 'CAtomType')
 
-class MoleculeType(type):
+class MoleculeType(object):
 
-    # attributes determined during factory creation
-    _atom_type_library = set()
-    _features = None
-    _feature_families = None
-    _feature_types = None
+    def __init__(self, name=None, atom_types=None, ):
+        self._atom_type_library = set(atom_types)
+        self._features = None
+        self._feature_families = None
+        self._feature_types = None
+        self._bonds = None
 
-    _bonds = None
+        self.name = name
+        self.atom_types = None
 
-    name = None
-    atom_types = None
 
-    @classmethod
+    @property
     def atom_type_library(self):
         return list(self._atom_type_library)
 
@@ -128,12 +128,12 @@ class MoleculeType(type):
 
         return Molecule(atoms, bonds, angles, mol_type=self)
 
-def molecule_type_factory(mol_type_name, name=None, atom_types=None):
-    mol_type = type(mol_type_name, (MoleculeType,), {})
-    mol_type.name = name
-    mol_type.atom_types = atom_types
-    mol_type._atom_type_library = set(mol_type.atom_types)
-    return mol_type
+    @classmethod
+    def factory(cls, mol_type_name, name=None, atom_types=None):
+        mol_class = type(mol_type_name, (cls,), {})
+        mol_type = mol_class(name=name, atom_types=atom_types)
+
+        return mol_type
 
 
 water_attrs = {'atom_types' : [HAtomType, OAtomType, HAtomType],
@@ -143,5 +143,5 @@ methanol_attrs = {'atom_types' : [HAtomType, OAtomType, CAtomType,
                                   HAtomType, HAtomType, HAtomType],
                   'name' : 'methanol'}
 
-WaterType = molecule_type_factory('WaterType', **water_attrs)
-MethanolType = molecule_type_factory('MethanolType', **methanol_attrs)
+water_type = MoleculeType.factory('WaterType', **water_attrs)
+methanol_type = MoleculeType.factory('MethanolType', **methanol_attrs)
