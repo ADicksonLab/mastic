@@ -82,21 +82,24 @@ Currently is a prototype.
 * TODOs
 
 ** TODO write unit tests
+*** TODO selection.py
+**** DONE selection classes
+**** TODO SelectionType and Library
+**** TODO Container
+*** TODO molecule.py
+*** TODO system.py
+*** TODO interactions.py
+** TODO write doc strings with tests
+*** DONE selection.py
+*** TODO molecule.py
+*** TODO system.py
+*** TODO interactions.py
 
 ** TODO write logging facilities
 
 ** TODO Docstring for register_selection
 
 SHould have an example of a GenericSelection subclass using this.
-
-** TODO refactor SelectionDict to ContainerDict and create KeySelection
-Right now the SelectionDict can contain bare containers of selections.
-This should be put into two separate classes:
-
-1. ContainerDict :: keeping records of many containers of SelectionMembers
-2. KeySelection :: A selection where elements are addressed by a defined key
-
-Does this warrant the need for a Container class?
 
 ** TODO Container class implementation
 A class for this would reduce redundancy in checking whether each
@@ -154,10 +157,20 @@ and a __getitem__ method.
 
 It seems that there should be something for defining a class of
 SelectionTypes such that they must have certain attributes.
+#+BEGIN_SRC python
+  mol_attrs = ['name', 'pdb_symbol', 'atom_types']
+  MoleculeType = SelectionTypeFactory(mol_attrs)
 
-This sounds like a factory, must figure this out.
+  water_type = MoleculeType(name="water",
+               pdb_symbol="H2O",
+               atom_types=['H', 'H', 'O'])
 
-** TODO refactor SelectionList to ContainerList
+  coords = np.array([[0,0,1], [1,0,0], [0,1,0]])
+
+  water_type.to_molecule(coords)
+#+END_SRC
+
+
 ** TODO refactor RDKitMoleculeType class into reader and MoleculeType class
 
 Most of what is in RDKitMoleculeType should be in MoleculeType and
