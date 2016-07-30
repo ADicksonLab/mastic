@@ -1,5 +1,3 @@
-from copy import copy
-
 atom_attrs = ['name',
               'atomic_num',
               'bond_degree_no_Hs',
@@ -26,12 +24,8 @@ atom_attrs = ['name',
               'pdb_serial_number',
               'pdb_temp_factor',]
 
-none_atom_attr_dict = {attr : None for attr in atom_attrs}
 
-AtomType = type('AtomType', (object,), none_atom_attr_dict)
-AtomType.attributes = atom_attrs
-
-def atom_type_factory(atom_attrs, atom_type_name):
+def _atom_type_factory(atom_attrs, atom_type_name):
     attributes = {attr : None for attr in AtomType.attributes}
 
     # simply keep track of which attributes the input did not provide
@@ -57,14 +51,19 @@ def atom_type_factory(atom_attrs, atom_type_name):
 
     return type(atom_type_name, (AtomType,), attributes)
 
+AtomType = type('AtomType', (object,), {attr : None for attr in atom_attrs})
+AtomType.attributes = atom_attrs
+AtomType.factory = _atom_type_factory
+
+
 O_attrs = {'atomic_num' : 16, 'element' : 'O'}
-OAtomType = atom_type_factory(O_attrs, 'OAtomType')
+O_ATOM_TYPE = AtomType.factory(O_attrs, 'OAtomType')
 
 H_attrs = {'atomic_num' : 1, 'element' : 'H'}
-HAtomType = atom_type_factory(H_attrs, 'HAtomType')
+H_ATOM_TYPE = AtomType.factory(H_attrs, 'HAtomType')
 
 C_attrs = {'atomic_num' : 12, 'element' : 'C'}
-CAtomType = atom_type_factory(C_attrs, 'CAtomType')
+C_ATOM_TYPE = AtomType.factory(C_attrs, 'CAtomType')
 
 class MoleculeType(object):
 
@@ -76,34 +75,34 @@ class MoleculeType(object):
         self._bonds = None
 
         self.name = name
-        self.atom_types = None
+        self._atom_type_sequence = atom_types
 
 
     @property
     def atom_type_library(self):
         return list(self._atom_type_library)
 
-    @classmethod
+    @property
     def features(self):
         return self._features
 
-    @classmethod
+    @property
     def feature_families(self):
         return self._feature_families
 
-    @classmethod
+    @property
     def feature_types(self):
         return self._feature_types
 
-    @classmethod
+    @property
     def atom_types(self):
         return self._atom_type_sequence
 
-    @classmethod
+    @property
     def bonds(self):
         return self._bonds
 
-    @classmethod
+    @property
     def to_molecule(self, coords=None):
         """ Construct a Molecule using input coordinates with mapped indices"""
 
@@ -136,12 +135,12 @@ class MoleculeType(object):
         return mol_type
 
 
-water_attrs = {'atom_types' : [HAtomType, OAtomType, HAtomType],
+water_attrs = {'atom_types' : [H_ATOM_TYPE, O_ATOM_TYPE, H_ATOM_TYPE],
                'name' : 'water'}
 
-methanol_attrs = {'atom_types' : [HAtomType, OAtomType, CAtomType,
-                                  HAtomType, HAtomType, HAtomType],
+methanol_attrs = {'atom_types' : [H_ATOM_TYPE, O_ATOM_TYPE, C_ATOM_TYPE,
+                                  H_ATOM_TYPE, H_ATOM_TYPE, H_ATOM_TYPE],
                   'name' : 'methanol'}
 
-water_type = MoleculeType.factory('WaterType', **water_attrs)
-methanol_type = MoleculeType.factory('MethanolType', **methanol_attrs)
+WATER_TYPE = MoleculeType.factory('WaterType', **water_attrs)
+METHANOL_TYPE = MoleculeType.factory('MethanolType', **methanol_attrs)
