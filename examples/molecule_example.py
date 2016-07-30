@@ -4,7 +4,8 @@ from mast.selection import CoordArray, IndexedSelection, Selection, \
     GenericSelection
 
 from mast.molecule import Bond, Molecule, Atom, \
-    MoleculeType, AtomType, RDKitMoleculeType, AtomTypeLibrary, MoleculeTypeLibrary
+    MoleculeType, AtomType, RDKitMoleculeWrapper, \
+    ATOM_ATTRIBUTES
 
 print("making an CoordArray for atoms")
 array = np.array([[0,0,0], [0,0,1], [1,0,0]])
@@ -16,7 +17,7 @@ atom1 = Atom(np.array([5,5,5]))
 print(atom1)
 print(atom1.coords)
 print("making AtomType")
-atom2_type = AtomType({'element':'C'})
+atom2_type = AtomType.factory({'pdb_name' : "FAKE"}, "Atom2Type")
 
 atom2 = Atom(np.array([6,6,6]), atom_array=atom_array, atom_type=atom2_type)
 print(atom2)
@@ -40,43 +41,14 @@ pka = Chem.MolFromPDBFile(PKA_pdb_path, removeHs=False)
 print(pka)
 
 
-# PKA = RDKitMoleculeType.create_molecule_type(pka, mol_type='PKA')
-
-# PKA = RDKitMoleculeType.create_molecule_type(
-pka_type = RDKitMoleculeType(pka, mol_name="PKA")
-print(pka_type)
+pka_rdkit = RDKitMoleculeWrapper(pka)
+print(pka_rdkit)
 
 print("getting positions objects from rdchem.Mol for atoms")
-conf = list(pka_type.molecule.GetConformers()).pop()
-positions = {idx : conf.GetAtomPosition(idx) for idx in range(conf.GetNumAtoms())}
-print(positions[0])
-print("Making an AtomTypeLibrary and Atom list for pka")
-atom_types = []
-atom_names = {}
-atoms = []
-pka_atom_type_library = AtomTypeLibrary()
-for atom_idx in range(len(pka_type.atoms)):
-
-    atom_type = AtomType(pka_type.atom_data(atom_idx))
-    atom_types.append(atom_type)
-
-    atom_name = atom_type.pdb_name
-    if atom_name in atom_names.keys() and \
-       not pka_atom_type_library.attributes_match(atom_type):
-        atom_names[atom_name] += 1
-    elif atom_name not in atom_names.keys():
-        atom_names[atom_name] = 0
-
-    if atom_names[atom_name] > 0:
-        pka_atom_type_library.add_type(atom_type, atom_name + str(atom_names[atom_name]) )
-    else:
-        pka_atom_type_library.add_type(atom_type, atom_name)
-
-    coord = np.array([positions[atom_idx].x, positions[atom_idx].y, positions[atom_idx].z])
-    atoms.append(Atom(coords=coord, atom_type=atom_type))
-
-print(pka_atom_type_library)
-print(atoms)
+# 0 is just the first stored conformer which is the only one in our
+# case
+pka_coords = pka_rdkit.get_conformer_coords(0)
+print(pka_coords)
 
 # make a selection of atoms for bonds, and angle
 
@@ -105,15 +77,17 @@ print(atoms[0].adjacent_atoms)
 # angles still stubbed out for now
 angles = [IndexedSelection(atoms, [0,1,2])]
 print("making a MoleculeType")
-moltype = MoleculeType({'name':'test_molecule'})
+moltype = MoleculeType(name='test_molecule')
 print("making a molecule")
 mol = Molecule(atoms, bonds, angles, mol_type=moltype)
 print(mol)
 print("atom_types in mol")
 print(mol.atom_types)
 
-print("Making a mast.Molecule from the RDKitMoleculeType")
-pka_mol = pka_type.to_molecule(0)
+print("Make the PKAType")
+
+print("Making a mast.Molecule from the RDKitMoleculeWrapper data")
+pka_mol = pka_type.to_molecule_from_coords(pka_coords)
 # pka_mol = Molecule(mol_type=pka_type, coords=pka_coords)
 print(pka_mol)
 print(pka_mol.molecule_type)
@@ -122,7 +96,7 @@ print("testing overlap of two molecules")
 print(pka_mol.overlaps(mol))
 
 print("finding features using mast.molecule method")
-pka_type.find_features()
+pka_rdkit.find_features()
 pka_mol.make_feature_selections()
 print(pka_mol.features)
 

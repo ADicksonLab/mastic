@@ -1,10 +1,11 @@
 import numpy as np
 import collections as col
 import os.path as osp
+from itertools import product
 
 from mast.selection import CoordArray, CoordArraySelection, \
     Point, IndexedSelection, SelectionDict, SelectionList, \
-    SelectionType, SelectionTypeLibrary
+    SelectionType, SelectionTypeLibrary, Container
 from mast.interactions import InteractionType
 
 __all__ = ['Atom', 'AtomTypeLibrary', 'AtomType', 'Bond', 'MoleculeType', 'MoleculeTypeLibrary',
@@ -38,6 +39,35 @@ ATOM_ATTRIBUTES = ['name',
                   'pdb_serial_number',
                   'pdb_temp_factor',]
 
+def _atom_type_factory(atom_attrs, atom_type_name):
+    attributes = {attr : None for attr in AtomType.attributes}
+
+    # simply keep track of which attributes the input did not provide
+    for attr in AtomType.attributes:
+        try:
+            assert attr in atom_attrs.keys()
+        except AssertionError:
+            # logging
+            print("Attribute {0} not found in atom input.".format(attr))
+
+    # add the attributes that it has into the class
+    for attr, value in atom_attrs.items():
+        # make sure AtomType has an attribute that matches
+        try:
+            assert attr in AtomType.attributes
+        # if it doesn't then report it
+        except AssertionError:
+            # logging
+            print("Input attribute {0} not in AtomType attributes, ignoring.".format(attr))
+        # if no error then add it
+        else:
+            attributes[attr] = value
+
+    return type(atom_type_name, (AtomType,), attributes)
+
+AtomType = type('AtomType', (object,), {attr : None for attr in ATOM_ATTRIBUTES})
+AtomType.attributes = ATOM_ATTRIBUTES
+AtomType.factory = _atom_type_factory
 
 
 class Atom(Point):
@@ -59,7 +89,7 @@ class Atom(Point):
         super().__init__(coords=coords, coord_array=atom_array, array_idx=array_idx)
 
         if atom_type is None:
-            atom_type = AtomType({})
+            atom_type = AtomType()
         self._atom_type = atom_type
         self._in_molecule = False
         self._in_bond = False
@@ -126,22 +156,6 @@ class Atom(Point):
             adjacent_atoms.append(other_atom)
         return adjacent_atoms
 
-class AtomTypeLibrary(SelectionTypeLibrary):
-    def __init__(self):
-        super().__init__()
-
-    def add_type(self, atom_type, atom_name, rename=False):
-        # type check that input types are AtomTypes
-        assert isinstance(atom_type, AtomType), \
-            "atom_type must be a subclass of AtomType, not {}".format(
-                type(atom_type))
-
-        return super().add_type(atom_type, atom_name, rename=rename)
-
-class AtomType(SelectionType):
-    def __init__(self, atom_attrs=None):
-        super().__init__(attr_dict=atom_attrs)
-
 class Bond(IndexedSelection):
     def __init__(self, atom_container=None, atom_ids=None):
         if atom_ids is not None:
@@ -167,32 +181,315 @@ class Bond(IndexedSelection):
     def atoms(self):
         return tuple(self.values())
 
-class MoleculeType(SelectionType):
-    def __init__(self, mol_attrs=None):
-        super().__init__(attr_dict=mol_attrs)
 
-class MoleculeTypeLibrary(SelectionTypeLibrary):
-    def __init__(self):
-        super().__init__()
 
-    def add_type(self, mol_type, mol_name, rename=False):
-        # type check that input types are MoleculeTypes
-        assert issubclass(type(mol_type), MoleculeType), \
-            "mol_type must be a subclass of MoleculeType, not {}".format(
-                type(mol_type))
-        return super().add_type(mol_type, mol_name, rename=rename)
+class MoleculeType(object):
 
-class RDKitMoleculeType(MoleculeType):
-    def __init__(self, rdkit_molecule, mol_name=None):
-        super().__init__()
-        self.molecule = rdkit_molecule
-        self.rdkit_mol = self.molecule
-        self.name = mol_name
-        self._features = None
-        self._atom_type_library = self.make_atom_type_library()
+    def __init__(self, name=None, atom_types=None, ):
+        if atom_types:
+            self._atom_type_library = set(atom_types)
+        else:
+            self._atom_type_library = set()
+
+
+        self.name = name
+        self._atom_type_sequence = atom_types
+        self._bonds = None
+
+        # these must be manually set due to heavy computation time
         self._features = None
         self._feature_families = None
         self._feature_types = None
+
+
+    @property
+    def atom_type_library(self):
+        return list(self._atom_type_library)
+
+    @property
+    def features(self):
+        return self._features
+
+    @property
+    def feature_families_map(self):
+        """A dictionary mapping the feature families to the indices of the
+        feature."""
+
+        families = col.defaultdict(list)
+        for idx, info in self.features.items():
+            families[info['family']].append(idx)
+        return families
+
+    @property
+    def feature_types_map(self):
+        """A dictionary mapping the feature types to the indices of the
+        feature."""
+
+        types = col.defaultdict(list)
+        for idx, info in self.features.items():
+            types[info['type']].append(idx)
+
+        return types
+
+    @property
+    def feature_families(self):
+        return set(self.feature_families_map.keys())
+
+    @property
+    def feature_types(self):
+        return set(self.feature_types_map.keys())
+
+    @property
+    def atom_types(self):
+        return self._atom_type_sequence
+
+    @property
+    def bonds(self):
+        return self._bonds
+
+    def to_molecule(self, coords):
+        """ Construct a Molecule using input coordinates with mapped indices"""
+
+        coord_array = CoordArray(coords)
+
+        # Make atoms out of the coord array
+        self.make_atom_type_library()
+        atom_idxs = range(self.molecule.GetNumAtoms())
+        atoms = []
+        for atom_idx in atom_idxs:
+            atom_type = self.atom_type_library[atom_idx]
+            atom = Atom(atom_array=coord_array, array_idx=atom_idx, atom_type=atom_type)
+            atoms.append(atom)
+
+        # TODO handle bonds
+        bonds = None
+
+        # TODO handle and create angles
+        angles = None
+
+        return Molecule(atoms, bonds, angles, mol_type=self)
+
+    @classmethod
+    def factory(cls, mol_type_name, name=None, atom_types=None):
+        mol_class = type(mol_type_name, (cls,), {})
+        mol_type = mol_class(name=name, atom_types=atom_types)
+
+        return mol_type
+
+
+class Molecule(Container):
+    def __init__(self, mol_input, *args, **kwargs):
+
+        if 'mol_type' not in kwargs.keys():
+            mol_type = None
+        else:
+            mol_type = kwargs.pop('mol_type')
+
+        # if 'external_mol_rep' not in kwargs.keys():
+        #     external_mol_rep = None
+        # else:
+        #     assert isinstance(kwargs['external_mol_rep'], tuple), \
+        #         "An external_mol_rep must be a tuple (external_type, external_mol), not {}".format(
+        #             kwargs['external_mol_rep'])
+        #     external_mol_rep = kwargs.pop('external_mol_rep')
+
+        # check to see which constructor to use
+        if issubclass(type(mol_input), MoleculeType):
+            molecule_dict = Molecule.type_constructor(mol_input, *args, **kwargs)
+        elif issubclass(type(mol_input), col.Sequence):
+            molecule_dict = Molecule.atoms_constructor(mol_input, *args, **kwargs)
+        else:
+            raise TypeError("mol_input must be either a MoleculeType or a sequence of Atoms")
+
+        # call to parent class
+        super().__init__()
+
+        # set the atoms, bonds, and angles into this object
+        self.atoms = molecule_dict['atoms']
+        self.bonds = molecule_dict['bonds']
+        self.angles = molecule_dict['angles']
+
+        # set the molecule_type
+        if mol_type is None:
+            mol_type = MoleculeType()
+        self._molecule_type = mol_type
+
+        # initialize flags
+        if 'system' in kwargs.keys():
+            self._in_system = True
+        else:
+            self._in_system = False
+
+        # set that each atom is in a molecule now
+        for atom in self.atoms:
+            atom._in_molecule = True
+            if self._in_system is True:
+                atom._in_system = True
+
+        # attributes must explicitly be called due to computation time
+        self._feature_family_selections = {}
+        self._feature_type_selections = None
+        self._internal_interactions = None
+
+        self._external_mol_reps = []
+
+        # an optional dictionary of molecular representations from
+        # other libraries
+        if "external_mol_rep" in kwargs:
+            self._external_mol_reps.append(kwargs["external_mol_reps"])
+
+    # the alternate constructors
+    @classmethod
+    def type_constructor(cls, mol_type, coords=None):
+        raise NotImplementedError
+
+
+    @classmethod
+    def atoms_constructor(cls, atoms, bonds, angles):
+        assert atoms, "atoms must exist, {}".format(atoms)
+        assert issubclass(type(atoms), col.Sequence), \
+            "atoms must be a subclass of collections.Sequence, not {}".format(
+                type(atoms))
+        assert all([(lambda x: True if issubclass(type(x), Atom) else False)(atom)
+                    for atom in atoms]), \
+            "all elements in atoms must be a subclass of type Atom"
+        assert not all([atom._in_molecule for atom in atoms]), \
+            "all atoms must not be part of another molecule"
+
+        molecule_dict = {'atoms' : atoms, 'bonds' : bonds, 'angles': angles}
+        return molecule_dict
+
+    # properties
+    @property
+    def atom_types(self):
+        pass
+
+    @property
+    def molecule_type(self):
+        return self._molecule_type
+
+    @molecule_type.setter
+    def molecule_type(self, mol_type):
+        assert issubclass(type(mol_type), MoleculeType), \
+            "mol_type must be a subclass of MoleculeType, not {}".format(
+                type(mol_type))
+        self._molecule_type = mol_type
+
+    @property
+    def system(self):
+        from mast.system import System
+        if self._in_system is False:
+            return None
+        else:
+            system = next((sel for key, sel in self.registry
+                           if isinstance(sel, System)),
+                          None)
+            assert system
+            return system
+
+    @property
+    def atom_coords(self):
+        coords = np.array([atom.coords for atom in self.atoms])
+        return coords
+
+    @property
+    def external_mol_reps(self):
+        return self._external_mol_reps
+
+    @property
+    def features(self):
+        return self.molecule_type.features
+
+    # TODO allow for tolerance
+    def overlaps(self, other):
+        """Check whether this molecule overlaps with another.
+        Checks whether any two atoms in each molecule have the same coordinates.
+
+        bool : returns True if any overlaps detected
+
+        """
+        assert isinstance(other, Molecule), \
+            "Other must be type Molecule, not {}".format(type(other))
+
+
+
+        pairs = product(self.atoms, other.atoms)
+        try:
+            pair = next(pairs)
+        # if it is empty no overlaps
+        except StopIteration:
+            return False
+        flag = True
+        while flag:
+            overlaps = np.isclose(pair[0].coords, pair[1].coords)
+            if np.all(overlaps):
+                return (pair[0], pair[1])
+            else:
+                try:
+                    pair = next(pairs)
+                except StopIteration:
+                    flag = False
+        return False
+
+    def make_feature_selections(self):
+        family_selections = col.defaultdict(list)
+        type_selections = col.defaultdict(list)
+        for idx, feature in self.features.items():
+            atom_idxs = list(feature['atom_ids'])
+            # make the selection
+            feature_selection = IndexedSelection(self.atoms, atom_idxs)
+            # add it to it's families selections
+            family_selections[feature['family']].append(feature_selection)
+            # add it to it's type's selections
+            type_selections[feature['type']].append(feature_selection)
+
+        self._feature_family_selections = SelectionDict(family_selections)
+        self._feature_type_selections = SelectionDict(type_selections)
+
+    @property
+    def family_selections(self):
+        return self._feature_family_selections
+
+    @property
+    def type_selections(self):
+        return self._feature_type_selections
+
+    @property
+    def feature_dataframe(self):
+        import pandas as pd
+        return pd.DataFrame(self.features, orient='index')
+
+    @property
+    def internal_interactions(self):
+        return self._internal_interactions
+
+    def profile_interactions(self, interaction_types):
+        assert all([issubclass(itype, InteractionType) for itype in interaction_types]), \
+                   "All interaction_types must be a subclass of InteractionType"
+        # go through each interaction_type and check for hits
+        interactions = {}
+        for interaction_type in interaction_types:
+            # collect the specific feature selections for each family
+            family_feature_sels = {}
+            for family in interaction_type.feature_families:
+                # get the features from the molecule that are of the family
+                try:
+                    family_feature_sels[family] = self.family_selections[family]
+                except KeyError:
+                    # if there is none of a feature family then the
+                    # interaction will not exist
+                    print("No {0} features in {1} for profiling {2}".format(
+                        family, self, interaction_type))
+                    return None
+
+            # pass these to the find_hits method of the InteractionType
+            interactions[interaction_type] = interaction_type.find_hits(**family_feature_sels)
+
+        self._internal_interactions = interactions
+
+class RDKitMoleculeWrapper(object):
+    def __init__(self, rdkit_molecule, mol_name=None):
+        self.rdkit_molecule = rdkit_molecule
 
     @property
     def atoms(self):
@@ -202,14 +499,9 @@ class RDKitMoleculeType(MoleculeType):
     def bonds(self):
         return [bond for bond in self.molecule.GetBonds()]
 
-    @property
-    def features(self):
-        return self._features
-
     def atom_data(self, atom_idx):
-
-        """Extracts useful information about an atom and returns it as a
-dictionary.
+        """Extracts useful rdkit information about an atom and returns it as a
+        dictionary.
 
         """
         atom = self.atoms[atom_idx]
@@ -249,12 +541,14 @@ dictionary.
             atom_dict['pdb_temp_factor'] = monomer_info.GetTempFactor()
 
         atom_dict['rdkit_mol_idx'] = atom.GetIdx()
-        atom_dict['name'] = atom_dict['rdkit_mol_idx']
+
         return atom_dict
 
     def find_features(self, fdef="BaseFeatures.fdef"):
         """Uses a feature definition (fdef) database to to find features in
-the molecule.
+        the molecule.
+
+        Returns a tuple (dict : features, list : families, list : types)
 
         """
         from rdkit import RDConfig
@@ -272,286 +566,29 @@ the molecule.
                             'position' : feature.GetPos()}
             features[feature.GetId()] = feature_info
 
-        self._features = features
-        self._feature_families = col.defaultdict(list)
-        self._feature_types = col.defaultdict(list)
-        for idx, info in self._features.items():
-            self._feature_families[info['family']].append(idx)
-            self._feature_types[info['type']].append(idx)
 
+        families = col.defaultdict(list)
+        types = col.defaultdict(list)
+        for idx, info in features.items():
+            families[info['family']].append(idx)
+            types[info['type']].append(idx)
 
-    def make_atom_type_library(self, type_name='name'):
+        return features
 
-        # initialize the library and names record
-        atom_lib = AtomTypeLibrary()
-        for atom_idx in range(self.molecule.GetNumAtoms()):
-            # make a new atom type
-            atom_type = AtomType(self.atom_data(atom_idx))
-            atom_name = atom_type.__dict__[type_name]
-            atom_lib.add_type(atom_type, atom_name=atom_name, rename=True)
-
-        return atom_lib
-
-    @property
-    def atom_type_library(self):
-        if self._atom_type_library is None:
-            self._atom_type_library = self.make_atom_type_library()
-        return self._atom_type_library
-
-    def to_molecule(self, conformer_idx):
-        """Construct a Molecule using a coordinates from a conformer of this
-   rdchem.Mol.
-
-        """
-        assert self.molecule.GetNumConformers() > 0, \
+    def get_conformer_coords(self, conf_idx):
+        assert self.rdkit_molecule.GetNumConformers() > 0, \
             "{0} has no conformers".format(self)
 
-        conformer = self.molecule.GetConformer(conformer_idx)
-        atom_idxs = range(self.molecule.GetNumAtoms())
+        conformer = self.rdkit_molecule.GetConformer(conf_idx)
+        atom_idxs = range(self.rdkit_molecule.GetNumAtoms())
         # make the CoordArray
-        positions = []
+        coords = []
         for atom_idx in atom_idxs:
-            position = conformer.GetAtomPosition(atom_idx)
-            position = np.array([position.x, position.y, position.z])
-            positions.append(position)
-        positions = np.array(positions)
-        return self.to_molecule_from_coords(positions)
-
-    def to_molecule_from_coords(self, coords):
-        """ Construct a Molecule using input coordinates with mapped indices"""
-
-        coord_array = CoordArray(coords)
-
-        # Make atoms out of the coord array
-        self.make_atom_type_library()
-        atom_idxs = range(self.molecule.GetNumAtoms())
-        atoms = []
-        for atom_idx in atom_idxs:
-            atom_type = self.atom_type_library[atom_idx]
-            atom = Atom(atom_array=coord_array, array_idx=atom_idx, atom_type=atom_type)
-            atoms.append(atom)
-
-        # handle bonds
-        bonds = []
-        for bond in self.molecule.GetBonds():
-            bonds.append(Bond(atoms, (bond.GetBeginAtomIdx(), bond.GetEndAtomIdx())))
-
-        # TODO handle and create angles
-        angles = None
-
-        return Molecule(atoms, bonds, angles, mol_type=self, external_mol_rep=(RDKitMoleculeType, self))
-
-
-class Molecule(SelectionDict):
-    def __init__(self, mol_input, *args, **kwargs):
-
-        if 'mol_type' not in kwargs.keys():
-            mol_type = None
-        else:
-            mol_type = kwargs.pop('mol_type')
-
-        if 'external_mol_rep' not in kwargs.keys():
-            external_mol_rep = None
-        else:
-            assert isinstance(kwargs['external_mol_rep'], tuple), \
-                "An external_mol_rep must be a tuple (external_type, external_mol), not {}".format(
-                    kwargs['external_mol_rep'])
-            external_mol_rep = kwargs.pop('external_mol_rep')
-
-        if issubclass(type(mol_input), MoleculeType):
-            molecule_dict = Molecule.type_constructor(mol_input, *args, **kwargs)
-        elif issubclass(type(mol_input), col.Sequence):
-            molecule_dict = Molecule.atoms_constructor(mol_input, *args, **kwargs)
-        else:
-            raise TypeError("mol_input must be either a MoleculeType or a sequence of Atoms")
-
-        super().__init__(selection_dict=molecule_dict)
-        self._feature_family_selections = {}
-        self._feature_type_selections = None
-        self._internal_interactions = None
-        if mol_type is None:
-            mol_type = MoleculeType({})
-        self._molecule_type = mol_type
-        self._atom_types = AtomTypeLibrary()
-        # a dictionary of molecular representations from other libraries
-        if external_mol_rep:
-            self._external_mol_reps = {external_mol_rep[0] : external_mol_rep[1]}
-
-        # set that each atom is in a molecule now
-        for atom in self.atoms:
-            atom._in_molecule = True
-            if self._in_system is True:
-                atom._in_system = True
-            self._atom_types.add_type(atom.atom_type, atom.atom_type.name, rename=True)
-
-
-    @classmethod
-    def type_constructor(cls, mol_type, coords=None):
-        raise NotImplementedError
-
-
-    @classmethod
-    def atoms_constructor(cls, atoms, bonds, angles):
-        assert atoms, "atoms must exist, {}".format(atoms)
-        assert issubclass(type(atoms), col.Sequence), \
-            "atoms must be a subclass of collections.Sequence, not {}".format(
-                type(atoms))
-        assert all([(lambda x: True if issubclass(type(x), Atom) else False)(atom)
-                    for atom in atoms]), \
-            "all elements in atoms must be a subclass of type Atom"
-        assert not all([atom._in_molecule for atom in atoms]), \
-            "all atoms must not be part of another molecule"
-
-
-
-        molecule_dict = {'atoms' : atoms, 'bonds' : bonds, 'angles': angles}
-        return molecule_dict
-
-    @property
-    def atom_types(self):
-        return self._atom_types
-
-    @property
-    def molecule_type(self):
-        return self._molecule_type
-
-    @molecule_type.setter
-    def molecule_type(self, mol_type):
-        assert issubclass(type(mol_type), MoleculeType), \
-            "mol_type must be a subclass of MoleculeType, not {}".format(
-                type(mol_type))
-        self._molecule_type = mol_type
-
-    @property
-    def atoms(self):
-        return self.data['atoms']
-
-    @property
-    def bonds(self):
-        return self.data['bonds']
-
-    @property
-    def angles(self):
-        return self.data['angles']
-
-    @property
-    def system(self):
-        from mast.system import System
-        if self._in_system is False:
-            return None
-        else:
-            system = next((sel for key, sel in self.registry
-                           if isinstance(sel, System)),
-                          None)
-            assert system
-            return system
-
-    @property
-    def atom_coords(self):
-        coords = np.array([atom.coords for atom in self.atoms])
+            coord = conformer.GetAtomPosition(atom_idx)
+            coord = np.array([coord.x, coord.y, coord.z])
+            coords.append(coord)
+        coords = np.array(coords)
         return coords
-    @property
-    def external_mol_reps(self):
-        return self._external_mol_reps
-
-    @property
-    def features(self):
-        return self.external_mol_reps[RDKitMoleculeType].features
-
-    # TODO allow for tolerance
-    def overlaps(self, other):
-        """Check whether this molecule overlaps with another.
-        Checks whether any two atoms in each molecule have the same coordinates.
-
-        bool : returns True if any overlaps detected
-
-        """
-        assert isinstance(other, Molecule), \
-            "Other must be type Molecule, not {}".format(type(other))
-
-        from itertools import product
-
-        pairs = product(self.atoms, other.atoms)
-        try:
-            pair = next(pairs)
-        # if it is empty no overlaps
-        except StopIteration:
-            return False
-        flag = True
-        while flag:
-            overlaps = np.isclose(pair[0].coords, pair[1].coords)
-            if np.all(overlaps):
-                return (pair[0], pair[1])
-            else:
-                try:
-                    pair = next(pairs)
-                except StopIteration:
-                    flag = False
-        return False
-
-    def make_feature_selections(self):
-        family_selections = col.defaultdict(list)
-        type_selections = col.defaultdict(list)
-        for idx, feature in self._external_mol_reps[RDKitMoleculeType].features.items():
-            atom_idxs = list(feature['atom_ids'])
-            # make the selection
-            feature_selection = IndexedSelection(self.atoms, atom_idxs)
-            # add it to it's families selections
-            family_selections[feature['family']].append(feature_selection)
-            # add it to it's type's selections
-            type_selections[feature['type']].append(feature_selection)
-
-        self._feature_family_selections = SelectionDict(family_selections)
-        self._feature_type_selections = SelectionDict(type_selections)
-
-    @property
-    def family_selections(self):
-        return self._feature_family_selections
-
-    @property
-    def type_selections(self):
-        return self._feature_type_selections
-
-    @property
-    def feature_families(self):
-        return set(self._external_mol_reps[RDKitMoleculeType]._feature_families.keys())
-
-    @property
-    def feature_types(self):
-        return set(self._external_mol_reps[RDKitMoleculeType]._feature_types.keys())
-
-    @property
-    def feature_dataframe(self):
-        import pandas as pd
-        return pd.DataFrame(self.features, orient='index')
-
-    @property
-    def internal_interactions(self):
-        return self._internal_interactions
-
-    def profile_interactions(self, interaction_types):
-        assert all([issubclass(itype, InteractionType) for itype in interaction_types]), \
-                   "All interaction_types must be a subclass of InteractionType"
-        # go through each interaction_type and check for hits
-        interactions = {}
-        for interaction_type in interaction_types:
-            # collect the specific feature selections for each family
-            family_feature_sels = {}
-            for family in interaction_type.feature_families:
-                # get the features from the molecule that are of the family
-                try:
-                    family_feature_sels[family] = self.family_selections[family]
-                except KeyError:
-                    # if there is none of a feature family then the
-                    # interaction will not exist
-                    print("No {0} features in {1} for profiling {2}".format(
-                        family, self, interaction_type))
-                    return None
-
-            # pass these to the find_hits method of the InteractionType
-            interactions[interaction_type] = interaction_type.find_hits(**family_feature_sels)
-
-        self._internal_interactions = interactions
 
 if __name__ == "__main__":
     pass

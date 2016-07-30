@@ -155,6 +155,13 @@ class SelectionMember(object):
         """
         self._registry.append((key, selection))
 
+class Container(SelectionMember):
+    def __init__(self):
+        # do stuff
+
+        super().__init__(self)
+
+
 class GenericSelection(SelectionMember):
     """The most basic class for making selections of SelectionMember
     objects. Requires only the container to be selected from, but not
@@ -512,14 +519,6 @@ class Point(CoordArraySelection):
         assert issubclass(type(other), Point), \
             "Other must be a subclass of Point, not {}".format(type(other))
         return np.all(np.isclose(self.coords, other.coords))
-
-class SelectionTypeFactory(object):
-
-    @staticmethod
-    def create_type(attr_list, class_name):
-        class NewClass(SelectionType):
-            def __init__(self, attr_list, class_name):
-                for 
 
 
 class SelectionType(object):
