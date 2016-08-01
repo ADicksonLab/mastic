@@ -96,8 +96,11 @@ Currently is a prototype.
 *** TODO interactions.py
 
 
-** TODO write logging facilities
+** TODO write logging 
 
+** TODO make the AtomType class declaration like BondType and MoleculeType
+
+** TODO AngleType and MoleculeType implementation of them
 ** TODO Atom.__getitem__ should retrieve something more meaningful
 Like say the dimension component.
 
@@ -143,12 +146,6 @@ be >= 0 ints.
 *** DONE docstring
 *** DONE tests
 
-** TODO comparisons in the SelectionType class
-
-I don't know if this is very stable way to do things currently as it
-relies on the __dict__ which might not reflect all attributes,
-e.g. for things in __slots__ which I might use.
-
 ** DONE CoordArraySelection refactor inheritance
 
 Do I want it to be a dictionary style or Selection inheritance.
@@ -157,7 +154,7 @@ FIgure this out and change in code.
 It now just behaves like a list with a manually added data attribute
 and a __getitem__ method.
 
-** TODO SelectionType factory
+** DONE SelectionType factory
 
 It seems that there should be something for defining a class of
 SelectionTypes such that they must have certain attributes.
@@ -175,7 +172,10 @@ SelectionTypes such that they must have certain attributes.
 #+END_SRC
 
 
-** TODO refactor RDKitMoleculeType class into reader and MoleculeType class
+This pattern more or less is implemented for AtomType, BondType, and
+MoleculeType see those for reference.
+
+** DONE refactor RDKitMoleculeType class into reader and MoleculeType class
 
 Most of what is in RDKitMoleculeType should be in MoleculeType and
 RDKitMoleculeType just needs to be a thin wrapper of MoleculeType with
