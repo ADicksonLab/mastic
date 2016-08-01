@@ -54,7 +54,7 @@ print(pka_features)
 pka_bond_data = pka_rdkit_wrapper.bonds_data()
 print(pka_bond_data)
 # bond map
-# pka_bond_map = pka_rdkit_wrapper.bond_map()
+pka_bond_map = pka_rdkit_wrapper.bonds_map()
 
 # molecule data
 pka_molecule_data = pka_rdkit_wrapper.molecule_data()
@@ -80,19 +80,16 @@ for bond_data in pka_bond_data:
     pka_bond_types.append(bond_type)
 
 # MoleculeType
-pka_molecule_data.update({"name" : "PKA",
-                          "pdb_name" : "PKA",})
+pka_molecule_data.update({"name" : "PKA"})
 
-PKAType = MoleculeType.factory("PKAType", atom_types=pka_atom_types,
-                               bond_types=pka_bond_types, bond_map=None,
+PKA1Type = MoleculeType.factory("PKAType", atom_types=pka_atom_types,
+                               bond_types=pka_bond_types, bond_map=pka_bond_map,
                                **pka_molecule_data)
-print(PKAType.name)
-print(PKAType.pdb_name)
-print(PKAType.atom_types)
-print(PKAType.bond_types)
-print(PKAType.features)
-print(PKAType.feature_families)
-print(PKAType.feature_types)
+# using the rdkit wrapper converter
+PKA2Type = pka_rdkit_wrapper.molecule_type()
+
+# find features
+PKA3Type = pka_rdkit_wrapper.molecule_type(find_features=True)
 
 
 ### making actual Atoms, Bonds, and Molecules

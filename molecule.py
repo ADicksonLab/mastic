@@ -96,9 +96,9 @@ class BondType(object):
 
         return bond_type
 
-    @property
-    def atom_types(self):
-        return self._atom_types
+    @classmethod
+    def atom_types(cls):
+        return cls._atom_types
 
 class MoleculeType(object):
 
@@ -358,6 +358,15 @@ class RDKitMoleculeWrapper(object):
 
         return bond_dict
 
+    def bonds_map(self):
+        bond_map_dict = {}
+        for bond_idx, bond in enumerate(self.bonds):
+            atom1_idx = bond.GetBeginAtomIdx()
+            atom2_idx = bond.GetEndAtomIdx()
+            bond_map_dict[bond_idx] = (atom1_idx, atom2_idx)
+
+        return bond_map_dict
+
     def molecule_data(self):
         """Extracts useful rdkit information about an atom and returns it as a
         dictionary.
@@ -372,6 +381,43 @@ class RDKitMoleculeWrapper(object):
         molecule_dict['num_heavy_atoms'] = self.rdkit_molecule.GetNumHeavyAtoms()
 
         return molecule_dict
+
+    def molecule_type(self, find_features=False):
+        # extract all relevant data
+        atom_data = self.atoms_data()
+        bond_data = self.bonds_data()
+        bond_map = self.bonds_map()
+        molecule_data = self.molecule_data()
+        if find_features:
+            features = self.find_features()
+        else:
+            features = {}
+
+        atom_types = []
+        for atom_data in atom_data:
+            atom_type_name = "{1}Atom{0}Type".format(atom_data['name'], self.mol_name)
+            atom_type = AtomType.factory(atom_type_name, **atom_data)
+            atom_types.append(atom_type)
+
+        # BondTypes
+        bond_types = []
+        for bond_data in bond_data:
+            bond_type_name = "{1}Bond{0}Type".format(bond_data['name'], self.mol_name)
+            bond_atom_types = (atom_types[bond_data['rdkit_atom_idxs'][0]],
+                          atom_types[bond_data['rdkit_atom_idxs'][1]])
+            bond_type = BondType.factory(bond_type_name, atom_types=bond_atom_types, **bond_data)
+            bond_types.append(bond_type)
+
+        # MoleculeType
+        molecule_data.update({"name" : self.mol_name})
+
+        molecule_type = MoleculeType.factory("{}Type".format(self.mol_name),
+                                             atom_types=atom_types,
+                                             bond_types=bond_types, bond_map=bond_map,
+                                             features=features,
+                                             **molecule_data)
+
+        return molecule_type
 
     def find_features(self, fdef="BaseFeatures.fdef"):
         """Uses a feature definition (fdef) database to to find features in
