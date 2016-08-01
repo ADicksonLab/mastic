@@ -63,7 +63,7 @@ print(atoms[0].adjacent_atoms)
 # angles still stubbed out for now
 angles = [IndexedSelection(atoms, [0,1,2])]
 print("making a MoleculeType")
-moltype = MoleculeType(name='test_molecule')
+moltype = MoleculeType.factory(mol_type_name="TestMolType", name='test_molecule')
 print("making a molecule")
 mol = Molecule(atoms, bonds, angles, mol_type=moltype)
 print(mol)
@@ -114,23 +114,23 @@ for bond_data in pka_bonds:
     pka_bond_types.append(bond_type)
 
 # MoleculeType
-pka_molecule_data.update({"pdb_name" : "PKA",
+pka_molecule_data.update({"name" : "PKA",
+                          "pdb_name" : "PKA",
                           "atom_types" : pka_atom_types,
                           "bond_types" : pka_bond_types,
                           "features" : pka_features})
 
-PKAType = MoleculeType.factory("PKAType", **pka_data)
-PKA_TYPE = PKAType()
-print(PKA_TYPE.name)
-print(PKA_TYPE.pdb_name)
-print(PKA_TYPE.atom_types)
-print(PKA_TYPE.bond_types)
-print(PKA_TYPE.features)
-print(PKA_TYPE.feature_families)
-print(PKA_TYPE.feature_types)
+PKAType = MoleculeType.factory("PKAType", **pka_molecule_data)
+print(PKAType.name)
+print(PKAType.pdb_name)
+print(PKAType.atom_types)
+print(PKAType.bond_types)
+print(PKAType.features)
+print(PKAType.feature_families)
+print(PKAType.feature_types)
 
 print("Making a mast.Molecule from the RDKitMoleculeWrapper data")
-pka_mol = PKA_TYPE.to_molecule(pka_coords)
+pka_mol = PKAType().to_molecule(pka_coords)
 # pka_mol = Molecule(mol_type=pka_type, coords=pka_coords)
 print(pka_mol)
 print(pka_mol.molecule_type)

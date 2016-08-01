@@ -186,11 +186,11 @@ class BondType(object):
             "'atom_types' must be in the bond_attrs"
         # should only pass in two atom types
         assert len(bond_attrs['atom_types']) == 2, \
-            "atom_ids must be a length 2 tuple, not len={}".format(
+            "atom_types must be a length 2 tuple, not len={}".format(
                 len(bond_attrs['atom_types']))
-        assert all([(lambda x: issubclass(type(x), AtomType))(i)
+        assert all([(lambda x: issubclass(x, AtomType))(i)
                     for i in bond_attrs['atom_types']]), \
-            "atom_ids must be a length 2 tuple of AtomType subclasses"
+            "atom_types must be a length 2 tuple of AtomType subclasses"
 
         # simply keep track of which attributes the input did not provide
         for attr in BondType.attributes:
@@ -250,26 +250,16 @@ class MoleculeType(object):
 
     attributes = MOLECULE_ATTRIBUTES
 
-    def __init__(self, name=None, atom_types=None, ):
-        if atom_types:
-            self._atom_type_library = set(atom_types)
-        else:
-            self._atom_type_library = set()
-
-
-        self.name = name
-        self._atom_type_sequence = atom_types
-        self._bonds = None
-
-        # these must be manually set due to heavy computation time
-        self._features = None
-        self._feature_families = None
-        self._feature_types = None
-
+    def __init__(self):
+        pass
 
     @property
     def atom_type_library(self):
         return list(self._atom_type_library)
+
+    @property
+    def bond_type_library(self):
+        return list(self._bond_type_library)
 
     @property
     def features(self):
@@ -308,14 +298,6 @@ class MoleculeType(object):
     def feature_types(self):
         return set(self.feature_types_map.keys())
 
-    @property
-    def atom_types(self):
-        return self._atom_type_sequence
-
-    @property
-    def bonds(self):
-        return self._bonds
-
     def to_molecule(self, coords):
         """ Construct a Molecule using input coordinates with mapped indices"""
 
@@ -336,8 +318,8 @@ class MoleculeType(object):
 
         return Molecule(atoms, bonds, angles, mol_type=self)
 
-    @classmethod
-    def factory(cls, mol_type_name, **molecule_attrs):
+    @staticmethod
+    def factory(mol_type_name, **molecule_attrs):
 
         # simply keep track of which attributes the input did not provide
         for attr in MoleculeType.attributes:
@@ -361,7 +343,25 @@ class MoleculeType(object):
             else:
                 attributes[attr] = value
 
-        return type(mol_type_name, (MoleculeType,), attributes)
+        # create the class with the passed in attributes
+        molecule_type = type(mol_type_name, (MoleculeType,), attributes)
+        # create other attributes base on inputs
+        if 'atom_types' in molecule_attrs:
+            molecule_type._atom_type_library = set(molecule_attrs['atom_types'])
+        else:
+            molecule_type._atom_type_library = None
+
+        if 'bond_types' in molecule_attrs:
+            molecule_type._bond_type_library = set(molecule_attrs['bond_types'])
+        else:
+            molecule_type._bond_type_library =None
+
+        if 'features' in molecule_attrs:
+            molecule_type._features = molecule_attrs['features']
+        else:
+            molecule_type._features = None
+
+        return molecule_type
 
 class Molecule(Container):
     def __init__(self, mol_input, *args, **kwargs):
