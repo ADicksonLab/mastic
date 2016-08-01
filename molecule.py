@@ -39,8 +39,23 @@ ATOM_ATTRIBUTES = ['name',
                   'pdb_serial_number',
                   'pdb_temp_factor',]
 
-def _atom_type_factory(atom_attrs, atom_type_name):
-    attributes = {attr : None for attr in AtomType.attributes}
+BOND_ATTRIBUTES = ['name',
+                   'atom_types',
+                   'bond_type',
+                   'bond_type_number',
+                   'is_aromatic',
+                   'in_ring',
+                   'stereo',
+                   'is_conjugated',]
+
+MOLECULE_ATTRIBUTES = ['name',
+                       'pdb_name',
+                       'atom_types',
+                       'bond_types',
+                       'angle_types',
+                       'features']
+
+def _atom_type_factory(atom_type_name, **atom_attrs):
 
     # simply keep track of which attributes the input did not provide
     for attr in AtomType.attributes:
@@ -51,6 +66,7 @@ def _atom_type_factory(atom_attrs, atom_type_name):
             print("Attribute {0} not found in atom input.".format(attr))
 
     # add the attributes that it has into the class
+    attributes = {attr : None for attr in AtomType.attributes}
     for attr, value in atom_attrs.items():
         # make sure AtomType has an attribute that matches
         try:
@@ -156,6 +172,53 @@ class Atom(Point):
             adjacent_atoms.append(other_atom)
         return adjacent_atoms
 
+class BondType(object):
+    attributes = BOND_ATTRIBUTES
+
+    def __init__(self):
+        pass
+
+    @classmethod
+    def factory(cls, bond_type_name, **bond_attrs):
+
+        # must pass in atom types
+        assert 'atom_types' in bond_attrs, \
+            "'atom_types' must be in the bond_attrs"
+        # should only pass in two atom types
+        assert len(bond_attrs['atom_types']) == 2, \
+            "atom_ids must be a length 2 tuple, not len={}".format(
+                len(bond_attrs['atom_types']))
+        assert all([(lambda x: issubclass(type(x), AtomType))(i)
+                    for i in bond_attrs['atom_types']]), \
+            "atom_ids must be a length 2 tuple of AtomType subclasses"
+
+        # simply keep track of which attributes the input did not provide
+        for attr in BondType.attributes:
+            try:
+                assert attr in bond_attrs.keys()
+            except AssertionError:
+                # logging
+                print("Attribute {0} not found in bond input.".format(attr))
+
+        # add the attributes that it has into the class
+        attributes = {attr : None for attr in BondType.attributes}
+        for attr, value in bond_attrs.items():
+            # make sure BondType has an attribute that matches
+            try:
+                assert attr in BondType.attributes
+            # if it doesn't then report it
+            except AssertionError:
+                # logging
+                print("Input attribute {0} not in BondType attributes, ignoring.".format(attr))
+            # if no error then add it
+            else:
+                attributes[attr] = value
+
+        return type(bond_type_name, (BondType,), attributes)
+
+
+
+
 class Bond(IndexedSelection):
     def __init__(self, atom_container=None, atom_ids=None):
         if atom_ids is not None:
@@ -185,6 +248,8 @@ class Bond(IndexedSelection):
 
 class MoleculeType(object):
 
+    attributes = MOLECULE_ATTRIBUTES
+
     def __init__(self, name=None, atom_types=None, ):
         if atom_types:
             self._atom_type_library = set(atom_types)
@@ -209,6 +274,10 @@ class MoleculeType(object):
     @property
     def features(self):
         return self._features
+
+    @features.setter
+    def features(self, features):
+        self._features = features
 
     @property
     def feature_families_map(self):
@@ -253,11 +322,9 @@ class MoleculeType(object):
         coord_array = CoordArray(coords)
 
         # Make atoms out of the coord array
-        self.make_atom_type_library()
-        atom_idxs = range(self.molecule.GetNumAtoms())
+        atom_idxs = range(len(self.atom_types))
         atoms = []
-        for atom_idx in atom_idxs:
-            atom_type = self.atom_type_library[atom_idx]
+        for atom_idx, atom_type in enumerate(self.atom_types):
             atom = Atom(atom_array=coord_array, array_idx=atom_idx, atom_type=atom_type)
             atoms.append(atom)
 
@@ -270,12 +337,31 @@ class MoleculeType(object):
         return Molecule(atoms, bonds, angles, mol_type=self)
 
     @classmethod
-    def factory(cls, mol_type_name, name=None, atom_types=None):
-        mol_class = type(mol_type_name, (cls,), {})
-        mol_type = mol_class(name=name, atom_types=atom_types)
+    def factory(cls, mol_type_name, **molecule_attrs):
 
-        return mol_type
+        # simply keep track of which attributes the input did not provide
+        for attr in MoleculeType.attributes:
+            try:
+                assert attr in molecule_attrs.keys()
+            except AssertionError:
+                # logging
+                print("Attribute {0} not found in molecule input.".format(attr))
 
+        # add the attributes that it has into the class
+        attributes = {attr : None for attr in MoleculeType.attributes}
+        for attr, value in molecule_attrs.items():
+            # make sure MoleculeType has an attribute that matches
+            try:
+                assert attr in MoleculeType.attributes
+            # if it doesn't then report it
+            except AssertionError:
+                # logging
+                print("Input attribute {0} not in MoleculeType attributes, ignoring.".format(attr))
+            # if no error then add it
+            else:
+                attributes[attr] = value
+
+        return type(mol_type_name, (MoleculeType,), attributes)
 
 class Molecule(Container):
     def __init__(self, mol_input, *args, **kwargs):
@@ -490,14 +576,35 @@ class Molecule(Container):
 class RDKitMoleculeWrapper(object):
     def __init__(self, rdkit_molecule, mol_name=None):
         self.rdkit_molecule = rdkit_molecule
+        self.mol_name = mol_name
 
     @property
     def atoms(self):
-        return [atom for atom in self.molecule.GetAtoms()]
+        return [atom for atom in self.rdkit_molecule.GetAtoms()]
 
     @property
     def bonds(self):
-        return [bond for bond in self.molecule.GetBonds()]
+        return [bond for bond in self.rdkit_molecule.GetBonds()]
+
+    @property
+    def num_atoms(self):
+        return self.rdkit_molecule.GetNumAtoms()
+
+    @property
+    def num_bonds(self):
+        return self.rdkit_molecule.GetNumBonds()
+
+    @property
+    def num_conformers(self):
+        return self.rdkit_molecule.GetNumConformers()
+
+    def atoms_data(self):
+        atoms_data = []
+        for atom in self.rdkit_molecule.GetAtoms():
+            atom_data = self.atom_data(atom.GetIdx())
+            atoms_data.append(atom_data)
+
+        return atoms_data
 
     def atom_data(self, atom_idx):
         """Extracts useful rdkit information about an atom and returns it as a
@@ -541,8 +648,53 @@ class RDKitMoleculeWrapper(object):
             atom_dict['pdb_temp_factor'] = monomer_info.GetTempFactor()
 
         atom_dict['rdkit_mol_idx'] = atom.GetIdx()
+        atom_dict['name'] = atom_dict['rdkit_mol_idx']
 
         return atom_dict
+
+    def bonds_data(self):
+        bonds_data = []
+        for bond_idx, bond in enumerate(self.bonds):
+            bond_data = self.bond_data(bond_idx)
+            bonds_data.append(bond_data)
+
+        return bonds_data
+
+    def bond_data(self, bond_idx):
+        """Extracts useful rdkit information about an atom and returns it as a
+        dictionary.
+
+        """
+        bond = self.bonds[bond_idx]
+        bond_dict = {}
+        bond_dict['bond_type'] = str(bond.GetBondType())
+        bond_dict['bond_type_number'] = str(bond.GetBondTypeAsDouble())
+        bond_dict['is_aromatic'] = bond.GetIsAromatic()
+        bond_dict['in_ring'] = bond.IsInRing()
+        bond_dict['stereo'] = str(bond.GetStereo())
+        bond_dict['is_conjugated'] = bond.GetIsConjugated()
+        atom1_idx = bond.GetBeginAtomIdx()
+        atom2_idx = bond.GetEndAtomIdx()
+        bond_dict['rdkit_atom_idxs'] = (atom1_idx, atom2_idx)
+        bond_dict['rdkit_mol_idx'] = bond.GetIdx()
+        bond_dict['name'] = bond_dict['rdkit_mol_idx']
+
+        return bond_dict
+
+    def molecule_data(self):
+        """Extracts useful rdkit information about an atom and returns it as a
+        dictionary.
+
+        """
+        molecule_dict = {}
+        molecule_dict['name'] = self.mol_name
+        ring_info = self.rdkit_molecule.GetRingInfo()
+        molecule_dict['num_rings'] = ring_info.NumRings()
+        molecule_dict['num_atoms'] = self.rdkit_molecule.GetNumAtoms()
+        molecule_dict['num_bonds'] = self.rdkit_molecule.GetNumBonds()
+        molecule_dict['num_heavy_atoms'] = self.rdkit_molecule.GetNumHeavyAtoms()
+
+        return molecule_dict
 
     def find_features(self, fdef="BaseFeatures.fdef"):
         """Uses a feature definition (fdef) database to to find features in
@@ -557,7 +709,7 @@ class RDKitMoleculeWrapper(object):
         assert isinstance(fdef, str)
         fdef_path = osp.join(RDConfig.RDDataDir, fdef)
         feature_factory = ChemicalFeatures.BuildFeatureFactory(fdef_path)
-        factory_features = feature_factory.GetFeaturesForMol(self.molecule)
+        factory_features = feature_factory.GetFeaturesForMol(self.rdkit_molecule)
         features = {}
         for feature in factory_features:
             feature_info = {'family' : feature.GetFamily(),

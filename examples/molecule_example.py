@@ -1,10 +1,13 @@
 import numpy as np
 
+from rdkit import Chem
+import os.path as osp
+
 from mast.selection import CoordArray, IndexedSelection, Selection, \
     GenericSelection
 
 from mast.molecule import Bond, Molecule, Atom, \
-    MoleculeType, AtomType, RDKitMoleculeWrapper, \
+    MoleculeType, AtomType, BondType, RDKitMoleculeWrapper, \
     ATOM_ATTRIBUTES
 
 print("making an CoordArray for atoms")
@@ -17,7 +20,8 @@ atom1 = Atom(np.array([5,5,5]))
 print(atom1)
 print(atom1.coords)
 print("making AtomType")
-atom2_type = AtomType.factory({'pdb_name' : "FAKE"}, "Atom2Type")
+atom2_attrs = {'pdb_name' : "FAKE"}
+atom2_type = AtomType.factory("Atom2Type", **atom2_attrs)
 
 atom2 = Atom(np.array([6,6,6]), atom_array=atom_array, atom_type=atom2_type)
 print(atom2)
@@ -31,24 +35,6 @@ atoms = [atom1, atom2, Atom(np.array([0,1,0]))]
 # # make a selection of those atoms
 atomsel = IndexedSelection(atoms, [0,1])
 print(atomsel)
-
-
-from rdkit import Chem
-import os.path as osp
-tspo_dir = osp.expanduser("~/Dropbox/lab/tspo")
-PKA_pdb_path = osp.join(tspo_dir, "PKA.pdb")
-pka = Chem.MolFromPDBFile(PKA_pdb_path, removeHs=False)
-print(pka)
-
-
-pka_rdkit = RDKitMoleculeWrapper(pka)
-print(pka_rdkit)
-
-print("getting positions objects from rdchem.Mol for atoms")
-# 0 is just the first stored conformer which is the only one in our
-# case
-pka_coords = pka_rdkit.get_conformer_coords(0)
-print(pka_coords)
 
 # make a selection of atoms for bonds, and angle
 
@@ -84,21 +70,70 @@ print(mol)
 print("atom_types in mol")
 print(mol.atom_types)
 
-print("Make the PKAType")
+
+
+print("Read in an external representation")
+tspo_dir = osp.expanduser("~/Dropbox/lab/tspo")
+PKA_pdb_path = osp.join(tspo_dir, "PKA.pdb")
+pka_rdkit = Chem.MolFromPDBFile(PKA_pdb_path, removeHs=False)
+# cast external representation to a wrapper
+pka_rdkit_wrapper = RDKitMoleculeWrapper(pka_rdkit)
+print(pka_rdkit_wrapper)
+
+# extract data from it
+# atom type data
+pka_atom_data = pka_rdkit_wrapper.atoms_data()
+print(pka_atom_data)
+# features
+pka_features = pka_rdkit_wrapper.find_features()
+print(pka_features)
+# bond types
+pka_bonds = pka_rdkit_wrapper.bonds_data()
+print(pka_bonds)
+# molecule data
+pka_molecule_data = pka_rdkit_wrapper.molecule_data()
+print(pka_molecule_data)
+# get the coordinates from a conformer
+pka_coords = pka_rdkit_wrapper.get_conformer_coords(0)
+
+# create types from data sources
+# AtomTypes
+pka_atom_types = []
+for atom_data in pka_atom_data:
+    atom_type_name = "PKAAtom{0}Type".format(atom_data['name'])
+    atom_type = AtomType.factory(atom_type_name, **atom_data)
+    pka_atom_types.append(atom_type)
+
+# BondTypes
+pka_bond_types = []
+for bond_data in pka_bonds:
+    bond_type_name = "PKABond{0}Type".format(bond_data['name'])
+    atom_types = (pka_atom_types[bond_data['rdkit_atom_idxs'][0]],
+                  pka_atom_types[bond_data['rdkit_atom_idxs'][1]])
+    bond_type = BondType.factory(bond_type_name, atom_types=atom_types, **bond_data)
+    pka_bond_types.append(bond_type)
+
+# MoleculeType
+pka_molecule_data.update({"pdb_name" : "PKA",
+                          "atom_types" : pka_atom_types,
+                          "bond_types" : pka_bond_types,
+                          "features" : pka_features})
+
+PKAType = MoleculeType.factory("PKAType", **pka_data)
+PKA_TYPE = PKAType()
+print(PKA_TYPE.name)
+print(PKA_TYPE.pdb_name)
+print(PKA_TYPE.atom_types)
+print(PKA_TYPE.bond_types)
+print(PKA_TYPE.features)
+print(PKA_TYPE.feature_families)
+print(PKA_TYPE.feature_types)
 
 print("Making a mast.Molecule from the RDKitMoleculeWrapper data")
-pka_mol = pka_type.to_molecule_from_coords(pka_coords)
+pka_mol = PKA_TYPE.to_molecule(pka_coords)
 # pka_mol = Molecule(mol_type=pka_type, coords=pka_coords)
 print(pka_mol)
 print(pka_mol.molecule_type)
 
 print("testing overlap of two molecules")
 print(pka_mol.overlaps(mol))
-
-print("finding features using mast.molecule method")
-pka_rdkit.find_features()
-pka_mol.make_feature_selections()
-print(pka_mol.features)
-
-print("using type_constructor")
-pka_mol2 = pka_type.to_molecule_from_coords(pka_mol.atom_coords)
