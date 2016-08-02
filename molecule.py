@@ -22,30 +22,31 @@ class AtomType(object):
 
     @staticmethod
     def factory(atom_type_name, **atom_attrs):
-        # simply keep track of which attributes the input did not provide
+
+        # keep track of which attributes the input did not provide
         for attr in AtomType.attributes:
             try:
                 assert attr in atom_attrs.keys()
             except AssertionError:
-                # logging
+                # LOGGING
                 print("Attribute {0} not found in atom input.".format(attr))
 
-        # add the attributes that it has into the class
+        # add the attributes into the class
         attributes = {attr : None for attr in AtomType.attributes}
         for attr, value in atom_attrs.items():
-            # make sure AtomType has an attribute that matches
+            # Log the compliance of the attributes
+            # if the attribute isn't declared in the attributes log it
             try:
                 assert attr in AtomType.attributes
-            # if it doesn't then report it
             except AssertionError:
-                # logging
-                print("Input attribute {0} not in AtomType attributes, ignoring.".format(attr))
-            # if no error then add it
-            else:
-                attributes[attr] = value
+                # LOGGING
+                print("Input attribute {0} not in AtomType attributes.".format(attr))
 
-        return type(atom_type_name, (AtomType,), attributes)
+            # add it to the attributes
+            attributes[attr] = value
 
+        atom_type = type(atom_type_name, (AtomType,), attributes)
+        return atom_type
 
 class BondType(object):
 
@@ -69,27 +70,25 @@ class BondType(object):
                     for i in atom_types]), \
             "atom_types must be a length 2 tuple of AtomType subclasses"
 
-        # simply keep track of which attributes the input did not provide
+        # log keep track of which attributes the input did not provide
         for attr in BondType.attributes:
             try:
                 assert attr in bond_attrs.keys()
             except AssertionError:
-                # logging
+                # LOGGING
                 print("Attribute {0} not found in bond input.".format(attr))
 
-        # add the attributes that it has into the class
+        # add the attributes into the class
         attributes = {attr : None for attr in BondType.attributes}
         for attr, value in bond_attrs.items():
-            # make sure BondType has an attribute that matches
             try:
                 assert attr in BondType.attributes
-            # if it doesn't then report it
+            # if it doesn't then log it
             except AssertionError:
-                # logging
+                # LOGGING
                 print("Input attribute {0} not in BondType attributes, ignoring.".format(attr))
-            # if no error then add it
-            else:
-                attributes[attr] = value
+            # add it regardless
+            attributes[attr] = value
 
         bond_type =  type(bond_type_name, (BondType,), attributes)
         bond_type.atom_types = atom_types
@@ -213,22 +212,20 @@ class MoleculeType(object):
             try:
                 assert attr in molecule_attrs.keys()
             except AssertionError:
-                # logging
+                # LOGGING
                 print("Attribute {0} not found in molecule input.".format(attr))
 
-        # add the attributes that it has into the class
+        # add the attributes into the class
         attributes = {attr : None for attr in MoleculeType.attributes}
         for attr, value in molecule_attrs.items():
-            # make sure MoleculeType has an attribute that matches
             try:
                 assert attr in MoleculeType.attributes
-            # if it doesn't then report it
+            # if it doesn't then log
             except AssertionError:
-                # logging
+                # LOGGING
                 print("Input attribute {0} not in MoleculeType attributes, ignoring.".format(attr))
-            # if no error then add it
-            else:
-                attributes[attr] = value
+            # add it regardless
+            attributes[attr] = value
 
         # create the class with the domain specific attributes
         molecule_type = type(mol_type_name, (MoleculeType,), attributes)
@@ -244,10 +241,6 @@ class MoleculeType(object):
         molecule_type.features = features
 
         return molecule_type
-
-
-
-
 
 class Atom(Point):
     def __init__(self, coords=None, atom_array=None, array_idx=None, atom_type=None):
