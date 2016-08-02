@@ -141,7 +141,7 @@ class RDKitMoleculeWrapper(object):
 
         return molecule_dict
 
-    def molecule_type(self, find_features=False):
+    def make_molecule_type(self, find_features=False):
         # extract all relevant data
         atom_data = self.atoms_data()
         bond_data = self.bonds_data()
@@ -182,7 +182,11 @@ class RDKitMoleculeWrapper(object):
         """Uses a feature definition (fdef) database to to find features in
         the molecule.
 
-        Returns a tuple (dict : features, list : families, list : types)
+        Returns a nested dictionary mapping the feature indices to the
+        feature dict.
+
+        Examples
+        --------
 
         """
 
@@ -192,10 +196,12 @@ class RDKitMoleculeWrapper(object):
         factory_features = feature_factory.GetFeaturesForMol(self.rdkit_molecule)
         features = {}
         for feature in factory_features:
+            # unpack the coordinates from the rdkit object
+            pos_obj = feature.GetPos()
             feature_info = {'family' : feature.GetFamily(),
                             'type' : feature.GetType(),
                             'atom_ids' : feature.GetAtomIds(),
-                            'position' : feature.GetPos()}
+                            'position' : (pos_obj.x, pos_obj.y, pos_obj.z)}
             features[feature.GetId()] = feature_info
 
 

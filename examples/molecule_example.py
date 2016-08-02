@@ -84,10 +84,10 @@ PKA1Type = MoleculeType.factory("PKAType", atom_types=pka_atom_types,
                                bond_types=pka_bond_types, bond_map=pka_bond_map,
                                **pka_molecule_data)
 # using the rdkit wrapper converter
-PKA2Type = pka_rdkit_wrapper.molecule_type()
+PKA2Type = pka_rdkit_wrapper.make_molecule_type()
 
 # find features
-PKA3Type = pka_rdkit_wrapper.molecule_type(find_features=True)
+PKA3Type = pka_rdkit_wrapper.make_molecule_type(find_features=True)
 
 
 ### making actual Atoms, Bonds, and Molecules
