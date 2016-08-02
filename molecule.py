@@ -86,7 +86,7 @@ class BondType(object):
             # if it doesn't then log it
             except AssertionError:
                 # LOGGING
-                print("Input attribute {0} not in BondType attributes, ignoring.".format(attr))
+                print("Input attribute {0} not in BondType attributes.".format(attr))
             # add it regardless
             attributes[attr] = value
 
@@ -223,7 +223,7 @@ class MoleculeType(object):
             # if it doesn't then log
             except AssertionError:
                 # LOGGING
-                print("Input attribute {0} not in MoleculeType attributes, ignoring.".format(attr))
+                print("Input attribute {0} not in MoleculeType attributes.".format(attr))
             # add it regardless
             attributes[attr] = value
 

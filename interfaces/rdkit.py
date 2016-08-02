@@ -141,10 +141,42 @@ class RDKitMoleculeWrapper(object):
 
         return molecule_dict
 
+    def make_atom_type(self, atom_idx, atom_type_name):
+        atom_data = self.atom_data(atom_idx)
+        return mastmol.AtomType.factory(atom_type_name, **atom_data)
+
+    def make_atom_types(self):
+        atoms_data = self.atoms_data()
+        atom_types = []
+        for atom_data in atoms_data:
+            atom_type_name = "{1}Atom{0}Type".format(atom_data['name'], self.mol_name)
+            atom_type = mastmol.AtomType.factory(atom_type_name, **atom_data)
+            atom_types.append(atom_type)
+        return atom_types
+
+    def make_bond_type(self, bond_idx, bond_type_name):
+        bond_data = self.bond_data(bond_idx)
+        return mastmol.BondType.factory(bond_type_name,
+                                        atom_types=bond_atom_types,
+                                        **bond_data)
+
+    def make_bond_types(self):
+        # get atom types
+        atom_types = self.make_atom_types()
+        bonds_data = self.bonds_data()
+        bond_types = []
+        for bond_data in bonds_data:
+            bond_type_name = "{1}Bond{0}Type".format(bond_data['name'], self.mol_name)
+            bond_atom_types = (atom_types[bond_data['rdkit_atom_idxs'][0]],
+                          atom_types[bond_data['rdkit_atom_idxs'][1]])
+            bond_type = mastmol.BondType.factory(bond_type_name,
+                                                 atom_types=bond_atom_types,
+                                                 **bond_data)
+            bond_types.append(bond_type)
+        return bond_types
+
     def make_molecule_type(self, find_features=False):
-        # extract all relevant data
-        atom_data = self.atoms_data()
-        bond_data = self.bonds_data()
+        # get relevant data
         bond_map = self.bonds_map()
         molecule_data = self.molecule_data()
         if find_features:
@@ -152,25 +184,15 @@ class RDKitMoleculeWrapper(object):
         else:
             features = {}
 
-        atom_types = []
-        for atom_data in atom_data:
-            atom_type_name = "{1}Atom{0}Type".format(atom_data['name'], self.mol_name)
-            atom_type = mastmol.AtomType.factory(atom_type_name, **atom_data)
-            atom_types.append(atom_type)
-
+        # AtomTypes
+        atom_types = self.make_atom_types()
         # BondTypes
-        bond_types = []
-        for bond_data in bond_data:
-            bond_type_name = "{1}Bond{0}Type".format(bond_data['name'], self.mol_name)
-            bond_atom_types = (atom_types[bond_data['rdkit_atom_idxs'][0]],
-                          atom_types[bond_data['rdkit_atom_idxs'][1]])
-            bond_type = mastmol.BondType.factory(bond_type_name, atom_types=bond_atom_types, **bond_data)
-            bond_types.append(bond_type)
-
+        bond_types = self.make_bond_types()
         # MoleculeType
         molecule_data.update({"name" : self.mol_name})
 
-        molecule_type = mastmol.MoleculeType.factory("{}Type".format(self.mol_name),
+        molecule_type_name = "{}Type".format(self.mol_name)
+        molecule_type = mastmol.MoleculeType.factory(molecule_type_name,
                                              atom_types=atom_types,
                                              bond_types=bond_types, bond_map=bond_map,
                                              features=features,

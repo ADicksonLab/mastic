@@ -2,6 +2,7 @@ DIM_NUM_3D = 3
 
 ATOM_ATTRIBUTES = ['name',
                    'atomic_num',
+                   'bond_degree',
                    'bond_degree_no_Hs',
                    'bond_degree_with_Hs',
                    'total_bond_degree',
@@ -35,4 +36,8 @@ BOND_ATTRIBUTES = ['name',
                    'is_conjugated',]
 
 MOLECULE_ATTRIBUTES = ['name',
-                       'pdb_name']
+                       'pdb_name',
+                       'num_heavy_atoms',
+                       'num_atoms',
+                       'num_rings',
+                       'num_bonds']

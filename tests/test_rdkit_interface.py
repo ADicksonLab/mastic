@@ -147,6 +147,7 @@ class TestRDKitWrapper(unittest.TestCase):
                 self.assertIsInstance(dim, float)
 
     def test_make_molecule_type(self):
+        test_mol_type = self.wrapper.make_molecule_type()
         
 
 if __name__ == "__main__":
