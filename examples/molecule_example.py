@@ -7,8 +7,8 @@ from mast.selection import CoordArray, IndexedSelection, Selection, \
     GenericSelection
 
 from mast.molecule import Bond, Molecule, Atom, \
-    MoleculeType, AtomType, BondType, RDKitMoleculeWrapper
-
+    MoleculeType, AtomType, BondType
+from mast.interfaces.rdkit import RDKitMoleculeWrapper
 import mast.config.molecule as mastmolconfig
 
 
@@ -40,7 +40,7 @@ tspo_dir = osp.expanduser("~/Dropbox/lab/tspo")
 PKA_pdb_path = osp.join(tspo_dir, "PKA.pdb")
 pka_rdkit = Chem.MolFromPDBFile(PKA_pdb_path, removeHs=False)
 # cast external representation to a wrapper
-pka_rdkit_wrapper = RDKitMoleculeWrapper(pka_rdkit)
+pka_rdkit_wrapper = RDKitMoleculeWrapper(pka_rdkit, mol_name="PKA")
 print(pka_rdkit_wrapper)
 
 # extract data from it
@@ -80,8 +80,6 @@ for bond_data in pka_bond_data:
     pka_bond_types.append(bond_type)
 
 # MoleculeType
-pka_molecule_data.update({"name" : "PKA"})
-
 PKA1Type = MoleculeType.factory("PKAType", atom_types=pka_atom_types,
                                bond_types=pka_bond_types, bond_map=pka_bond_map,
                                **pka_molecule_data)

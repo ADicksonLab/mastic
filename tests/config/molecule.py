@@ -27,7 +27,6 @@ ATOM_ATTRIBUTES = ['name',
                   'pdb_temp_factor',]
 
 BOND_ATTRIBUTES = ['name',
-                   'atom_types',
                    'bond_type',
                    'bond_type_number',
                    'is_aromatic',
@@ -36,8 +35,4 @@ BOND_ATTRIBUTES = ['name',
                    'is_conjugated',]
 
 MOLECULE_ATTRIBUTES = ['name',
-                       'pdb_name',
-                       'atom_types',
-                       'bond_types',
-                       'angle_types',
-                       'features']
+                       'pdb_name',]
