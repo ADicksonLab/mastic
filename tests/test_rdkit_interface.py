@@ -148,7 +148,13 @@ class TestRDKitWrapper(unittest.TestCase):
 
     def test_make_molecule_type(self):
         test_mol_type = self.wrapper.make_molecule_type()
-        
+        self.assertIsInstance(test_mol_type, type)
+        self.assertTrue(issubclass(test_mol_type, mastmol.MoleculeType))
+        # features should not have been set
+        self.assertFalse(test_mol_type.features)
+        # now for one that does set the features
+        test_mol_type = self.wrapper.make_molecule_type(find_features=True)
+        self.assertTrue(test_mol_type.features)
 
 if __name__ == "__main__":
 
