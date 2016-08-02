@@ -95,9 +95,9 @@ class TestRDKitWrapper(unittest.TestCase):
                           monomer_info.GetTempFactor())
 
     def test_bond_data(self):
-        self.assertEqual(self.wrapper.bond_data(self.bond_idx)['bond_type'],
+        self.assertEqual(self.wrapper.bond_data(self.bond_idx)['rdkit_bond_type'],
                          str(self.bond.GetBondType()))
-        self.assertEqual(self.wrapper.bond_data(self.bond_idx)['bond_type_number'],
+        self.assertEqual(self.wrapper.bond_data(self.bond_idx)['bond_order'],
                          str(self.bond.GetBondTypeAsDouble()))
         self.assertEqual(self.wrapper.bond_data(self.bond_idx)['is_aromatic'],
                          self.bond.GetIsAromatic())

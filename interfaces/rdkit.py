@@ -103,12 +103,14 @@ class RDKitMoleculeWrapper(object):
         """
         bond = self.bonds[bond_idx]
         bond_dict = {}
-        bond_dict['bond_type'] = str(bond.GetBondType())
-        bond_dict['bond_type_number'] = str(bond.GetBondTypeAsDouble())
+
+        bond_dict['bond_order'] = str(bond.GetBondTypeAsDouble())
         bond_dict['is_aromatic'] = bond.GetIsAromatic()
         bond_dict['in_ring'] = bond.IsInRing()
         bond_dict['stereo'] = str(bond.GetStereo())
         bond_dict['is_conjugated'] = bond.GetIsConjugated()
+
+        bond_dict['rdkit_bond_type'] = str(bond.GetBondType())
         atom1_idx = bond.GetBeginAtomIdx()
         atom2_idx = bond.GetEndAtomIdx()
         bond_dict['rdkit_atom_idxs'] = (atom1_idx, atom2_idx)

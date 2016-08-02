@@ -28,8 +28,8 @@ ATOM_ATTRIBUTES = ['name',
                    'pdb_temp_factor',]
 
 BOND_ATTRIBUTES = ['name',
-                   'bond_type',
-                   'bond_type_number',
+                   'rdkit_bond_type',
+                   'bond_order',
                    'is_aromatic',
                    'in_ring',
                    'stereo',

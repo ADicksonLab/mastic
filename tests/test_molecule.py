@@ -47,8 +47,7 @@ class TestBondType(unittest.TestCase):
         self.assertIsInstance(MockBondType, type)
 
         # test the non-domain specific attributes work
-        self.assertEquals(MockBondType.atom_types, (self.Atom1Type, self.Atom2Type))
-        self.assertEquals(MockBondType.attributes, mastmolconfig.BOND_ATTRIBUTES)
+        self.assertEqual(MockBondType.atom_types, (self.Atom1Type, self.Atom2Type))
 
 class TestFakeMoleculeType(unittest.TestCase):
     def setUp(self):
@@ -86,18 +85,18 @@ class TestFakeMoleculeType(unittest.TestCase):
 
         # test that the non-domain specific attributes and functions
         # work
-        self.assertEquals(MockMoleculeType.atom_types, self.atom_types)
-        self.assertEquals(MockMoleculeType.atom_type_library,
+        self.assertEqual(MockMoleculeType.atom_types, self.atom_types)
+        self.assertEqual(MockMoleculeType.atom_type_library,
                           set(MockMoleculeType.atom_types))
-        self.assertEquals(MockMoleculeType.bond_types, self.bond_types)
-        self.assertEquals(MockMoleculeType.bond_type_library,
+        self.assertEqual(MockMoleculeType.bond_types, self.bond_types)
+        self.assertEqual(MockMoleculeType.bond_type_library,
                           set(MockMoleculeType.bond_types))
-        self.assertEquals(MockMoleculeType.bond_map, self.bond_map)
+        self.assertEqual(MockMoleculeType.bond_map, self.bond_map)
         # make sure we get the correct AtomTypes from the bond map
         begin_atom_type = MockMoleculeType.atom_types[MockMoleculeType.bond_map[0][0]]
         end_atom_type = MockMoleculeType.atom_types[MockMoleculeType.bond_map[0][1]]
-        self.assertEquals(begin_atom_type, self.Atom1Type)
-        self.assertEquals(end_atom_type, self.Atom2Type)
+        self.assertEqual(begin_atom_type, self.Atom1Type)
+        self.assertEqual(end_atom_type, self.Atom2Type)
         # we didn't set these so make sure they are empty
         self.assertFalse(MockMoleculeType.features)
         self.assertFalse(MockMoleculeType.feature_families())
@@ -107,7 +106,8 @@ class TestFakeMoleculeType(unittest.TestCase):
 
         # test the domain specific stuff is the same as in the mock
         # config files
-        self.assertEquals(MockMoleculeType.attributes, mastmolconfig.MOLECULE_ATTRIBUTES)
+        for attr in mastmolconfig.MOLECULE_ATTRIBUTES:
+            self.assertIn(attr, MockMoleculeType.attributes)
 
 
 

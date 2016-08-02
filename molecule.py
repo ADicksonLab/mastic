@@ -10,11 +10,19 @@ from mast.interactions import InteractionType
 # from mast.system import System
 import mast.config.molecule as mastmolconfig
 
-__all__ = ['Atom', 'AtomTypeLibrary', 'AtomType', 'Bond', 'MoleculeType', 'MoleculeTypeLibrary',
-           'RDKitMoleculeType', 'Molecule', ]
+__all__ = ['AtomType', 'BondType', 'MoleculeType',]
 
 class AtomType(object):
+    """Class for generating specific atom type classes with the factory
+    method.
 
+    Examples
+    --------
+    >>> CarbonAtomType = AtomType.factory("CarbonAtomType", **{"element" : 'C'})
+    >>> CarbonAtomType.element
+    'C'
+
+    """
     attributes = mastmolconfig.ATOM_ATTRIBUTES
 
     def __init__(self):
@@ -22,14 +30,21 @@ class AtomType(object):
 
     @staticmethod
     def factory(atom_type_name, **atom_attrs):
+        """Static method for generating atom types dynamically given a type
+        name (which will be the class name) and a domain specific dictionary
+        of atom attributes.
 
+        See mast.config.molecule for standard AtomType attributes.
+        See class docstring for examples.
+        """
         # keep track of which attributes the input did not provide
         for attr in AtomType.attributes:
             try:
                 assert attr in atom_attrs.keys()
             except AssertionError:
                 # LOGGING
-                print("Attribute {0} not found in atom input.".format(attr))
+                pass
+                # print("Attribute {0} not found in atom input.".format(attr))
 
         # add the attributes into the class
         attributes = {attr : None for attr in AtomType.attributes}
@@ -40,7 +55,8 @@ class AtomType(object):
                 assert attr in AtomType.attributes
             except AssertionError:
                 # LOGGING
-                print("Input attribute {0} not in AtomType attributes.".format(attr))
+                pass
+                # print("Input attribute {0} not in AtomType attributes.".format(attr))
 
             # add it to the attributes
             attributes[attr] = value
@@ -49,7 +65,23 @@ class AtomType(object):
         return atom_type
 
 class BondType(object):
+    """Class for generating specific bond type classes with the factory
+    method.
 
+    Examples
+    --------
+    First make the components of a bond:
+    >>> carbon_attributes = {'element':'C', 'bond_degree':3}
+    >>> oxygen_attributes = {'element':'O', 'bond_degree':3}
+    >>> COCarbonAtomType = AtomType.factory("COCarbonAtomType", **carbon_attributes)
+    >>> COOxygenAtomType = AtomType.factory("COOxygenAtomType", **oxygen_attributes)
+
+    >>> CO_atoms = (COCarbonAtomType, COOxygenAtomType)
+    >>> CO_attributes = {"bond_order":3}
+
+    Then put them together:
+    >>> COBondType = BondType.factory("COBondType", atom_types=CO_atoms, **CO_attributes)
+    """
     attributes = mastmolconfig.BOND_ATTRIBUTES
     """Domain specific properties of the BondType"""
 
@@ -58,6 +90,13 @@ class BondType(object):
 
     @staticmethod
     def factory(bond_type_name, atom_types=None, **bond_attrs):
+        """Static method for generating bond types dynamically given a type
+        name (which will be the class name) and a domain specific dictionary
+        of atom attributes.
+
+        See mast.config.molecule for standard BondType attributes.
+        See class docstring for examples.
+        """
 
         # must pass in atom types
         assert atom_types, \
@@ -76,7 +115,8 @@ class BondType(object):
                 assert attr in bond_attrs.keys()
             except AssertionError:
                 # LOGGING
-                print("Attribute {0} not found in bond input.".format(attr))
+                pass
+                # print("Attribute {0} not found in bond input.".format(attr))
 
         # add the attributes into the class
         attributes = {attr : None for attr in BondType.attributes}
@@ -86,7 +126,8 @@ class BondType(object):
             # if it doesn't then log it
             except AssertionError:
                 # LOGGING
-                print("Input attribute {0} not in BondType attributes.".format(attr))
+                pass
+                # print("Input attribute {0} not in BondType attributes.".format(attr))
             # add it regardless
             attributes[attr] = value
 
@@ -96,7 +137,36 @@ class BondType(object):
         return bond_type
 
 class MoleculeType(object):
+    """Class for generating specific bond type classes with the factory
+    method.
 
+    Examples
+    --------
+
+    We will make a carbon-monoxide molecule from scratch:
+
+    >>> carbon_attributes = {'element':'C', 'bond_degree':3}
+    >>> oxygen_attributes = {'element':'O', 'bond_degree':3}
+    >>> COCarbonAtomType = AtomType.factory("COCarbonAtomType", **carbon_attributes)
+    >>> COOxygenAtomType = AtomType.factory("COOxygenAtomType", **oxygen_attributes)
+
+    >>> CO_atoms = (COCarbonAtomType, COOxygenAtomType)
+    >>> CO_attributes = {"bond_order":3}
+    >>> COBondType = BondType.factory("COBondType", atom_types=CO_atoms, **CO_attributes)
+
+    Map the bonds to the atomtypes in a dict:
+
+    >>> atom_types = [COCarbonAtomType, COOxygenAtomType]
+    >>> bond_types = [COBondType]
+    >>> bond_map = {0 : (0, 1)}
+
+    Define domain specific information about the MoleculeType:
+
+    >>> CO_attributes = {"name" : "carbon-monoxide", "toxic" : True}
+
+    Put it together:
+    >>> COType = MoleculeType.factory("COType", atom_types=atom_types, bond_types=bond_types, bond_map=bond_map, **CO_attributes)
+    """
     attributes = mastmolconfig.MOLECULE_ATTRIBUTES
     """Domain specific properties of the MoleculeType"""
 
@@ -212,8 +282,9 @@ class MoleculeType(object):
             try:
                 assert attr in molecule_attrs.keys()
             except AssertionError:
+                pass
                 # LOGGING
-                print("Attribute {0} not found in molecule input.".format(attr))
+                # print("Attribute {0} not found in molecule input.".format(attr))
 
         # add the attributes into the class
         attributes = {attr : None for attr in MoleculeType.attributes}
@@ -223,7 +294,8 @@ class MoleculeType(object):
             # if it doesn't then log
             except AssertionError:
                 # LOGGING
-                print("Input attribute {0} not in MoleculeType attributes.".format(attr))
+                pass
+                # print("Input attribute {0} not in MoleculeType attributes.".format(attr))
             # add it regardless
             attributes[attr] = value
 
