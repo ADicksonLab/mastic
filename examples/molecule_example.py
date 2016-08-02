@@ -92,17 +92,17 @@ PKA3Type = pka_rdkit_wrapper.make_molecule_type(find_features=True)
 
 ### making actual Atoms, Bonds, and Molecules
 
-print("making an CoordArray for atoms")
+# the CoordArray
 array = np.array([[0,0,0], [0,0,1], [1,0,0]])
 atom_array = CoordArray(array)
 print(atom_array)
 
-print("making atoms")
+# the Atoms
 atom1 = Atom(np.array([5,5,5]))
 print(atom1)
 print(atom1.coords)
 
-atom2 = Atom(np.array([6,6,6]), atom_array=atom_array, atom_type=atom2_type)
+atom2 = Atom(np.array([6,6,6]), atom_array=atom_array, atom_type=Atom2Type)
 print(atom2)
 print(atom2.coords)
 print("testing overlap of two atoms")
@@ -111,20 +111,17 @@ atom3 = Atom(atom_array=atom_array, array_idx=0)
 print(atom3)
 print(atom3.coords)
 atoms = [atom1, atom2, Atom(np.array([0,1,0]))]
-# # make a selection of those atoms
+
+# selection of atoms is fun
 atomsel = IndexedSelection(atoms, [0,1])
-print(atomsel)
 
-# make a selection of atoms for bonds, and angle
-
-# making a bond between each atom and the next one in the index,
-# just to test
-print("making up bonds")
+# Bonds
 idx_a = range(len(atoms))[:-1]
 idx_b = [a+1 for a in idx_a]
 idx = zip(idx_a, idx_b)
 bonds = [Bond(atoms, bond_idx) for bond_idx in idx]
 
+# getting the atoms out of bonds
 print("accessing bonds from an atom")
 print("Is an atom in a bond?")
 print(atoms[0]._in_bond)
@@ -137,14 +134,11 @@ print("get the other atom in the bond")
 bond = atoms[0].bonds[0]
 other_atom = next((a for a in bond.atoms if a is not atoms[0]))
 
-print("same thing using the method")
+# using the class's method
 print(atoms[0].adjacent_atoms)
-# angles still stubbed out for now
-angles = [IndexedSelection(atoms, [0,1,2])]
-print("making a MoleculeType")
-moltype = MoleculeType.factory(mol_type_name="TestMolType", name='test_molecule')
-print("making a molecule")
-mol = Molecule(atoms, bonds, angles, mol_type=moltype)
+
+# Molecule
+mol = Molecule(atoms, bonds, mol_type=Molecule1Type)
 print(mol)
 print("atom_types in mol")
 print(mol.atom_types)

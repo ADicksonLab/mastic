@@ -433,14 +433,6 @@ class Molecule(Container):
         else:
             mol_type = kwargs.pop('mol_type')
 
-        # if 'external_mol_rep' not in kwargs.keys():
-        #     external_mol_rep = None
-        # else:
-        #     assert isinstance(kwargs['external_mol_rep'], tuple), \
-        #         "An external_mol_rep must be a tuple (external_type, external_mol), not {}".format(
-        #             kwargs['external_mol_rep'])
-        #     external_mol_rep = kwargs.pop('external_mol_rep')
-
         # check to see which constructor to use
         if issubclass(type(mol_input), MoleculeType):
             molecule_dict = Molecule.type_constructor(mol_input, *args, **kwargs)
@@ -455,7 +447,7 @@ class Molecule(Container):
         # set the atoms, bonds, and angles into this object
         self.atoms = molecule_dict['atoms']
         self.bonds = molecule_dict['bonds']
-        self.angles = molecule_dict['angles']
+        # self.angles = molecule_dict['angles']
 
         # set the molecule_type
         if mol_type is None:
@@ -493,7 +485,7 @@ class Molecule(Container):
 
 
     @classmethod
-    def atoms_constructor(cls, atoms, bonds, angles):
+    def atoms_constructor(cls, atoms, bonds, ): #angles):
         assert atoms, "atoms must exist, {}".format(atoms)
         assert issubclass(type(atoms), col.Sequence), \
             "atoms must be a subclass of collections.Sequence, not {}".format(
@@ -504,7 +496,7 @@ class Molecule(Container):
         assert not all([atom._in_molecule for atom in atoms]), \
             "all atoms must not be part of another molecule"
 
-        molecule_dict = {'atoms' : atoms, 'bonds' : bonds, 'angles': angles}
+        molecule_dict = {'atoms' : atoms, 'bonds' : bonds, } # 'angles': angles}
         return molecule_dict
 
     # properties
@@ -547,7 +539,6 @@ class Molecule(Container):
     def features(self):
         return self.molecule_type.features
 
-    # TODO allow for tolerance
     def overlaps(self, other):
         """Check whether this molecule overlaps with another.
         Checks whether any two atoms in each molecule have the same coordinates.
