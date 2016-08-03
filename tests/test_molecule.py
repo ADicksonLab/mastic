@@ -161,8 +161,10 @@ class testBond(unittest.TestCase):
         self.coords = (np.array((0.0, 0.0, 0.0)), np.array((0.0, 0.0, 1.0)))
         self.atoms = (self.Mock1AtomType.to_atom(self.coords[0]),
                       self.Mock2AtomType.to_atom(self.coords[1]))
+
     def tearDown(self):
         pass
+
     def test_constructors(self):
         bonds = []
         bonds.append(mastmol.Bond(atom_container=self.atoms, bond_type=self.MockBondType))
@@ -173,6 +175,61 @@ class testBond(unittest.TestCase):
         for bond_a, bond_b in itertools.combinations(bonds, 2):
             npt.assert_array_almost_equal(bond_a.coords, bond_b.coords)
             self.assertEqual(bond_a.bond_type, bond_b.bond_type)
+
+class testMolecule(unittest.TestCase):
+
+    def setUp(self):
+        self.mock_atom1_attrs = {}
+        self.mock_atom1_attrs[mastmolconfig.ATOM_ATTRIBUTES[0]] = "mock_attribute"
+        self.mock_atom1_attrs['undefined_attribute'] = "undefined_mock_attribute"
+        self.Mock1AtomType = mastmol.AtomType.factory("Mock1AtomType", **self.mock_atom1_attrs)
+        self.mock_atom2_attrs = {}
+        self.mock_atom2_attrs[mastmolconfig.ATOM_ATTRIBUTES[0]] = "mock_attribute_2"
+        self.mock_atom2_attrs['undefined_attribute'] = "undefined_mock_attribute"
+        self.Mock2AtomType = mastmol.AtomType.factory("Mock2AtomType", **self.mock_atom2_attrs)
+
+        self.atom_types = (self.Mock1AtomType, self.Mock2AtomType)
+        self.mock_bond_attrs = {}
+        self.mock_bond_attrs[mastmolconfig.BOND_ATTRIBUTES[0]] = "mock_attribute"
+        self.mock_bond_attrs['undefined_attribute'] = "undefined_mock_attribute"
+
+        self.MockBondType = mastmol.BondType.factory("MockBondType",
+                                                     atom_types=self.atom_types,
+                                                     **self.mock_bond_attrs)
+
+        self.bond_types = [self.MockBondType]
+        self.mock_attrs = {}
+        self.bond_map = {0:(0,1)}
+        self.mock_attrs[mastmolconfig.MOLECULE_ATTRIBUTES[0]] = "mock_attribute"
+        self.mock_attrs['undefined_attribute'] = "undefined_mock_attribute"
+
+        self.MockMoleculeType = mastmol.MoleculeType.factory("MockMoleculeType",
+                                                        atom_types=self.atom_types,
+                                                        bond_types=self.bond_types,
+                                                        bond_map=self.bond_map,
+                                                        **self.mock_attrs)
+
+        self.coords = (np.array((0.0, 0.0, 0.0)), np.array((0.0, 0.0, 1.0)))
+        self.atoms = (self.Mock1AtomType.to_atom(self.coords[0]),
+                      self.Mock2AtomType.to_atom(self.coords[1]))
+        self.bonds = []
+        self.bonds.append(self.MockBondType.to_bond(*self.coords))
+
+    def tearDown(self):
+        pass
+
+    def test_constructors(self):
+        molecules = []
+        molecules.append(mastmol.Molecule(atoms=self.atoms, bonds=self.bonds,
+                                         mol_type=self.MockMoleculeType))
+        molecules.append(self.MockMoleculeType.to_molecule(self.coords))
+
+        for mol_a, mol_b in itertools.combinations(molecules, 2):
+            npt.assert_array_almost_equal(mol_a, mol_b)
+            for bond_a, bond_b in zip(mol_a.bonds, mol_b.bonds):
+                self.assertEqual(bond_a, bond_b)
+            for atom_a, atom_b in zip(mol_a.atoms, mol_b.atoms):
+                self.assertEqual(atom_a, atom_b)
 
 if __name__ == "__main__":
 
