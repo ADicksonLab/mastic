@@ -282,7 +282,7 @@ class IndexedSelection(GenericSelection, col.UserDict):
         for sel_idx in sel:
             self[sel_idx] = container[sel_idx]
             # set this selection in the SelectionMember registry
-            self[sel_idx].register_selection(sel_idx, self)
+            self[sel_idx].register_selection(sel_idx, self, flags=flags)
 
     def __repr__(self):
         return str(self.__class__)
@@ -377,13 +377,13 @@ class CoordArraySelection(GenericSelection):
 
     """
 
-    def __init__(self, array, sel):
+    def __init__(self, array, sel, flags=None):
 
         assert issubclass(type(array), CoordArray), \
             "array must be a subclass of CoordArray, not {}".format(
                 type(array))
 
-        super().__init__(array)
+        super().__init__(array, flags=flags)
 
         # handle sel inputs
         # TODO add support for slices
@@ -405,7 +405,7 @@ class CoordArraySelection(GenericSelection):
         for sel_idx in sel:
             self.data.append(self.container[sel_idx:(sel_idx+1)][0])
             # set this selection in the CoordArray registry
-            self.container.register_selection(sel_idx, self)
+            self.container.register_selection(sel_idx, self, flags=flags)
 
     def __getitem__(self, idx):
         return self.data[idx]
@@ -557,11 +557,11 @@ e.g. {'strings' : [StringSelection, StringSelection] 'ints' :
 
 
 class SelectionsList(SelectionMember, col.UserList):
-    def __init__(self, selection_list=None):
+    def __init__(self, selection_list=None, flags=None):
         if not selection_list:
             self.data = []
 
-        super().__init__(selection_list)
+        super().__init__(selection_list, flags=flags)
 
         if selection_list:
             assert issubclass(type(selection_list), col.Sequence), \
@@ -573,7 +573,7 @@ class SelectionsList(SelectionMember, col.UserList):
         # their registries
         for idx, member in enumerate(self.data):
             if issubclass(type(member), SelectionMember):
-                member.register_selection(idx, self)
+                member.register_selection(idx, self, flags=flags)
 
     def __repr__(self):
         return str(self.__class__)

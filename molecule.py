@@ -677,7 +677,8 @@ class Molecule(SelectionsDict):
             raise NotImplementedError
 
         # call to parent class
-        super().__init__(flags=['molecule'])
+        selections_dict = {'atoms' : atoms, 'bonds' : bonds}
+        super().__init__(selection_dict=selections_dict, flags=['molecule'])
 
         # set the atoms, bonds, and angles into this object
         self.atoms = atoms
@@ -706,6 +707,10 @@ class Molecule(SelectionsDict):
             "mol_type must be a subclass of MoleculeType, not {}".format(
                 type(mol_type))
         self._molecule_type = mol_type
+
+    @property
+    def isin_system(self):
+        return 'system' in self.flags
 
     @property
     def system(self):

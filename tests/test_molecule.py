@@ -188,7 +188,7 @@ class testBond(unittest.TestCase):
         self.assertFalse(bond.isin_system)
         for atom in bond.atoms:
             self.assertTrue(atom.isin_bond)
-            self.assertIs(atom.bond, bond)
+            self.assertIn(bond, atom.bonds)
 
 class testMolecule(unittest.TestCase):
 
@@ -223,11 +223,11 @@ class testMolecule(unittest.TestCase):
                                                         bond_map=self.bond_map,
                                                         **self.mock_attrs)
 
-        self.coords = (np.array((0.0, 0.0, 0.0)), np.array((0.0, 0.0, 1.0)))
+        self.coords = np.array((np.array((0.0, 0.0, 0.0)), np.array((0.0, 0.0, 1.0))))
         self.atoms = (self.Mock1AtomType.to_atom(self.coords[0]),
                       self.Mock2AtomType.to_atom(self.coords[1]))
         self.bonds = []
-        self.bonds.append(self.MockBondType.to_bond(*self.coords))
+        self.bonds.append(mastmol.Bond(self.atoms, bond_type=self.MockBondType))
 
     def tearDown(self):
         pass
@@ -239,11 +239,11 @@ class testMolecule(unittest.TestCase):
         molecules.append(self.MockMoleculeType.to_molecule(self.coords))
 
         for mol_a, mol_b in itertools.combinations(molecules, 2):
-            npt.assert_array_almost_equal(mol_a, mol_b)
+            npt.assert_array_almost_equal(mol_a.atom_coords, mol_b.atom_coords)
             for bond_a, bond_b in zip(mol_a.bonds, mol_b.bonds):
-                self.assertEqual(bond_a, bond_b)
+                self.assertIs(bond_a.bond_type, bond_b.bond_type)
             for atom_a, atom_b in zip(mol_a.atoms, mol_b.atoms):
-                self.assertEqual(atom_a, atom_b)
+                self.assertIs(atom_a.atom_type, atom_b.atom_type)
 
     def test_selection_getters(self):
         molecule = self.MockMoleculeType.to_molecule(self.coords)
@@ -257,7 +257,7 @@ class testMolecule(unittest.TestCase):
             self.assertTrue(atom.isin_molecule)
             self.assertFalse(atom.isin_system)
             self.assertIs(atom.molecule, molecule)
-
+ 
 if __name__ == "__main__":
 
     from mast import molecule

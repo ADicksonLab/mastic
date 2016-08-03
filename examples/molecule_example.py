@@ -98,7 +98,7 @@ atom_array = CoordArray(array)
 print(atom_array)
 
 # the Atoms
-atom1 = Atom(np.array([5,5,5]))
+atom1 = Atom(np.array([5,5,5]), atom_type=Atom1Type)
 print(atom1)
 print(atom1.coords)
 
@@ -107,15 +107,17 @@ print(atom2)
 print(atom2.coords)
 print("testing overlap of two atoms")
 print(atom2.overlaps(atom1))
-atom3 = Atom(atom_array=atom_array, array_idx=0)
+atom3 = Atom(atom_array=atom_array, array_idx=0, atom_type=Atom3Type)
 print(atom3)
 print(atom3.coords)
-atoms = [atom1, atom2, Atom(np.array([0,1,0]))]
+atoms = [atom1, atom2, Atom(np.array([0,1,0]), atom_type=Atom2Type)]
 
 # selection of atoms is fun
 atomsel = IndexedSelection(atoms, [0,1])
 
 # Bonds
+import ipdb; ipdb.set_trace()
+bond = Bond(atoms, atom_ids=(0,1), bond_type=Bond1Type)
 idx_a = range(len(atoms))[:-1]
 idx_b = [a+1 for a in idx_a]
 idx = zip(idx_a, idx_b)
@@ -124,7 +126,7 @@ bonds = [Bond(atoms, bond_idx, bond_type=Bond1Type) for bond_idx in idx]
 # getting the atoms out of bonds
 print("accessing bonds from an atom")
 print("Is an atom in a bond?")
-print(atoms[0]._in_bond)
+print(atoms[0].isin_bond)
 print("how many bonds is it in")
 print("first atom", len(atoms[0].bonds))
 print("second atom", len(atoms[1].bonds))

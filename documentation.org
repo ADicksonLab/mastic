@@ -88,7 +88,7 @@ Currently is a prototype.
 **** TODO Container
 *** TODO molecule.py
 **** DONE AtomType, BondType, MoleculeType
-**** TODO Atom, Bond, Molecule
+**** DONE Atom, Bond, Molecule
 *** DONE interfaces.rdkit
 *** TODO system.py
 *** TODO interactions.py
@@ -98,14 +98,15 @@ Currently is a prototype.
 *** DONE selection.py
 *** TODO molecule.py
 **** DONE AtomType, BondType, MoleculeType
-**** TODO Atom, Bond, Molecule
+**** DONE Atom, Bond, Molecule
 *** DONE interfaces.rdkit
 *** TODO system.py
 *** TODO interactions.py
 
 ** TODO write logging
 
-** TODO finish system and molecule getters for atom, bond, molecule etc classes
+** TODO coord_array and array_idx constructor options for Molecule constructor
+** DONE finish system and molecule getters for atom, bond, molecule etc classes
 ** TODO finish dataframe exporters using records
 ** DONE automatically set the in_molecule and in_system flags when the registry of elements are changed
 ** DONE type constructor and to_molecule, to_atom, to_bond
