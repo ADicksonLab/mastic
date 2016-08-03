@@ -32,9 +32,9 @@ class AtomType(object):
     def to_atom(cls, coords):
         assert len(coords) == 3, \
             "coords must be length 3, not {}".format(len(coords))
-        assert all([(lambda x: isinstance(x, int) or isinstance(x, float))(i)
+        assert all([(lambda x: isinstance(x, float))(i)
                     for i in coords]), \
-            "coords must be 3 numbers, not {}".format(coords)
+            "coords must be 3 floats, not {}".format(coords)
         coords = np.array(coords)
         atom = Atom(coords, atom_type=cls)
 
@@ -115,7 +115,7 @@ class BondType(object):
         atoms.append(cls.atom_types[0].to_atom(atom1_coords))
         atoms.append(cls.atom_types[1].to_atom(atom2_coords))
 
-        bond = Bond(atoms, (0,1))
+        bond = Bond(atoms, (0,1), bond_type=cls)
         return bond
 
     @staticmethod
@@ -385,6 +385,11 @@ class Atom(Point):
                 "coords must have 3-dimensions, not {}".format(
                     coords.shape[-1])
 
+        assert atom_type is not None, \
+            "An atom_type must be given."
+        assert issubclass(atom_type, AtomType), \
+            "atom_type must be a subclass of AtomType, not {}".format(atom_type)
+
         if atom_array:
             assert atom_array.shape[-1] == mastmolconfig.DIM_NUM_3D, \
                 "atom_array must have 3-dimensions, not {}".format(
@@ -392,12 +397,7 @@ class Atom(Point):
 
 
         super().__init__(coords=coords, coord_array=atom_array, array_idx=array_idx)
-
-        if atom_type is None:
-            atom_type = AtomType()
         self._atom_type = atom_type
-        self._in_molecule = False
-        self._in_bond = False
 
 
     def __repr__(self):
@@ -406,6 +406,9 @@ class Atom(Point):
     @property
     def atom_type(self):
         return self._atom_type
+
+    def isin_molecule(self):
+        pass
 
     @property
     def molecule(self):
@@ -417,6 +420,9 @@ class Atom(Point):
                             None)
             assert molecule
             return molecule
+
+    def isin_system(self):
+        pass
 
     @property
     def system(self):
@@ -434,6 +440,9 @@ class Atom(Point):
             system = self.molecule.system
             assert system
             return system
+
+    def isin_bond(self):
+        pass
 
     @property
     def bonds(self):
@@ -509,13 +518,40 @@ class Bond(IndexedSelection):
                 raise NotImplementedError
 
 
-        super().__init__(atom_container, atom_ids)
-        for atom in self.values():
-            atom._in_bond = True
+        super().__init__(atom_container, atom_ids, flags=['bond'])
+        self._bond_type = bond_type
 
     @property
     def atoms(self):
         return tuple(self.values())
+
+    @property
+    def atom_types(self):
+        return tuple([atom.atom_type for atom in self.atoms])
+
+    @property
+    def coords(self):
+        atom1_coords = self.atoms[0].coords
+        atom2_coords = self.atoms[1].coords
+        return (atom1_coords, atom2_coords)
+
+    @property
+    def bond_type(self):
+        return self._bond_type
+
+    def isin_molecule(self):
+        pass
+
+    @property
+    def molecule(self):
+        pass
+
+    def isin_system(self):
+        pass
+
+    @property
+    def system(self):
+        pass
 
 class Molecule(SelectionsDict):
     """The coordinate substantiation of a MoleculeType.
