@@ -1,7 +1,8 @@
 #+BEGIN_SRC html
   <a href="https://zenodo.org/badge/latestdoi/18884/salotz/mast"><img src="https://zenodo.org/badge/18884/salotz/mast.svg" alt="10.5281/zenodo.59480"></a>
-#+END_SRC
-* Goals
+#+END_SRC   
+https://zenodo.org/badge/latestdoi/18884/salotz/mast
+* Goals            .
 MAST is currently in beta and so much might still change.
 
 The original impetus that led to writing MAST was a need to have a general and flexible framework for interacting with macromolecules (particular biomolecules) in order to implement complex selections and queries for profiling of intermolecular interactions on large sets of data.
