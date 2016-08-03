@@ -1,3 +1,6 @@
+#+BEGIN_SRC html
+  <a href="https://zenodo.org/badge/latestdoi/18884/salotz/mast"><img src="https://zenodo.org/badge/18884/salotz/mast.svg" alt="10.5281/zenodo.59480"></a>
+#+END_SRC
 * Goals
 MAST is currently in beta and so much might still change.
 
