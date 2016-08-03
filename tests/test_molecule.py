@@ -137,6 +137,12 @@ class testAtom(unittest.TestCase):
         npt.assert_array_almost_equal(atom1.coords, atom2.coords)
         self.assertEqual(atom1.atom_type, atom2.atom_type)
 
+    def test_selection_getters(self):
+        atom = self.MockAtomType.to_atom(self.coords)
+        self.assertFalse(atom.isin_bond)
+        self.assertFalse(atom.isin_molecule)
+        self.assertFalse(atom.isin_system)
+
 class testBond(unittest.TestCase):
 
     def setUp(self):
@@ -175,6 +181,14 @@ class testBond(unittest.TestCase):
         for bond_a, bond_b in itertools.combinations(bonds, 2):
             npt.assert_array_almost_equal(bond_a.coords, bond_b.coords)
             self.assertEqual(bond_a.bond_type, bond_b.bond_type)
+
+    def test_selection_getters(self):
+        bond = self.MockBondType.to_bond(*self.coords)
+        self.assertFalse(bond.isin_molecule)
+        self.assertFalse(bond.isin_system)
+        for atom in bond.atoms:
+            self.assertTrue(atom.isin_bond)
+            self.assertIs(atom.bond, bond)
 
 class testMolecule(unittest.TestCase):
 
@@ -230,6 +244,19 @@ class testMolecule(unittest.TestCase):
                 self.assertEqual(bond_a, bond_b)
             for atom_a, atom_b in zip(mol_a.atoms, mol_b.atoms):
                 self.assertEqual(atom_a, atom_b)
+
+    def test_selection_getters(self):
+        molecule = self.MockMoleculeType.to_molecule(self.coords)
+        self.assertFalse(molecule.isin_system)
+        for bond in molecule.bonds:
+            self.assertTrue(bond.isin_molecule)
+            self.assertFalse(bond.isin_system)
+            self.assertIs(bond.molecule, molecule)
+        for atom in molecule.atoms:
+            self.assertTrue(atom.isin_bond)
+            self.assertTrue(atom.isin_molecule)
+            self.assertFalse(atom.isin_system)
+            self.assertIs(atom.molecule, molecule)
 
 if __name__ == "__main__":
 

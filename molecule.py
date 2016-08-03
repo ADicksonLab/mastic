@@ -416,6 +416,9 @@ class Atom(Point):
         if self.isin_molecule is False:
             return None
         else:
+            # to get the selection in the registry that contains this
+            # SelectionMember search through them all and take the
+            # first one that is a Molecule type
             molecule = next((sel for key, sel in self.registry
                              if isinstance(sel, Molecule)),
                             None)
@@ -428,21 +431,19 @@ class Atom(Point):
 
     @property
     def system(self):
-
-
         if self.isin_system is False:
             return None
-        elif self.isin_molecule is False:
+        else:
+            # to get the selection in the registry that contains this
+            # SelectionMember search through them all and take the
+            # first one that is a System type
             system = next((sel for key, sel in self.registry
                            if isinstance(sel, System)),
                           None)
             assert system
             return system
-        else:
-            system = self.molecule.system
-            assert system
-            return system
 
+    @property
     def isin_bond(self):
         return 'bond' in self.flags
 
@@ -451,6 +452,7 @@ class Atom(Point):
         if self.isin_bond is False:
             return None
         else:
+            # go through and collect each bond it is a part of
             bonds = []
             for key, sel in self.registry:
                 if isinstance(sel, Bond):
@@ -547,7 +549,17 @@ class Bond(IndexedSelection):
 
     @property
     def molecule(self):
-        pass
+        if self.isin_molecule is False:
+            return None
+        else:
+            # to get the selection in the registry that contains this
+            # SelectionMember search through them all and take the
+            # first one that is a Molecule type
+            molecule = next((sel for key, sel in self.registry
+                             if isinstance(sel, Molecule)),
+                            None)
+            assert molecule
+            return molecule
 
     @property
     def isin_system(self):
@@ -555,7 +567,18 @@ class Bond(IndexedSelection):
 
     @property
     def system(self):
-        pass
+        if self.isin_system is False:
+            return None
+        else:
+            # to get the selection in the registry that contains this
+            # SelectionMember search through them all and take the
+            # first one that is a System type
+            system = next((sel for key, sel in self.registry
+                           if isinstance(sel, System)),
+                          None)
+            assert system
+            return system
+
 
 class Molecule(SelectionsDict):
     """The coordinate substantiation of a MoleculeType.
