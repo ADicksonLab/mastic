@@ -190,6 +190,11 @@ class testBond(unittest.TestCase):
             self.assertTrue(atom.isin_bond)
             self.assertIn(bond, atom.bonds)
 
+    def test_adjacent_atoms(self):
+        bond = self.MockBondType.to_bond(*self.coords)
+        self.assertIs(bond.atoms[0].adjacent_atoms[0], bond.atoms[1])
+        self.assertIs(bond.atoms[1].adjacent_atoms[0], bond.atoms[0])
+
 class testMolecule(unittest.TestCase):
 
     def setUp(self):

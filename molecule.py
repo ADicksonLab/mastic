@@ -1,4 +1,4 @@
-import numpy as np
+simport numpy as np
 import collections as col
 import os.path as osp
 from itertools import product
@@ -405,15 +405,18 @@ class Atom(Point):
 
     @property
     def atom_type(self):
+        """The AtomType subclass used to substantiate this Atom."""
         return self._atom_type
 
     @property
     def isin_molecule(self):
+        """Boolean if this Atom is in a Molecule."""
         return 'molecule' in self.flags
 
     @property
     def molecule(self):
-        if self.isin_molecule is False:
+        """The Molecule this Atom is in else None."""
+        if not self.isin_molecule:
             return None
         else:
             # to get the selection in the registry that contains this
@@ -427,11 +430,13 @@ class Atom(Point):
 
     @property
     def isin_system(self):
+        """Boolean if this Atom is in a System."""
         return 'system' in self.flags
 
     @property
     def system(self):
-        if self.isin_system is False:
+        """The System this Atom is in else None."""
+        if not self.isin_system:
             return None
         else:
             # to get the selection in the registry that contains this
@@ -445,11 +450,13 @@ class Atom(Point):
 
     @property
     def isin_bond(self):
+        """Boolean if this is in a Bond."""
         return 'bond' in self.flags
 
     @property
     def bonds(self):
-        if self.isin_bond is False:
+        """The Bonds this atom is in else None."""
+        if not self.isin_bond:
             return None
         else:
             # go through and collect each bond it is a part of
@@ -465,14 +472,17 @@ class Atom(Point):
 
     @property
     def adjacent_atoms(self):
-
-        # collect adjacent atoms
-        adjacent_atoms = []
-        for bond in self.bonds:
-            other_atom = next((a for a in bond.atoms if a is not self), None)
-            assert self is not other_atom, "{} cannot be bound to itself".format(self)
-            adjacent_atoms.append(other_atom)
-        return adjacent_atoms
+        """The Atoms that are bonded to this Atom."""
+        if self.isin_bond:
+            # collect adjacent atoms
+            adjacent_atoms = []
+            for bond in self.bonds:
+                other_atom = next((a for a in bond.atoms if a is not self), None)
+                assert self is not other_atom, "{} cannot be bound to itself".format(self)
+                adjacent_atoms.append(other_atom)
+            return adjacent_atoms
+        else:
+            return None
 
 class Bond(IndexedSelection):
     """The coordinate substantiation of a BondType.
@@ -527,28 +537,34 @@ class Bond(IndexedSelection):
 
     @property
     def atoms(self):
+        """The Atoms in this Bond."""
         return tuple(self.values())
 
     @property
     def atom_types(self):
+        """The AtomType subclasses of this Bond's Atoms."""
         return tuple([atom.atom_type for atom in self.atoms])
 
     @property
     def coords(self):
+        """The coordinates of the two Atoms in this Bond."""
         atom1_coords = self.atoms[0].coords
         atom2_coords = self.atoms[1].coords
         return (atom1_coords, atom2_coords)
 
     @property
     def bond_type(self):
+        """The BondType subclass of this Bond."""
         return self._bond_type
 
     @property
     def isin_molecule(self):
+        """Boolean if this Bond is in a Molecule."""
         return 'molecule' in self.flags
 
     @property
     def molecule(self):
+        """The Molecule this Bond is in else None."""
         if self.isin_molecule is False:
             return None
         else:
@@ -563,10 +579,12 @@ class Bond(IndexedSelection):
 
     @property
     def isin_system(self):
+        """Boolean if this Bond is in a System."""
         return 'system' in self.flags
 
     @property
     def system(self):
+        """The System this Bond is in else None."""
         if self.isin_system is False:
             return None
         else:
@@ -692,28 +710,36 @@ class Molecule(SelectionsDict):
         self._feature_type_selections = None
         self._internal_interactions = None
 
-    # properties
     @property
     def atom_types(self):
-        pass
+        """The AtomType subclasses for all the atoms in this Molecule."""
+        return [atom.atom_type for atom in self.atoms]
+
+    @property
+    def bond_types(self):
+        """The BondType subclasses for all the bonds in this Molecule."""
+        return [bond.bond_type for bond in self.bonds]
 
     @property
     def molecule_type(self):
+        """The MoleculeType subclass of this Molecule."""
         return self._molecule_type
 
-    @molecule_type.setter
-    def molecule_type(self, mol_type):
-        assert issubclass(type(mol_type), MoleculeType), \
-            "mol_type must be a subclass of MoleculeType, not {}".format(
-                type(mol_type))
-        self._molecule_type = mol_type
+    # @molecule_type.setter
+    # def molecule_type(self, mol_type):
+    #     assert issubclass(type(mol_type), MoleculeType), \
+    #         "mol_type must be a subclass of MoleculeType, not {}".format(
+    #             type(mol_type))
+    #     self._molecule_type = mol_type
 
     @property
     def isin_system(self):
+        """Boolean if this Molecule is in a System."""
         return 'system' in self.flags
 
     @property
     def system(self):
+        """The System this Molecule is in else None."""
         if self.isin_system is False:
             return None
         else:
@@ -725,15 +751,13 @@ class Molecule(SelectionsDict):
 
     @property
     def atom_coords(self):
+        """The coordinates from each Atom in this Molecule."""
         coords = np.array([atom.coords for atom in self.atoms])
         return coords
 
     @property
-    def external_mol_reps(self):
-        return self._external_mol_reps
-
-    @property
     def features(self):
+        """The chemical features of this Molecule's MoleculeType subclass."""
         return self.molecule_type.features
 
     def overlaps(self, other):
@@ -745,8 +769,6 @@ class Molecule(SelectionsDict):
         """
         assert isinstance(other, Molecule), \
             "Other must be type Molecule, not {}".format(type(other))
-
-
 
         pairs = product(self.atoms, other.atoms)
         try:
@@ -767,6 +789,24 @@ class Molecule(SelectionsDict):
         return False
 
     def make_feature_selections(self):
+        """Using the features attribute make IndexedSelections of those
+        Atoms. Sets these to the feature_family_selections and
+        feature_type_selections attributes of this object.
+
+        Examples
+        --------
+
+        > molecule.make_feature_selections()
+
+        Each feature is held here
+        > molecule.feature_family_selections[0]
+        IndexedSelection
+        The selection is the feature's atoms
+        > molecule.feature_family_selections[0][0]
+        Atom
+
+        """
+
         family_selections = col.defaultdict(list)
         type_selections = col.defaultdict(list)
         for idx, feature in self.features.items():
