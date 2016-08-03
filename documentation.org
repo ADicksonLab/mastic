@@ -105,6 +105,14 @@ Currently is a prototype.
 
 ** TODO write logging
 
+** TODO Type.substantiate function
+A general function for use every Type class instead of specific
+to_molecule and to_atom methods which need to be handled individually,
+e.g. in to_system.
+
+** TODO Type class for things to inherit from.
+Would at least provide an interface to implement and override. Need
+not be too picky.
 ** TODO coord_array and array_idx constructor options for Molecule constructor
 ** DONE finish system and molecule getters for atom, bond, molecule etc classes
 ** TODO finish dataframe exporters using records
