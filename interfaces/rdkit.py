@@ -10,31 +10,67 @@ from rdkit.Chem import ChemicalFeatures
 
 
 class RDKitMoleculeWrapper(object):
+    """Wrapper class providing convenience access and conversion of
+    rdkit's molecule representations to mast molecular representations.
+
+    Examples
+    --------
+
+    Load a small molecule from the test data using rdkit:
+
+    >>> from rdkit import Chem
+    >>> from mast.interfaces.rdkit import RDKitMoleculeWrapper
+    >>> from mast.tests.data import BEN_path
+    >>> sml_rdkit = Chem.MolFromPDBFile(BEN_path, remove_Hs=False)
+
+    Construct the wrapper:
+    >>> sml_wrapped = RDKitMoleculeWrapper(sml_rdkit)
+
+    Now we can easily (and pythonically) access attributes.
+
+    Most importantly we can convert to mast.MoleculeType:
+
+    >>> BENType = sml_wrapped.make_molecule_type()
+
+    And use rdkit's chemical feature finding methods:
+
+    >>> features = sml_wrapped.find_features()
+    """
+
     def __init__(self, rdkit_molecule, mol_name=None):
         self.rdkit_molecule = rdkit_molecule
         self.mol_name = mol_name
 
     @property
     def atoms(self):
+        """The rdkit atoms in the molecule."""
         return [atom for atom in self.rdkit_molecule.GetAtoms()]
 
     @property
     def bonds(self):
+        """The rdkit bonds in the molecule."""
         return [bond for bond in self.rdkit_molecule.GetBonds()]
 
     @property
     def num_atoms(self):
+        """The number of atoms in the molecule."""
         return self.rdkit_molecule.GetNumAtoms()
 
     @property
     def num_bonds(self):
+        """The number of bonds in the molecule."""
         return self.rdkit_molecule.GetNumBonds()
 
     @property
     def num_conformers(self):
+        """The number of coordinate sets for the whole molecule."""
         return self.rdkit_molecule.GetNumConformers()
 
     def atoms_data(self):
+        """Return a list of the data for each atom in the molecule. Calls
+        atom_data.
+
+        """
         atoms_data = []
         for atom in self.rdkit_molecule.GetAtoms():
             atom_data = self.atom_data(atom.GetIdx())
@@ -89,6 +125,11 @@ class RDKitMoleculeWrapper(object):
         return atom_dict
 
     def bonds_data(self):
+        """Return a list of the data for each bond in the molecule. Calls
+        bond_data.
+
+        """
+
         bonds_data = []
         for bond_idx, bond in enumerate(self.bonds):
             bond_data = self.bond_data(bond_idx)
@@ -120,6 +161,10 @@ class RDKitMoleculeWrapper(object):
         return bond_dict
 
     def bonds_map(self):
+        """Returns a dictionary mapping the indices of the bonds to the
+        indices of their atoms.
+
+        """
         bond_map_dict = {}
         for bond_idx, bond in enumerate(self.bonds):
             atom1_idx = bond.GetBeginAtomIdx()
@@ -144,10 +189,12 @@ class RDKitMoleculeWrapper(object):
         return molecule_dict
 
     def make_atom_type(self, atom_idx, atom_type_name):
+        """Converts a single atom to a mast.AtomType."""
         atom_data = self.atom_data(atom_idx)
         return mastmol.AtomType.factory(atom_type_name, **atom_data)
 
     def make_atom_types(self):
+        """Converts all atoms in the molecule to mast.AtomTypes."""
         atoms_data = self.atoms_data()
         atom_types = []
         for atom_data in atoms_data:
@@ -157,12 +204,14 @@ class RDKitMoleculeWrapper(object):
         return atom_types
 
     def make_bond_type(self, bond_idx, bond_type_name):
+        """Converts a single bond to a mast.BondType."""
         bond_data = self.bond_data(bond_idx)
         return mastmol.BondType.factory(bond_type_name,
                                         atom_types=bond_atom_types,
                                         **bond_data)
 
     def make_bond_types(self):
+        """Converts all bonds in the molecule to mast.BondTypes."""
         # get atom types
         atom_types = self.make_atom_types()
         bonds_data = self.bonds_data()
@@ -178,6 +227,13 @@ class RDKitMoleculeWrapper(object):
         return bond_types
 
     def make_molecule_type(self, find_features=False):
+        """Converts the molecule to a mast.MoleculeType.
+        First converts all atoms and bonds to mast Types.
+
+        Optionally the rdkit find_features function can be called with
+        default settings using the flag.
+
+        """
         # get relevant data
         bond_map = self.bonds_map()
         molecule_data = self.molecule_data()
@@ -203,14 +259,11 @@ class RDKitMoleculeWrapper(object):
         return molecule_type
 
     def find_features(self, fdef="BaseFeatures.fdef"):
-        """Uses a feature definition (fdef) database to to find features in
-        the molecule.
+        """Uses a feature definition (fdef) database to to find chemical
+        features in the molecule.
 
         Returns a nested dictionary mapping the feature indices to the
         feature dict.
-
-        Examples
-        --------
 
         """
 
@@ -238,6 +291,9 @@ class RDKitMoleculeWrapper(object):
         return features
 
     def get_conformer_coords(self, conf_idx):
+        """Returns the coordinates of the specified conformer in the molecule.
+
+        """
         assert self.rdkit_molecule.GetNumConformers() > 0, \
             "{0} has no conformers".format(self)
 

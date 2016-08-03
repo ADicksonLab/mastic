@@ -89,6 +89,7 @@ Currently is a prototype.
 *** TODO molecule.py
 **** DONE AtomType, BondType, MoleculeType
 **** TODO Atom, Bond, Molecule
+*** DONE interfaces.rdkit
 *** TODO system.py
 *** TODO interactions.py
 
@@ -98,6 +99,7 @@ Currently is a prototype.
 *** TODO molecule.py
 **** DONE AtomType, BondType, MoleculeType
 **** TODO Atom, Bond, Molecule
+*** TODO interfaces.rdkit
 *** TODO system.py
 *** TODO interactions.py
 
