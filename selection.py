@@ -184,9 +184,9 @@ class GenericSelection(SelectionMember):
 
 
     """
-    def __init__(self, container):
+    def __init__(self, container, flags=None):
 
-        super().__init__(self)
+        super().__init__(self, flags=flags)
         assert '__getitem__' in dir(container), \
             "container must implement `__getitem__`, {} does not".format(
                 type(container))
@@ -272,8 +272,8 @@ class IndexedSelection(GenericSelection, col.UserDict):
     [(0, <class 'mast.selection.IndexedSelection'>)]
 
     """
-    def __init__(self, container, sel):
-        super().__init__(container)
+    def __init__(self, container, sel, flags=None):
+        super().__init__(container, flags=flags)
         assert all([issubclass(type(member), SelectionMember) for member in container]), \
             "container members must be a subclass of SelectionMember"
 

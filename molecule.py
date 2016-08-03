@@ -407,12 +407,13 @@ class Atom(Point):
     def atom_type(self):
         return self._atom_type
 
+    @property
     def isin_molecule(self):
-        pass
+        return 'molecule' in self.flags
 
     @property
     def molecule(self):
-        if self._in_molecule is False:
+        if self.isin_molecule is False:
             return None
         else:
             molecule = next((sel for key, sel in self.registry
@@ -421,16 +422,17 @@ class Atom(Point):
             assert molecule
             return molecule
 
+    @property
     def isin_system(self):
-        pass
+        return 'system' in self.flags
 
     @property
     def system(self):
 
 
-        if self._in_system is False:
+        if self.isin_system is False:
             return None
-        elif self._in_molecule is False:
+        elif self.isin_molecule is False:
             system = next((sel for key, sel in self.registry
                            if isinstance(sel, System)),
                           None)
@@ -442,11 +444,11 @@ class Atom(Point):
             return system
 
     def isin_bond(self):
-        pass
+        return 'bond' in self.flags
 
     @property
     def bonds(self):
-        if self._in_bond is False:
+        if self.isin_bond is False:
             return None
         else:
             bonds = []
@@ -539,15 +541,17 @@ class Bond(IndexedSelection):
     def bond_type(self):
         return self._bond_type
 
+    @property
     def isin_molecule(self):
-        pass
+        return 'molecule' in self.flags
 
     @property
     def molecule(self):
         pass
 
+    @property
     def isin_system(self):
-        pass
+        return 'system' in self.flags
 
     @property
     def system(self):
@@ -610,7 +614,7 @@ class Molecule(SelectionsDict):
             assert all([(lambda x: True if issubclass(type(x), Atom) else False)(atom)
                         for atom in atoms]), \
                 "all elements in atoms must be a subclass of type Atom"
-            assert not all([atom._in_molecule for atom in atoms]), \
+            assert not all([atom.isin_molecule for atom in atoms]), \
                 "all atoms must not be part of another molecule"
 
         # check bonds input for correctness
@@ -682,7 +686,7 @@ class Molecule(SelectionsDict):
 
     @property
     def system(self):
-        if self._in_system is False:
+        if self.isin_system is False:
             return None
         else:
             system = next((sel for key, sel in self.registry
