@@ -350,6 +350,32 @@ class MoleculeType(object):
         return molecule_type
 
 class Atom(Point):
+    """The coordinate substantiation of an AtomType.
+
+    Examples
+    --------
+
+    >>> import numpy as np
+
+    Make an AtomType:
+
+    >>> CarbonAtomType = AtomType.factory("CarbonAtomType", **{"element" : 'C'})
+
+    Coordinates for it:
+
+    >>> coords = np.array((0.0, 0.0, 0.0))
+
+    Construct an Atom from it:
+
+    >>> Atom(coords=coords, atom_type=CarbonAtomType)
+    <class 'mast.molecule.Atom'>
+
+    or
+
+    >>> CarbonAtomType.to_atom(coords)
+    <class 'mast.molecule.Atom'>
+    """
+
     def __init__(self, coords=None, atom_array=None, array_idx=None, atom_type=None):
 
         if coords is None:
@@ -436,7 +462,19 @@ class Atom(Point):
         return adjacent_atoms
 
 class Bond(IndexedSelection):
+    """The coordinate substantiation of a BondType.
 
+    Examples
+    --------
+
+    >>> carbon_attributes = {'element':'C', 'bond_degree':3}
+    >>> oxygen_attributes = {'element':'O', 'bond_degree':3}
+    >>> COCarbonAtomType = AtomType.factory("COCarbonAtomType", **carbon_attributes)
+    >>> COOxygenAtomType = AtomType.factory("COOxygenAtomType", **oxygen_attributes)
+    >>> CO_atoms = (COCarbonAtomType, COOxygenAtomType)
+    >>> CO_attributes = {"bond_order":3}
+    >>> COBondType = BondType.factory("COBondType", atom_types=CO_atoms, **CO_attributes)
+    """
     def __init__(self, atom_container=None, atom_ids=None,
                  bond_array=None, array_idxs=None, bond_type=None):
 
@@ -451,7 +489,7 @@ class Bond(IndexedSelection):
             assert issubclass(type(atom_container), col.Sequence), \
                 "atom_container must be a subclass of collections.Sequence, not {}".format(
                     type(atom_container))
-            assert len(atom_container) > 2, \
+            assert len(atom_container) >= 2, \
                 "atom_container must have at least 2 atoms, not {}".format(len(atom_container))
 
             if len(atom_container) == 2:
@@ -480,7 +518,8 @@ class Bond(IndexedSelection):
         return tuple(self.values())
 
 class Molecule(SelectionsDict):
-    """A molecule with a MoleculeType subtype, coordinates for each atom,
+    """The coordinate substantiation of a MoleculeType.
+    A Molecule has a MoleculeType subtype, coordinates for each atom,
     and may be part of coordinate systems.
 
     The easiest way to obtain a Molecule object is to use the
@@ -504,11 +543,12 @@ class Molecule(SelectionsDict):
     >>> COType = MoleculeType.factory("COType", atom_types=atom_types, bond_types=bond_types, bond_map=bond_map, **CO_attributes)
 
     And then just make some coordinates and use them:
-    >>> C_coords = (0.0, 0.0, 0.0)
-    >>> O_coords = (0.0, 0.0, 1.0)
-    >>> coords = [C_coords, O_coords]
+    >>> C_coords = np.array((0.0, 0.0, 0.0))
+    >>> O_coords = np.array((0.0, 0.0, 1.0))
+    >>> coords = np.array([C_coords, O_coords])
 
     >>> COType.to_molecule(coords)
+    <class 'mast.molecule.Molecule'>
 
     Constructor from lists of atoms, bonds, or angles is not
     implemented.

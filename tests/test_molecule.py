@@ -110,7 +110,33 @@ class TestFakeMoleculeType(unittest.TestCase):
             self.assertIn(attr, MockMoleculeType.attributes)
 
 
+class testAtom(unittest.TestCase):
 
+    def setUp(self):
+        # make a MoleculeType
+        self.mock_attrs = {}
+        self.mock_attrs[mastmolconfig.ATOM_ATTRIBUTES[0]] = "mock_attribute"
+        self.mock_attrs['undefined_attribute'] = "undefined_mock_attribute"
+        self.MockAtomType = mastmol.AtomType.factory("MockAtomType", **self.mock_attrs)
+        self.coords = np.array((0,0,0))
+
+    def tearDown(self):
+        pass
+
+    def test_constructors(self):
+        atom1 = self.Atom(coords=self.coords, atom_type=self.MockAtomType)
+        atom2 = self.MockAtomType(self.coords)
+        npt.assert_array_almost_equal(atom1.coords, atom2.coords)
+        self.assertEqual(atom1.atom_type, atom2.atom_type)
+
+def testBond(self):
+
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+    
 if __name__ == "__main__":
 
     from mast import molecule

@@ -99,7 +99,7 @@ Currently is a prototype.
 *** TODO molecule.py
 **** DONE AtomType, BondType, MoleculeType
 **** TODO Atom, Bond, Molecule
-*** TODO interfaces.rdkit
+*** DONE interfaces.rdkit
 *** TODO system.py
 *** TODO interactions.py
 
