@@ -101,9 +101,12 @@ Currently is a prototype.
 *** TODO system.py
 *** TODO interactions.py
 
-** TODO write logging 
+** TODO write logging
 
-** TODO type constructor and to_molecule, to_atom, to_bond
+** TODO finish system and molecule getters for atom, bond, molecule etc classes
+** TODO finish dataframe exporters using records
+** DONE automatically set the in_molecule and in_system flags when the registry of elements are changed
+** DONE type constructor and to_molecule, to_atom, to_bond
 ** TODO BondType and MoleculeType methods for getting adjacent AtomTypes
 ** DONE make the AtomType class declaration like BondType and MoleculeType
 ** DONE AtomType, BondType, MoleculeType

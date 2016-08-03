@@ -4,8 +4,8 @@ import os.path as osp
 from itertools import product
 
 from mast.selection import CoordArray, CoordArraySelection, \
-    Point, IndexedSelection, SelectionDict, SelectionList, \
-    Container
+    Point, IndexedSelection, SelectionsDict, SelectionsList, \
+    Selection
 from mast.interactions import InteractionType
 # from mast.system import System
 import mast.config.molecule as mastmolconfig
@@ -27,6 +27,18 @@ class AtomType(object):
 
     def __init__(self):
         pass
+
+    @classmethod
+    def to_atom(cls, coords):
+        assert len(coords) == 3, \
+            "coords must be length 3, not {}".format(len(coords))
+        assert all([(lambda x: isinstance(x, int) or isinstance(x, float))(i)
+                    for i in coords]), \
+            "coords must be 3 numbers, not {}".format(coords)
+        coords = np.array(coords)
+        atom = Atom(coords, atom_type=cls)
+
+        return atom
 
     @staticmethod
     def factory(atom_type_name, **atom_attrs):
@@ -87,6 +99,24 @@ class BondType(object):
 
     def __init__(self):
         pass
+
+    @classmethod
+    def to_bond(cls, atom1_coords, atom2_coords):
+
+        # test the inputs
+        for coords in [atom1_coords, atom2_coords]:
+            assert len(coords) == 3, \
+                "coords must be length 3, not {}".format(len(coords))
+            assert all([(lambda x: isinstance(x, int) or isinstance(x, float))(i)
+                        for i in coords]), \
+                "coords must be 3 numbers, not {}".format(coords)
+
+        atoms = []
+        atoms.append(cls.atom_types[0].to_atom(atom1_coords))
+        atoms.append(cls.atom_types[1].to_atom(atom2_coords))
+
+        bond = Bond(atoms, (0,1))
+        return bond
 
     @staticmethod
     def factory(bond_type_name, atom_types=None, **bond_attrs):
@@ -218,22 +248,27 @@ class MoleculeType(object):
     def to_molecule(cls, coords):
         """ Construct a Molecule using input coordinates with mapped indices"""
 
+        # make one CoordArray to put everything in
         coord_array = CoordArray(coords)
 
         # Make atoms out of the coord array
-        atom_idxs = range(len(cls.atom_types))
         atoms = []
         for atom_idx, atom_type in enumerate(cls.atom_types):
             atom = Atom(atom_array=coord_array, array_idx=atom_idx, atom_type=atom_type)
             atoms.append(atom)
 
-        # TODO handle bonds
-        bonds = None
+        # make the bonds from the atoms
+        bond_map = cls.bond_map
+        bonds = []
+        for bond_idx, bond_type in enumerate(cls.bond_types):
+            bond = Bond(atom_container=atoms, atom_ids=bond_map[bond_idx],
+                        bond_type=bond_type)
+            bonds.append(bond)
 
         # TODO handle and create angles
         angles = None
 
-        return Molecule(atoms, bonds, angles, mol_type=cls)
+        return Molecule(atoms=atoms, bonds=bonds, angles=angles, mol_type=cls)
 
     @staticmethod
     def factory(mol_type_name, atom_types=None,
@@ -401,21 +436,40 @@ class Atom(Point):
         return adjacent_atoms
 
 class Bond(IndexedSelection):
-    def __init__(self, atom_container=None, atom_ids=None):
-        if atom_ids is not None:
-            assert isinstance(atom_ids, tuple), \
-                "atom_ids must be a length 2 tuple, not type{}".format(
-                    type(atom_ids))
-            assert len(atom_ids) == 2, \
-                "atom_ids must be a length 2 tuple, not len={}".format(
-                    len(atom_ids))
-            assert all([(lambda x: isinstance(x, int))(i) for i in atom_ids]), \
-                "atom_ids must be a length 2 tuple of ints"
 
+    def __init__(self, atom_container=None, atom_ids=None,
+                 bond_array=None, array_idxs=None, bond_type=None):
+
+        # check the bond_type
+        assert bond_type is not None, \
+            "A BondType subclass must be given"
+        assert issubclass(bond_type, BondType), \
+            "bond_type must be a subclass of BondType, not {}".format(bond_type)
+
+        # if the atoms are passed in on their own, i.e. with coordinates already
         if atom_container is not None:
             assert issubclass(type(atom_container), col.Sequence), \
                 "atom_container must be a subclass of collections.Sequence, not {}".format(
                     type(atom_container))
+            assert len(atom_container) > 2, \
+                "atom_container must have at least 2 atoms, not {}".format(len(atom_container))
+
+            if len(atom_container) == 2:
+                atom_ids = (0, 1)
+            elif atom_ids is not None:
+                assert isinstance(atom_ids, tuple), \
+                    "atom_ids must be a length 2 tuple, not type{}".format(
+                        type(atom_ids))
+                assert len(atom_ids) == 2, \
+                    "atom_ids must be a length 2 tuple, not len={}".format(
+                        len(atom_ids))
+                assert all([(lambda x: isinstance(x, int))(i) for i in atom_ids]), \
+                    "atom_ids must be a length 2 tuple of ints"
+
+            # if no atoms are passed but an array and indices
+            elif bond_array is not None and array_idxs is not None:
+                raise NotImplementedError
+
 
         super().__init__(atom_container, atom_ids)
         for atom in self.values():
@@ -425,79 +479,114 @@ class Bond(IndexedSelection):
     def atoms(self):
         return tuple(self.values())
 
-class Molecule(Container):
-    def __init__(self, mol_input, *args, **kwargs):
+class Molecule(SelectionsDict):
+    """A molecule with a MoleculeType subtype, coordinates for each atom,
+    and may be part of coordinate systems.
 
-        if 'mol_type' not in kwargs.keys():
-            mol_type = None
-        else:
-            mol_type = kwargs.pop('mol_type')
+    The easiest way to obtain a Molecule object is to use the
+    mast.molecule.MoleculeType.to_molecule(coords) function.
 
-        # check to see which constructor to use
-        if issubclass(type(mol_input), MoleculeType):
-            molecule_dict = Molecule.type_constructor(mol_input, *args, **kwargs)
-        elif issubclass(type(mol_input), col.Sequence):
-            molecule_dict = Molecule.atoms_constructor(mol_input, *args, **kwargs)
-        else:
-            raise TypeError("mol_input must be either a MoleculeType or a sequence of Atoms")
+    Examples
+    --------
+
+    Go through the steps to make a MoleculeType
+    >>> carbon_attributes = {'element':'C', 'bond_degree':3}
+    >>> oxygen_attributes = {'element':'O', 'bond_degree':3}
+    >>> COCarbonAtomType = AtomType.factory("COCarbonAtomType", **carbon_attributes)
+    >>> COOxygenAtomType = AtomType.factory("COOxygenAtomType", **oxygen_attributes)
+    >>> CO_atoms = (COCarbonAtomType, COOxygenAtomType)
+    >>> CO_attributes = {"bond_order":3}
+    >>> COBondType = BondType.factory("COBondType", atom_types=CO_atoms, **CO_attributes)
+    >>> atom_types = [COCarbonAtomType, COOxygenAtomType]
+    >>> bond_types = [COBondType]
+    >>> bond_map = {0 : (0, 1)}
+    >>> CO_attributes = {"name" : "carbon-monoxide", "toxic" : True}
+    >>> COType = MoleculeType.factory("COType", atom_types=atom_types, bond_types=bond_types, bond_map=bond_map, **CO_attributes)
+
+    And then just make some coordinates and use them:
+    >>> C_coords = (0.0, 0.0, 0.0)
+    >>> O_coords = (0.0, 0.0, 1.0)
+    >>> coords = [C_coords, O_coords]
+
+    >>> COType.to_molecule(coords)
+
+    Constructor from lists of atoms, bonds, or angles is not
+    implemented.
+
+    """
+
+    def __init__(self, atoms=None, bonds=None, angles=None, mol_type=None):
+
+        assert mol_type is not None, \
+            "A MoleculeType subclass must be given"
+
+        # we need either bonds or atoms or both but not either to make
+        # a molecule
+        assert not (atoms is None and bonds is None)
+
+        # check atoms input for correctness
+        if atoms is not None:
+            # check that the atoms are correct inputs
+            assert atoms, "atoms must exist, {}".format(atoms)
+            assert issubclass(type(atoms), col.Sequence), \
+                "atoms must be a subclass of collections.Sequence, not {}".format(
+                    type(atoms))
+            assert all([(lambda x: True if issubclass(type(x), Atom) else False)(atom)
+                        for atom in atoms]), \
+                "all elements in atoms must be a subclass of type Atom"
+            assert not all([atom._in_molecule for atom in atoms]), \
+                "all atoms must not be part of another molecule"
+
+        # check bonds input for correctness
+        if bonds is not None:
+            # if bonds were given check that they are proper
+            assert bonds, "atoms must exist, {}".format(bonds)
+            assert issubclass(type(bonds), col.Sequence), \
+                "bonds must be a subclass of collections.Sequence, not {}".format(
+                    type(bonds))
+            assert all([(lambda x: True if isinstance(x, Bond) else False)(bond)
+                        for bond in bonds]), \
+                "all elements in bonds must be a subclass of type Bond, not {}".format(
+                    [type(bond) for bond in bonds])
+            assert all(['molecule' not in bond.flags for bond in bonds]), \
+                "all bonds must not be part of another molecule"
+
+            # check to make sure all the bonds are connected
+            # TODO
+
+        # if both were given make sure that the atoms and bonds are
+        # the same
+        if atoms is not None and bonds is not None:
+            # a reduce here might help?
+            bonds_atoms = set()
+            for bond in bonds:
+                a = set([atom for atom in bond.atoms])
+                bonds_atoms.update(a)
+
+            assert (set(atoms).issuperset(bonds_atoms) and set(atoms).issubset(bonds_atoms)), \
+                "all atoms in bonds must also be a part of the atoms collection"
+
+        elif atoms is None and bonds is not None:
+            # if there are only bonds collect the atoms
+            raise NotImplementedError
+        elif atoms is None and bonds is not None:
+            # if there are only atoms infer the bonds naively
+            raise NotImplementedError
 
         # call to parent class
-        super().__init__()
+        super().__init__(flags=['molecule'])
 
         # set the atoms, bonds, and angles into this object
-        self.atoms = molecule_dict['atoms']
-        self.bonds = molecule_dict['bonds']
+        self.atoms = atoms
+        self.bonds = bonds
         # self.angles = molecule_dict['angles']
 
-        # set the molecule_type
-        if mol_type is None:
-            mol_type = MoleculeType()
         self._molecule_type = mol_type
 
-        # initialize flags
-        if 'system' in kwargs.keys():
-            self._in_system = True
-        else:
-            self._in_system = False
-
-        # set that each atom is in a molecule now
-        for atom in self.atoms:
-            atom._in_molecule = True
-            if self._in_system is True:
-                atom._in_system = True
-
         # attributes must explicitly be called due to computation time
-        self._feature_family_selections = {}
+        self._feature_family_selections = None
         self._feature_type_selections = None
         self._internal_interactions = None
-
-        self._external_mol_reps = []
-
-        # an optional dictionary of molecular representations from
-        # other libraries
-        if "external_mol_rep" in kwargs:
-            self._external_mol_reps.append(kwargs["external_mol_reps"])
-
-    # the alternate constructors
-    @classmethod
-    def type_constructor(cls, mol_type, coords=None):
-        raise NotImplementedError
-
-
-    @classmethod
-    def atoms_constructor(cls, atoms, bonds, ): #angles):
-        assert atoms, "atoms must exist, {}".format(atoms)
-        assert issubclass(type(atoms), col.Sequence), \
-            "atoms must be a subclass of collections.Sequence, not {}".format(
-                type(atoms))
-        assert all([(lambda x: True if issubclass(type(x), Atom) else False)(atom)
-                    for atom in atoms]), \
-            "all elements in atoms must be a subclass of type Atom"
-        assert not all([atom._in_molecule for atom in atoms]), \
-            "all atoms must not be part of another molecule"
-
-        molecule_dict = {'atoms' : atoms, 'bonds' : bonds, } # 'angles': angles}
-        return molecule_dict
 
     # properties
     @property
@@ -581,8 +670,8 @@ class Molecule(Container):
             # add it to it's type's selections
             type_selections[feature['type']].append(feature_selection)
 
-        self._feature_family_selections = SelectionDict(family_selections)
-        self._feature_type_selections = SelectionDict(type_selections)
+        self._feature_family_selections = family_selections
+        self._feature_type_selections = type_selections
 
     @property
     def family_selections(self):
@@ -595,7 +684,7 @@ class Molecule(Container):
     @property
     def feature_dataframe(self):
         import pandas as pd
-        return pd.DataFrame(self.features, orient='index')
+        return pd.DataFrame(self.features)
 
     @property
     def internal_interactions(self):

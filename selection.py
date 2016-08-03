@@ -41,21 +41,18 @@ class SelectionMember(object):
 
     """
 
-    def __init__(self, member):
+    def __init__(self, member, flags=None):
 
         super().__init__()
         self.member = member
 
         # list of selections
         self._registry = []
+        # list of flags for specific kinds of selections
+        self._flags = set()
+        if flags:
+            self._flags.update(flags)
 
-        # TODO move this to a SystemMember class for mixing in later
-        self._in_system = False
-        # TODO turn this into a general method where the selections in
-        # the selection members registry are recursively searched for
-        # one that is true for _in_system. Currently implemented
-        # induvidually for each class I need for it.
-        self._system = None
 
     def __repr__(self):
         return str(self.__class__)
@@ -148,19 +145,21 @@ class SelectionMember(object):
         """
         return self._registry
 
-    def register_selection(self, key, selection):
+    @property
+    def flags(self):
+        """A set of flags that certain selections may raise when they register
+        themselves in this SelectionMember.
+        """
+        return self._flags
+
+    def register_selection(self, key, selection, flags=None):
         """Adds a selection and this SelectionMembers key to __getitem__ from
         that selection to the registry.
 
         """
         self._registry.append((key, selection))
-
-class Container(SelectionMember):
-    def __init__(self):
-        # do stuff
-
-        super().__init__(self)
-
+        if flags:
+            self._flags.update(flags)
 
 class GenericSelection(SelectionMember):
     """The most basic class for making selections of SelectionMember
@@ -190,7 +189,7 @@ class GenericSelection(SelectionMember):
         super().__init__(self)
         assert '__getitem__' in dir(container), \
             "container must implement `__getitem__`, {} does not".format(
-                container)
+                type(container))
         assert container, "container must have at least one SelectionMember element"
 
         self.container = container
@@ -215,7 +214,7 @@ class Selection(GenericSelection, col.UserList):
 
     """
 
-    def __init__(self, container, sel):
+    def __init__(self, container, sel, flags=None):
         super().__init__(container)
 
         # handle sel inputs
@@ -241,7 +240,7 @@ class Selection(GenericSelection, col.UserList):
             member = container[sel_idx]
             self.append(member)
             # set this selection in the SelectionMember registry
-            member.register_selection(idx, self)
+            member.register_selection(idx, self, flags=flags)
             idx += 1
 
 class KeySelection(GenericSelection, col.UserDict):
@@ -520,178 +519,17 @@ class Point(CoordArraySelection):
             "Other must be a subclass of Point, not {}".format(type(other))
         return np.all(np.isclose(self.coords, other.coords))
 
-
-class SelectionType(object):
-    """Base type for other Types.
-
-    >>> class MyType(SelectionType):
-    ...     def __init__(self, attr_dict=None):
-    ...         super().__init__(attr_dict=attr_dict)
-
-    >>> attrs = {'color' : 'blue',
-    ...          'favorability' : 7 }
-    >>> mytype_type = MyType(attr_dict=attrs)
-    """
-
-    def __init__(self, attr_dict=None):
-        if attr_dict:
-            assert isinstance(attr_dict, dict), \
-                "The attr_dict must be a dictionary, not {}".format(
-                    type(attr_dict))
-            # if there is no 'name' in the attr_dict set it to the empty string
-            if 'name' not in attr_dict.keys():
-                attr_dict['name'] = ''
-            self.__dict__.update(attr_dict)
-
-    def __eq__(self, other):
-        return self.__dict__ == other.__dict__
-    def __ne__(self, other):
-        return self.__dict__ != other.__dict__
-    def __lt__(self, other):
-        return set(self.__dict__.keys()) < set(other.__dict__.keys())
-    def __gt__(self, other):
-        return set(self.__dict__.keys()) > set(other.__dict__.keys())
-    def __le__(self, other):
-        if self == other or self < other:
-            return True
-        else:
-            return False
-    def __ge__(self, other):
-        if self == other or self > other:
-            return True
-        else:
-            return False
-
-class SelectionTypeLibrary(col.UserDict):
-    """Keeps track of a collection of types with methods for
-    querying matches to attributes of types in the library, to reduce
-    duplication, promote standardization of attributes, and keep clear
-    naming distinctions.
-
-    Examples
-    --------
-
-    >>> seltype_lib = SelectionTypeLibrary()
-    >>> seltype_lib
-    {}
-    >>> seltype = SelectionType({'name' : 'a'})
-    >>> seltype2 = SelectionType({'name':'b'})
-    >>> seltype_lib.add_type(seltype, type_name=seltype.name)
-    >>> seltype_lib.add_type(seltype2, type_name=seltype2.name)
-    >>> len(seltype_lib)
-    2
-
-    >>> seltype_lib['a'].name
-    'a'
-
-    """
-
-    def __init__(self):
-        super().__init__()
-        self._names_counter = {}
-
-    def add_type(self, a_type, type_name, rename=False):
-        """Adds a SelectionType to the SelectionTypeLibrary using the
-        type_name.
-
-        Examples
-        --------
-
-        >>> seltype_lib = SelectionTypeLibrary()
-        >>> seltype = SelectionType({'name' : 'a'})
-        >>> seltype2 = SelectionType({'name':'b'})
-        >>> seltype_dup = SelectionType({'name': 'a'})
-        >>> seltype_lib.add_type(seltype, type_name=seltype.name)
-        >>> seltype_lib.add_type(seltype2, type_name=seltype2.name)
-        >>> len(seltype_lib)
-        2
-
-        If you try to add an entry with the same name it will make no
-        entry silently:
-
-        >>> seltype_lib.add_type(seltype_dup, type_name=seltype_dup.name)
-        >>> len(seltype_lib)
-        2
-
-        However, giving it a new name will add it:
-
-        >>> seltype_lib.add_type(seltype_dup, type_name='a_dup')
-        >>> len(seltype_lib)
-        3
-
-
-        Adding a type with the same name but different attributes raises
-        an error, e.g:
-            seltype.add_type(new_seltype, type_name=seltype2.name)
-
-        But you can set the rename flag to make it automatically rename types
-        with numbers:
-
-        >>> new_seltype = SelectionType({'name' : 'z'})
-        >>> seltype_lib.add_type(new_seltype, type_name='a', rename=True)
-        >>> seltype_lib['a1'].name
-        'z'
-
-        """
-
-        assert issubclass(type(a_type), SelectionType), \
-            "added types must be a subclass of SelectionType, not {}".format(
-                type(a_type))
-        assert isinstance(type_name, str) or isinstance(type_name, int), \
-            "type_name must be type str or int, not {}".format(type(type_name))
-        if rename:
-            assert isinstance(rename, bool), "rename should be type bool, not {}".format(
-                type(rename))
-            if type_name in ['',None]:
-                type_name = 'NoName'
-        if type_name not in self.data.keys():
-            self.data[type_name] = a_type
-            self._names_counter[type_name] = 1
-        elif self.data[type_name] == a_type:
-            pass
-        elif rename is False:
-            raise ValueError(
-                "{0} is already in the {2}, {1}, "
-                "cannot redefine attributes under the same type_name".format(
-                    type_name, id(self), type(self)))
-        else:
-            self.data[type_name+str(self._names_counter[type_name])] = a_type
-            self._names_counter[type_name] += 1
-
-    def attributes_match(self, a_type):
-        """Check if the attributes of a SelectionType are equivalent to any
-        SelectionType already in the library.
-
-        Examples
-        --------
-
-        >>> seltype_lib = SelectionTypeLibrary()
-        >>> seltype = SelectionType({'name' : 'a'})
-        >>> seltype_lib.add_type(seltype, type_name='a')
-        >>> seltype_dup = SelectionType({'name': 'a'})
-        >>> seltype_lib.attributes_match(seltype_dup)
-        True
-
-        """
-
-        from itertools import product
-        for pair in product(self.data.values(), [a_type]):
-                if pair[1] == pair[0]:
-                    return True
-        return False
-
-
-class SelectionDict(SelectionMember, col.UserDict):
+class SelectionsDict(SelectionMember, col.UserDict):
     """ A dictionary of collections of SelectionMembers.
 e.g. {'strings' : [StringSelection, StringSelection] 'ints' :
 [IntSelection, IntSelection]}
 
     """
-    def __init__(self, selection_dict=None):
+    def __init__(self, selection_dict=None, flags=None):
         if not selection_dict:
             self.data = {}
 
-        super().__init__(selection_dict)
+        super().__init__(selection_dict, flags=flags)
 
         # add the selection_dict to the data
         if selection_dict:
@@ -701,24 +539,24 @@ e.g. {'strings' : [StringSelection, StringSelection] 'ints' :
             self.data = selection_dict
 
         # if values in the selection_dict are SelectionMembers update
-        # their registries
+        # their registries and flags
         for key, value in self.data.items():
             # if there are multiple
             try:
                 for member in value:
 
                     if issubclass(type(member), SelectionMember):
-                        member.register_selection(key, self)
+                        member.register_selection(key, self, flags=flags)
             # if there is only one
             except TypeError:
                 if issubclass(type(value), SelectionMember):
-                    value.register_selection(key, self)
+                    value.register_selection(key, self, flags=flags)
 
     def __repr__(self):
         return str(self.__class__)
 
 
-class SelectionList(SelectionMember, col.UserList):
+class SelectionsList(SelectionMember, col.UserList):
     def __init__(self, selection_list=None):
         if not selection_list:
             self.data = []

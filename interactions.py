@@ -2,7 +2,7 @@
 import numpy as np
 import numpy.linalg as la
 
-from mast.selection import SelectionList, SelectionType
+from mast.selection import SelectionsList
 
 __all__ = ['Interaction', 'HydrogenBondInx', 'NoHHydrogenBondInx'
            'InteractionType', 'HydrogenBondType', 'NoHHydrogenBondType']
@@ -88,7 +88,7 @@ METAL_DIST_MAX = 3.0 # /AA
 class InteractionError(Exception):
     pass
 
-class Association(SelectionList):
+class Association(SelectionsList):
     def __init__(self, association_list=None, association_type=None):
         super().__init__(selection_list=association_list)
         self._association_type = association_type
@@ -98,9 +98,9 @@ class Association(SelectionList):
         return self._association_type
 
 
-class AssociationType(SelectionType):
+class AssociationType(object):
     def __init__(self, assoc_dict=None):
-        super().__init__(attr_dict=assoc_dict)
+        pass
 
 class SystemAssociation(Association):
     def __init__(self, members=None, association_type=None, system=None):
@@ -518,7 +518,7 @@ class PiStackingType(InteractionType):
 
 
 class Interaction(SystemAssociation):
-    """Base class for associating Selections from a SelectionList with
+    """Base class for associating Selections from a SelectionsList with
 information about an about the interaction.
 
     """

@@ -119,7 +119,7 @@ atomsel = IndexedSelection(atoms, [0,1])
 idx_a = range(len(atoms))[:-1]
 idx_b = [a+1 for a in idx_a]
 idx = zip(idx_a, idx_b)
-bonds = [Bond(atoms, bond_idx) for bond_idx in idx]
+bonds = [Bond(atoms, bond_idx, bond_type=Bond1Type) for bond_idx in idx]
 
 # getting the atoms out of bonds
 print("accessing bonds from an atom")
@@ -145,12 +145,11 @@ print(mol.atom_types)
 
 
 print("Making a mast.Molecule from the RDKitMoleculeWrapper data")
-pka_mol = PKAType().to_molecule(pka_coords)
+pka_mol = PKA3Type.to_molecule(pka_coords)
+pka_mol.make_feature_selections()
 # pka_mol = Molecule(mol_type=pka_type, coords=pka_coords)
 print(pka_mol)
 print(pka_mol.molecule_type)
 
 print("testing overlap of two molecules")
 print(pka_mol.overlaps(mol))
-
-
