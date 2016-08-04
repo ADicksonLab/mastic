@@ -30,6 +30,7 @@ class AtomType(object):
 
     @classmethod
     def to_atom(cls, coords):
+        """Substantiate this AtomType with coordinates"""
         assert len(coords) == 3, \
             "coords must be length 3, not {}".format(len(coords))
         assert all([(lambda x: isinstance(x, float))(i)
@@ -102,7 +103,7 @@ class BondType(object):
 
     @classmethod
     def to_bond(cls, atom1_coords, atom2_coords):
-
+        """Substantiate this Bond with given coordinates for each atom type."""
         # test the inputs
         for coords in [atom1_coords, atom2_coords]:
             assert len(coords) == 3, \
@@ -122,7 +123,7 @@ class BondType(object):
     def factory(bond_type_name, atom_types=None, **bond_attrs):
         """Static method for generating bond types dynamically given a type
         name (which will be the class name) and a domain specific dictionary
-        of atom attributes.
+        of bond attributes.
 
         See mast.config.molecule for standard BondType attributes.
         See class docstring for examples.
@@ -205,14 +206,17 @@ class MoleculeType(object):
 
     @classmethod
     def atom_type_library(cls):
+        """The unique AtomTypes in this MoleculeType."""
         return list(cls.atom_type_library)
 
     @classmethod
     def bond_type_library(cls):
+        """The unique BondTypes in this MoleculeType."""
         return list(cls.bond_type_library)
 
     @classmethod
     def features(cls):
+        """The chemical features of this MoleculeType."""
         return cls.features
 
     @classmethod
@@ -238,15 +242,19 @@ class MoleculeType(object):
 
     @classmethod
     def feature_families(cls):
+        """The unique feature families."""
         return set(cls.feature_families_map().keys())
 
     @classmethod
     def feature_types(cls):
+        """The unique feature types."""
         return set(cls.feature_types_map().keys())
 
     @classmethod
     def to_molecule(cls, coords):
-        """ Construct a Molecule using input coordinates with mapped indices"""
+        """Substantiate this MoleculeType with the given coordinates for each
+        atom.
+        """
 
         # make one CoordArray to put everything in
         coord_array = CoordArray(coords)
@@ -276,6 +284,14 @@ class MoleculeType(object):
                 angle_types=None, angle_map=None, # stubbed out
                 features={},
                 **molecule_attrs):
+        """Static method for generating molecule types dynamically given a type
+        name (which will be the class name) and a domain specific dictionary
+        of molecule attributes.
+
+        See mast.config.molecule for standard MoleculeType attributes.
+        See class docstring for examples.
+        """
+
 
         # check required inputs for validity
         assert atom_types, "atom_types must be provided"
@@ -821,22 +837,31 @@ class Molecule(SelectionsDict):
 
     @property
     def family_selections(self):
+        """Selections on the Molecule for every feature family."""
         return self._feature_family_selections
 
     @property
     def type_selections(self):
+        """Selections on the Molecule for every feature type."""
         return self._feature_type_selections
 
     @property
     def feature_dataframe(self):
+        """Export a pandas.DataFrame of the features."""
         import pandas as pd
         return pd.DataFrame(self.features)
 
     @property
     def internal_interactions(self):
+        """The intramolecular interactions of this Molecule."""
         return self._internal_interactions
 
     def profile_interactions(self, interaction_types):
+        """Given different InteractionTypes profile this Molecule for those
+        interactions which are set to the internal_interactions
+        attribute.
+
+        """
         assert all([issubclass(itype, InteractionType) for itype in interaction_types]), \
                    "All interaction_types must be a subclass of InteractionType"
         # go through each interaction_type and check for hits
