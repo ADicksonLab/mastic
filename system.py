@@ -152,7 +152,7 @@ the same coordinate system.
 
     molecules : the molecules in the system
 
-
+    >>> import numpy as np
     >>> carbon_attributes = {'element':'C', 'bond_degree':3}
     >>> oxygen_attributes = {'element':'O', 'bond_degree':3}
     >>> COCarbonAtomType = AtomType.factory("COCarbonAtomType", **carbon_attributes)
