@@ -105,6 +105,8 @@ Currently is a prototype.
 
 ** TODO write logging
 
+** TODO unittests with finding features functions
+I was reluctant to use these because rdkit gives me trouble sometimes.
 ** TODO Type.substantiate function
 A general function for use every Type class instead of specific
 to_molecule and to_atom methods which need to be handled individually,

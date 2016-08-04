@@ -7,6 +7,30 @@ import mast.config.system as mastsysconfig
 
 __all__ = ['overlaps', 'SystemType', 'System', 'SystemAssociation']
 
+def overlaps(members):
+    """Check to see if members overlap.
+
+    """
+
+    from itertools import combinations
+    pairs = combinations(members, 2)
+    try:
+        pair = next(pairs)
+    # if it is empty no overlaps
+    except StopIteration:
+        return False
+    flag = True
+    while flag:
+        overlaps = pair[0].overlaps(pair[1])
+        if overlaps:
+            return overlaps
+        else:
+            try:
+                pair = next(pairs)
+            except StopIteration:
+                flag = False
+    return False
+
 
 class SystemType(object):
     attributes = mastsysconfig.SYSTEM_ATTRIBUTES
@@ -121,6 +145,10 @@ the same coordinate system.
         return self._system_type
 
     @property
+    def members(self):
+        return self.data
+
+    @property
     def atom_types(self):
         return self.system_type.atom_types()
 
@@ -138,10 +166,15 @@ the same coordinate system.
         molecules = [member for  member in self if issubclass(type(member), Molecule)]
         return molecules
 
-    # is this even relevant?
+    # YAGNI?
     def molecules_sel(self):
         mol_indices = [i for i, member in enumerate(self) if issubclass(type(member), Molecule)]
         return IndexedSelection(self, mol_indices)
+
+    # YAGNI?
+    def atoms_sel(self):
+        atom_indices = [i for i, member in enumerate(self) if issubclass(type(member), Atom)]
+        return IndexedSelection(self, atom_indices)
 
     @property
     def associations(self):
@@ -158,7 +191,13 @@ the same coordinate system.
 
     def overlaps(members):
         """Checks whether the members given overlap anything in this system."""
-        pass
+        for member in members:
+            for sys_member in self.members:
+                if overlaps([member, sys_member]):
+                    return True
+        # if none overlap
+        return False
+
 
 if __name__ == "__main__":
     pass
