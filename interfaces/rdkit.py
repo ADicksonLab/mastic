@@ -181,7 +181,13 @@ class RDKitMoleculeWrapper(object):
         molecule_dict = {}
         molecule_dict['name'] = self.mol_name
         ring_info = self.rdkit_molecule.GetRingInfo()
-        molecule_dict['num_rings'] = ring_info.NumRings()
+        try:
+            molecule_dict['num_rings'] = ring_info.NumRings()
+        except RuntimeError:
+            # something is wrong, just log it and move on
+            # LOGGING
+            molecule_dict['num_rings'] = None
+
         molecule_dict['num_atoms'] = self.rdkit_molecule.GetNumAtoms()
         molecule_dict['num_bonds'] = self.rdkit_molecule.GetNumBonds()
         molecule_dict['num_heavy_atoms'] = self.rdkit_molecule.GetNumHeavyAtoms()
@@ -203,17 +209,18 @@ class RDKitMoleculeWrapper(object):
             atom_types.append(atom_type)
         return atom_types
 
-    def make_bond_type(self, bond_idx, bond_type_name):
+    def make_bond_type(self, bond_idx, bond_type_name, bond_atom_types):
         """Converts a single bond to a mast.BondType."""
         bond_data = self.bond_data(bond_idx)
         return mastmol.BondType.factory(bond_type_name,
                                         atom_types=bond_atom_types,
                                         **bond_data)
 
-    def make_bond_types(self):
+    def make_bond_types(self, atom_types=None):
         """Converts all bonds in the molecule to mast.BondTypes."""
         # get atom types
-        atom_types = self.make_atom_types()
+        if atom_types is None:
+            atom_types = self.make_atom_types()
         bonds_data = self.bonds_data()
         bond_types = []
         for bond_data in bonds_data:
@@ -245,7 +252,7 @@ class RDKitMoleculeWrapper(object):
         # AtomTypes
         atom_types = self.make_atom_types()
         # BondTypes
-        bond_types = self.make_bond_types()
+        bond_types = self.make_bond_types(atom_types=atom_types)
         # MoleculeType
         molecule_data.update({"name" : self.mol_name})
 

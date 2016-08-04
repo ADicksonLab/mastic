@@ -1,48 +1,86 @@
 """ The system module. """
 import collections as col
 
-from mast.selection import SelectionList, IndexedSelection, \
-    SelectionType, SelectionTypeLibrary
-from mast.molecule import Atom, Molecule, MoleculeTypeLibrary, MoleculeType
+from mast.selection import SelectionsList, IndexedSelection
+from mast.molecule import Atom, Bond, Molecule, AtomType, BondType, MoleculeType
+import mast.config.system as mastsysconfig
 
 __all__ = ['overlaps', 'SystemType', 'System', 'SystemAssociation']
 
-def overlaps(members):
-    """Check to see if members overlap.
 
-    """
+class SystemType(object):
+    attributes = mastsysconfig.SYSTEM_ATTRIBUTES
+    def __init__(self):
+        pass
 
-    from itertools import combinations
-    pairs = combinations(members, 2)
-    try:
-        pair = next(pairs)
-    # if it is empty no overlaps
-    except StopIteration:
-        return False
-    flag = True
-    while flag:
-        overlaps = pair[0].overlaps(pair[1])
-        if overlaps:
-            return overlaps
-        else:
+    @classmethod
+    def to_system(cls, members_coords):
+        members = []
+        for member_idx, member_coords in enumerate(members_coords):
+            # create each member using the coordinates
+            member_type = cls.member_types[member_idx]
+            if issubclass(member_type, AtomType):
+                members.append(member_type.to_atom(member_coords))
+            elif issubclass(member_type, MoleculeType):
+                members.append(member_type.to_molecule(member_coords))
+
+        system = System(members, system_type=cls)
+        return system
+
+    @classmethod
+    def molecule_types(cls):
+        return [member_type for member_type in cls.member_types if
+                issubclass(member_type, MoleculeType)]
+
+    @classmethod
+    def atom_types(cls):
+        return [member_type for member_type in cls.member_types if
+
+                issubclass(member_type, AtomType)]
+
+    @staticmethod
+    def factory(system_type_name, member_types=None,
+                **system_attrs):
+        assert member_types, "molecule_types must be provided"
+        for member_type in member_types:
+            assert (issubclass(member_type, MoleculeType) or
+                    issubclass(member_type, AtomType)), \
+                    "molecule_types must contain only MoleculeType or"\
+                    " AtomType subclasses, not {}".format(
+                        type(member_type))
+
+        # keep track of which attributes the input did not provide
+        # compared to the config file
+        for attr in SystemType.attributes:
             try:
-                pair = next(pairs)
-            except StopIteration:
-                flag = False
-    return False
+                assert attr in system_attrs.keys()
+            except AssertionError:
+                pass
+                # LOGGING
+                # print("Attribute {0} not found in system input.".format(attr))
 
-class SystemType(SelectionType):
-    """Base type for systems, subclasses should implement a to_system
-method.
+        # add the attributes into the class
+        attributes = {attr : None for attr in SystemType.attributes}
+        for attr, value in system_attrs.items():
+            try:
+                assert attr in SystemType.attributes
+            # if it doesn't then log
+            except AssertionError:
+                # LOGGING
+                pass
+                # print("Input attribute {0} not in SystemType attributes.".format(attr))
+            # add it regardless
+            attributes[attr] = value
 
-    """
-    def __init__(self, system_attrs=None):
-        super().__init__(attr_dict=system_attrs)
+        system_type = type(system_type_name, (SystemType,), attributes)
+        system_type.member_types = member_types
+        system_type.member_type_library = set(member_types)
+        system_type.association_types = None
+
+        return system_type
 
 
-        # TODO move functionality from System to here
-
-class System(SelectionList):
+class System(SelectionsList):
     """System that contains non-overlapping molecules, assumed to be in
 the same coordinate system.
 
@@ -56,30 +94,24 @@ the same coordinate system.
             "members must be a subclass of collections.Sequence, not {}".format(
                 type(members))
 
-        type_test_func = lambda x: True if (issubclass(type(x), Atom) or
-                                            issubclass(type(x), Molecule)) \
-                                            else False
-        assert all([(type_test_func)(member) for member in members]), \
-            "all elements in atoms must be a subclass of type Atom"
+        for member in members:
+            assert (issubclass(type(member), Atom) or \
+                    issubclass(type(member), Molecule)), \
+                    "all elements must be a subclass of type Atom or Molecule, not {}".format(
+                        type(member))
 
         # check to make sure none of the atoms are overlapping
         assert not overlaps(members), \
             "molecule system members cannot be overlapping"
 
         if system_type:
-            assert issubclass(type(system_type), SystemType), \
+            assert issubclass(system_type, SystemType), \
                 "system_type must be a subclass of SystemType, not {}".format(
                     type(system_type))
 
-        super().__init__(selection_list=members)
-        for member in members:
-            member._in_system = True
-            member._system = self
+        super().__init__(selection_list=members, flags=['system'])
         self._system_type = system_type
-        self._molecule_types = MoleculeTypeLibrary()
-        for member in members:
-            self._molecule_types.add_type(member.molecule_type, mol_name=member.molecule_type.name)
-        self._system_associations = None
+        self._associations = None
 
     def __repr__(self):
         return str(self.__class__)
@@ -88,42 +120,45 @@ the same coordinate system.
     def system_type(self):
         return self._system_type
 
-    # TODO move to SystemType
+    @property
+    def atom_types(self):
+        return self.system_type.atom_types()
+
     @property
     def molecule_types(self):
-        return self._molecule_types
+        return self.system_type.molecule_types()
 
-    # TODO move to SystemType
-    def add_molecule_type(self, mol_type, mol_name=None):
-        if not mol_name:
-            mol_name = mol_type.name
-        self._molecule_types.add_type(mol_type, mol_name)
+    @property
+    def atoms(self):
+        atoms = [member for  member in self if issubclass(type(member), Atom)]
+        return atoms
 
     @property
     def molecules(self):
         molecules = [member for  member in self if issubclass(type(member), Molecule)]
         return molecules
 
-    # TODO should this be a property or function?
-    @property
+    # is this even relevant?
     def molecules_sel(self):
         mol_indices = [i for i, member in enumerate(self) if issubclass(type(member), Molecule)]
         return IndexedSelection(self, mol_indices)
 
-    # TODO move to SystemType
     @property
     def associations(self):
-        return self._system_associations
-    # TODO move to SystemType
-    def find_features(self):
-        """Find features in all members of the system. Currently only molecules."""
-        for mol_type in self.molecule_types.values():
-            mol_type.find_features()
+        return self._associations
+
+    @property
+    def associations_types(self):
+        return self.system_type.association_types
 
     def make_feature_selections(self):
         """Make feature selections for all current features in the system's molecules"""
         for mol in self.molecules:
             mol.make_feature_selections()
+
+    def overlaps(members):
+        """Checks whether the members given overlap anything in this system."""
+        pass
 
 if __name__ == "__main__":
     pass

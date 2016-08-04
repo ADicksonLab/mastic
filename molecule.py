@@ -1,4 +1,4 @@
-simport numpy as np
+import numpy as np
 import collections as col
 import os.path as osp
 from itertools import product
@@ -631,8 +631,6 @@ class Molecule(SelectionsDict):
     >>> COType.to_molecule(coords)
     <class 'mast.molecule.Molecule'>
 
-    Constructor from lists of atoms, bonds, or angles is not
-    implemented.
 
     """
 

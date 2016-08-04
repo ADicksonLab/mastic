@@ -116,7 +116,6 @@ atoms = [atom1, atom2, Atom(np.array([0,1,0]), atom_type=Atom2Type)]
 atomsel = IndexedSelection(atoms, [0,1])
 
 # Bonds
-import ipdb; ipdb.set_trace()
 bond = Bond(atoms, atom_ids=(0,1), bond_type=Bond1Type)
 idx_a = range(len(atoms))[:-1]
 idx_b = [a+1 for a in idx_a]

@@ -262,7 +262,7 @@ class testMolecule(unittest.TestCase):
             self.assertTrue(atom.isin_molecule)
             self.assertFalse(atom.isin_system)
             self.assertIs(atom.molecule, molecule)
- 
+
 if __name__ == "__main__":
 
     from mast import molecule
