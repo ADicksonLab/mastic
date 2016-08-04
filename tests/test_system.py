@@ -234,10 +234,6 @@ class TestSystem(unittest.TestCase):
             self.assertTrue(False)
 
 
-class TestSystem(unittest.TestCase):
-    def setUp(self):
-        pass
-
 if __name__ == "__main__":
 
     from mast import system

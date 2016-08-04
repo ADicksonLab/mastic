@@ -4,105 +4,89 @@ import numpy.linalg as la
 
 from mast.selection import SelectionsList
 
-__all__ = ['Interaction', 'HydrogenBondInx', 'NoHHydrogenBondInx'
+import mast.selection as mastsel
+import mast.molecule as mastmol
+import mast.system as mastsys
+
+import mast.config.interactions as mastinxconfig
+
+__all__ = ['AssociationType', 'Association',
+           'Interaction', 'HydrogenBondInx', 'NoHHydrogenBondInx'
            'InteractionType', 'HydrogenBondType', 'NoHHydrogenBondType']
-
-
-
-# families and types from the RDKit feature definition database
-# (.fdef)
-HBOND_FEATURE_FAMILIES = ['Donor', 'Acceptor']
-HBOND_FEATURE_TYPES = []
-
-PISTACK_FEATURE_FAMILIES = ['Aromatic']
-PISTACK_FEATURE_TYPES = []
-
-HYDROPH_FEATURE_FAMILIES = ['Hydrophobe', 'LumpedHydrophobe']
-HYDROPH_FEATURE_TYPES = []
-
-PICATION_FEATURE_FAMILIES = ['Aromatic', 'PosIonizable']
-PICATION_FEATURE_TYPES = []
-
-SALTBRIDGE_FEATURE_FAMILIES = ['PosIonizable', 'NegIonizable']
-SALTBRIDGE_FEATURE_TYPES = []
-
-HALOGEN_FEATURE_FAMILIES = []
-HALOGEN_FEATURE_TYPES = ['HalogenAcceptor']
-
-WATER_BRIDGE_FEATURE_FAMILIES = []
-WATER_BRIDGE_FEATURE_TYPES = []
-
-METAL_FEATURE_FAMILIES = []
-METAL_FEATURE_TYPES = []
-
-# Determines allowed deviation from planarity in aromatic rings
-AROMATIC_PLANARITY = 5.0 # /AA
-
-# Max. distance between hydrogen bond donor and acceptor (Hubbard & Haider, 2001) + 0.6 A
-HBOND_DIST_MAX = 4.1 # /AA
-# Min. angle at the hydrogen bond donor (Hubbard & Haider, 2001) + 10
-HBOND_DON_ANGLE_MIN = 100 # /AA
-
-
-# Max. distance for parallel or offset pistacking (McGaughey, 1998)
-PISTACK_DIST_MAX = 7.5 # /AA
-# Max. Deviation from parallel or perpendicular orientation (in degrees)
-PISTACK_ANG_DEV = 30 # /degrees
-# Maximum offset of the two rings (corresponds to the radius of benzene + 0.5 A)
-PISTACK_OFFSET_MAX = 2.0 # /AA
-
-# Some distance thresholds were extended (max. 1.0A) if too restrictive too account for low-quality structures
-# Distance cutoff for detection of hydrophobic contacts
-HYDROPH_DIST_MAX = 4.0 # /AA
-
-# Max. distance between charged atom and aromatic ring center (Gallivan and Dougherty, 1999)
-PICATION_DIST_MAX = 6.0 # /AA
-
-# Max. distance between centers of charge for salt bridges (Barlow and Thornton, 1983) + 1.5
-SALTBRIDGE_DIST_MAX = 5.5 # /AA
-
-# Max. distance between oxy. and halogen (Halogen bonds in biological molecules., Auffinger)+0.5
-HALOGEN_DIST_MAX = 4.0 # /AA
-# Optimal acceptor angle (Halogen bonds in biological molecules., Auffinger)
-HALOGEN_ACC_ANGLE = 120 # /degrees
-# Optimal donor angle (Halogen bonds in biological molecules., Auffinger)
-HALOGEN_DON_ANGLE = 165 # /degrees
-# Max. deviation from optimal angle
-HALOGEN_ANGLE_DEV = 30 # /degrees
-
-# Min. distance between water oxygen and polar atom (Jiang et al., 2005) -0.1
-WATER_BRIDGE_MINDIST = 2.5 # /AA
-# Max. distance between water oxygen and polar atom (Jiang et al., 2005) +0.4
-WATER_BRIDGE_MAXDIST = 4.0 # /AA
-# Min. angle between acceptor, water oxygen and donor hydrogen (Jiang et al., 2005) - 5
-WATER_BRIDGE_OMEGA_MIN = 75 # /degrees
-# Max. angle between acceptor, water oxygen and donor hydrogen (Jiang et al., 2005)
-WATER_BRIDGE_OMEGA_MAX = 140 # /degrees
-# Min. angle between water oxygen, donor hydrogen and donor atom (Jiang et al., 2005)
-WATER_BRIDGE_THETA_MIN = 100 # /degrees
-
-# Max. distance between metal ion and interacting atom (Harding, 2001)
-METAL_DIST_MAX = 3.0 # /AA
-
 
 class InteractionError(Exception):
     pass
 
-class Association(SelectionsList):
-    def __init__(self, association_list=None, association_type=None):
-        super().__init__(selection_list=association_list)
-        self._association_type = association_type
-
-    @property
-    def association_type(self):
-        return self._association_type
-
-
+# basically just a named grouping of multiple selections from a system
+# with some methods
 class AssociationType(object):
-    def __init__(self, assoc_dict=None):
+
+    attributes = mastinxconfig.ASSOCIATION_ATTRIBUTES
+
+    def __init__(self):
         pass
 
-class SystemAssociation(Association):
+    @property
+    def to_association(cls, coords):
+        pass
+
+    @staticmethod
+    def factory(association_type_name,
+                system_type=None, member_types=None, **association_attrs):
+        """Static method for generating association types dynamically given a type
+        name (which will be the class name) and a domain specific dictionary
+        of association attributes.
+
+        See mast.config.interactions for standard AssociationType attributes.
+        See class docstring for examples.
+        """
+
+        # check that system_type is given and correct
+        assert system_type, "system_type must be given"
+        assert issubclass(system_type, mastsys.SystemType), \
+            "system_type must be a subclass of SystemType, not {}}".format(
+                system_type)
+
+        # check that the member types are given and correct
+        assert member_types, "member_types must be given"
+        assert len(member_types) >= 2, "At least two member_types must be given"
+        for member_type in member_types:
+            assert member_type in system_type.member_types, \
+                "association members must be in the system"
+
+        # keep track of which attributes the input did not provide
+        for attr in AssociationType.attributes:
+            try:
+                assert attr in association_attrs.keys()
+            except AssertionError:
+                # LOGGING
+                pass
+                # print("Attribute {0} not found in association input.".format(attr))
+
+        # add the attributes into the class
+        attributes = {attr : None for attr in AssociationType.attributes}
+        for attr, value in association_attrs.items():
+            # Log the compliance of the attributes
+            # if the attribute isn't declared in the attributes log it
+            try:
+                assert attr in AssociationType.attributes
+            except AssertionError:
+                # LOGGING
+                pass
+                # print("Input attribute {0} not in AssociationType attributes.".format(attr))
+
+            # add it to the attributes
+            attributes[attr] = value
+
+        association_type = type(association_type_name, (AssociationType,), attributes)
+        # add core attributes
+        association_type.system_type = system_type
+        association_type.member_types = member_types
+
+        return association_type
+
+
+class Association(SelectionsList):
     def __init__(self, members=None, association_type=None, system=None):
         # TODO check to make sure that all the atoms are in the same system
         # print(system, id(system))
@@ -112,8 +96,14 @@ class SystemAssociation(Association):
         #     super().__init__(association_list=members, association_type=association_type)
         # else:
         #     raise ValueError("Members of a SystemAssociation must all be in the same system")
+        # check member_types to make sure they are in a system
+        for selection in member_types:
+            assert 'system' in selection.flags, \
+                "member_types must be in a system, {0} flags are {1}".format(
+                    selection, selection.flags)
 
-        super().__init__(association_list=members, association_type=association_type)
+        super().__init__(selection_list=members)
+        self._association_type = association_type
         self._system = system
         self._interactions = None
 
@@ -218,11 +208,11 @@ class HydrogenBondType(InteractionType):
     def __init__(self, hbond_attrs=None):
         super().__init__(attr_dict=hbond_attrs)
 
-    _feature_families = HBOND_FEATURE_FAMILIES
+    _feature_families = mastinxconfig.HBOND_FEATURE_FAMILIES
     feature_families = _feature_families
     _donor_key = 'Donor'
     _acceptor_key = 'Acceptor'
-    _feature_types = HBOND_FEATURE_TYPES
+    _feature_types = mastinxconfig.HBOND_FEATURE_TYPES
     feature_type = _feature_types
 
     def __repr__(self):
@@ -297,14 +287,14 @@ IndexedSelections. As an interface find_hits must take in more generic selection
 
     @classmethod
     def check_distance(cls, distance):
-        if distance < HBOND_DIST_MAX:
+        if distance < mastinxconfig.HBOND_DIST_MAX:
             return True
         else:
             return False
 
     @classmethod
     def check_angle(cls, angle):
-        if angle > HBOND_DON_ANGLE_MIN:
+        if angle > mastinxconfig.HBOND_DON_ANGLE_MIN:
             return True
         else:
             return False
@@ -331,11 +321,11 @@ from HydrogenBondType in that having the hydrogens present is not necessary."""
     def __init__(self, hbond_attrs=None):
         super().__init__(attr_dict=hbond_attrs)
 
-    _feature_families = HBOND_FEATURE_FAMILIES
+    _feature_families = mastinxconfig.HBOND_FEATURE_FAMILIES
     feature_families = _feature_families
     _donor_key = 'Donor'
     _acceptor_key = 'Acceptor'
-    _feature_types = HBOND_FEATURE_TYPES
+    _feature_types = mastinxconfig.HBOND_FEATURE_TYPES
     feature_type = _feature_types
 
     def __repr__(self):
@@ -417,14 +407,14 @@ IndexedSelections. As an interface find_hits must take in more generic selection
 
     @classmethod
     def check_distance(cls, distance):
-        if distance < HBOND_DIST_MAX:
+        if distance < mastinxconfig.HBOND_DIST_MAX:
             return True
         else:
             return False
 
     @classmethod
     def check_angle(cls, angle):
-        if angle > HBOND_DON_ANGLE_MIN:
+        if angle > mastinxconfig.HBOND_DON_ANGLE_MIN:
             return True
         else:
             return False
@@ -443,81 +433,9 @@ IndexedSelections. As an interface find_hits must take in more generic selection
                                               delim,
                                               inx.acceptor.atom_type.pdb_serial_number))
 
-class PiStackingType(InteractionType):
-
-    def __init__(self, pi_stacking_attr=None):
-        super().__init__(attr_dict=pi_stacking_attrs)
-    _feature_families = PISTACK_FEATURE_FAMILIES
-    feature_families = _feature_families
-    _feature1_key = 'Pi1'
-    _feature2_key = 'Pi2'
-    _feature_types = PISTACK_FEATURE_TYPES
-    feature_type = _feature_types
-
-    def __repr__(self):
-        return str(self.__class__)
-
-    @classmethod
-    def find_hits(cls, **kwargs):
-        """Takes in key-word arguments for the features. """
-
-        from itertools import product
-        # check that the keys ar okay in parent class
-        super().find_hits(**kwargs)
-
-        # pi_stacking specific stuff
-        feature1 = kwargs[cls._feature1_key]
-        feature2 = kwargs[cls._feature2_key]
-        hits = []
-        # make pairs of them to compare
-        pairs = product(feature1, feature2)
-        for pair in pairs:
-            features = feature_dict(pair)
-            # try to make a PiStacking object, which calls check
-            try:
-                # if it succeeds add it to the list of H-Bonds
-                pi_stacking = PiStacking(**features)
-
-            # else continue to the next pairing
-            except InteractionError:
-                continue
-
-            hits.append(pi_stacking)
-
-        return hits
-
-    @classmethod
-    def check(cls, feature1=None, feature2=None):
-        """Check if the input features qualify for this type of
-        interaction.
-
-        returns (okay, param1, param2,...)"""
-        param1 = calc_param1(feature1, feature2)
-        if cls.check_param1(param1) is False:
-            return (False, param1, None)
-
-        param2 = calc_param2(feature1, feature2)
-        if cls.check_param2(param2) is False:
-            return (False, param1, param2)
-
-        return (True, param1, param2)
-
-    @classmethod
-    def check_param1(cls, param1):
-        if True:
-            return True
-        else:
-            return False
-
-    @classmethod
-    def check_param2(cls, param2):
-        if True:
-            return True
-        else:
-            return False
 
 
-class Interaction(SystemAssociation):
+class Interaction(Association):
     """Base class for associating Selections from a SelectionsList with
 information about an about the interaction.
 

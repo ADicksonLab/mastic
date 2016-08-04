@@ -82,29 +82,70 @@ Currently is a prototype.
 * TODOs
 
 ** TODO write unit tests
-*** TODO selection.py
+*** DONE selection.py
 **** DONE selection classes
-**** TODO SelectionType and Library
-**** TODO Container
-*** TODO molecule.py
+*** DONE molecule.py
 **** DONE AtomType, BondType, MoleculeType
 **** DONE Atom, Bond, Molecule
 *** DONE interfaces.rdkit
-*** TODO system.py
+*** DONE system.py
 *** TODO interactions.py
-
+**** TODO AssociationType
+**** TODO Association
+**** TODO InteractionType
+**** TODO Interaction
+**** TODO HydrogenBondType
+**** TODO NoHHydrogenBondType
+**** TODO HydrogenBondInx
+**** TODO NoHHydrogenBondInx
 
 ** TODO write doc strings with tests
 *** DONE selection.py
-*** TODO molecule.py
+*** DONE molecule.py
 **** DONE AtomType, BondType, MoleculeType
 **** DONE Atom, Bond, Molecule
 *** DONE interfaces.rdkit
-*** TODO system.py
+*** DONE system.py
 *** TODO interactions.py
+**** TODO AssociationType
+**** TODO Association
+**** TODO InteractionType
+**** TODO Interaction
+**** TODO HydrogenBondType
+**** TODO NoHHydrogenBondType
+**** TODO HydrogenBondInx
+**** TODO NoHHydrogenBondInx
+
 
 ** TODO write logging
+*** TODO selection.py
+*** TODO molecule.py
+**** TODO AtomType, BondType, MoleculeType
+**** TODO Atom, Bond, Molecule
+*** TODO interfaces.rdkit
+*** TODO system.py
+*** TODO interactions.py
+**** TODO AssociationType
+**** TODO Association
+**** TODO InteractionType
+**** TODO Interaction
+**** TODO HydrogenBondType
+**** TODO NoHHydrogenBondType
+**** TODO HydrogenBondInx
+**** TODO NoHHydrogenBondInx
 
+
+** TODO SystemMemberType class may be needed
+Currently I have multiple Type members allowed in a system which are
+not identified by anything except their index in the system. Perhaps a
+SystemMember class would alleviate this and give consistency to the
+different kind of members.
+
+Of course you can just always make you MoleculeTypes and AtomTypes etc
+named to reflect that they are indeed different things in the system.
+i.e. a protein dimer.
+
+** TODO consolidate SystemAssociation and Association to just Association
 ** TODO unittests with finding features functions
 I was reluctant to use these because rdkit gives me trouble sometimes.
 ** TODO Type.substantiate function

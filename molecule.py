@@ -6,7 +6,7 @@ from itertools import product
 from mast.selection import CoordArray, CoordArraySelection, \
     Point, IndexedSelection, SelectionsDict, SelectionsList, \
     Selection
-from mast.interactions import InteractionType
+
 # from mast.system import System
 import mast.config.molecule as mastmolconfig
 
@@ -862,6 +862,7 @@ class Molecule(SelectionsDict):
         attribute.
 
         """
+        from mast.interactions import InteractionType
         assert all([issubclass(itype, InteractionType) for itype in interaction_types]), \
                    "All interaction_types must be a subclass of InteractionType"
         # go through each interaction_type and check for hits

@@ -3,9 +3,11 @@ import collections as col
 
 from mast.selection import SelectionsList, IndexedSelection
 from mast.molecule import Atom, Bond, Molecule, AtomType, BondType, MoleculeType
+
+
 import mast.config.system as mastsysconfig
 
-__all__ = ['overlaps', 'SystemType', 'System', 'SystemAssociation']
+__all__ = ['overlaps', 'SystemType', 'System']
 
 def overlaps(members):
     """Check to see if any iterable of substantiated members' coordinates
@@ -96,6 +98,37 @@ class SystemType(object):
 
                 issubclass(member_type, AtomType)]
 
+    @classmethod
+    def make_member_association_type(self, member_idxs, association_type=None):
+        """Match an AssociationType to members of the SystemType"""
+        raise NotImplementedError
+
+    @classmethod
+    def association_types(cls):
+        return cls._association_types
+
+    @classmethod
+    def add_association_type(cls, association_type):
+        # check to make sure that it's selection types are in this
+        # SystemType
+        from mast.interactions import AssociationType
+        assert issubclass(association_type, AssociationType), \
+            "association_type must be a subclass of mast.interactions.Association,"\
+            " not {}".format(association_type)
+
+        # there must be one member_type for each member_type in the association_type
+        sys_member_count = {member_type :  cls.member_types.count(member_type)
+                            for member_type in cls.member_types}
+        assoc_member_count = {member_type : association_type.member_types.count(member_type)
+                              for member_type in association_type.member_types}
+        for member_type, assoc_count in assoc_member_count.items():
+            assert assoc_count <= sys_member_count[member_type], \
+                "There must be greater than or equal the number of {0}"\
+                " in the system {1} as are in the association {2}".format(
+                    member_type, cls, association_type)
+
+        cls._association_types.append(association_type)
+
     @staticmethod
     def factory(system_type_name, member_types=None,
                 **system_attrs):
@@ -141,7 +174,7 @@ class SystemType(object):
         system_type = type(system_type_name, (SystemType,), attributes)
         system_type.member_types = member_types
         system_type.member_type_library = set(member_types)
-        system_type.association_types = None
+        system_type._association_types = []
 
         return system_type
 

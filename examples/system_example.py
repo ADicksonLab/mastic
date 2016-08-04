@@ -47,7 +47,7 @@ print(BEN_mol.isin_system)
 print(trypsin_mol.isin_system)
 mols = trypsys.molecules
 print(mols)
-mol_sels = trypsys.molecules_sel
+mol_sels = trypsys.molecules_sel()
 print(mol_sels)
 
 from mast.interactions import AssociationType, SystemAssociation
