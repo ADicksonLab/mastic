@@ -29,9 +29,9 @@ print("making molecule type for benzamidine")
 BENType = BEN_rdkit_wrapper.make_molecule_type()
 
 print("Finding features for trypsin")
-# TrypsinType.features = trypsin_rdkit_wrapper.find_features()
+TrypsinType.features = trypsin_rdkit_wrapper.find_features()
 print("finding features for benzamidine")
-# BENType.features = BEN_rdkit_wrapper.find_features()
+BENType.features = BEN_rdkit_wrapper.find_features()
 
 
 BEN_coords = BEN_rdkit_wrapper.get_conformer_coords(0)
@@ -52,8 +52,8 @@ print("making an AssociationType of the receptor and ligand in the TrypsinBenzam
 rec_lig_attrs = {'name' : 'trypsin-benzamidine-complex'}
 # rec_lig_attrs['ligand_type'] = ben_type
 # rec_lig_attrs['receptor_type'] = trypsin_type
-selection_map = {0 : ..., 1 : ...}
-selection_types = [mastsel.Selection, mastsel.Selection]
+selection_map = {0 : None, 1 : None}
+selection_types = [None, None]
 TrypsinBenzamidineAssociationType = \
             mastinx.AssociationType.factory("TrypsinBenzamidineAssociationType",
                                             system_type=TrypsinBenzamidineSystemType,
@@ -66,6 +66,7 @@ TrypsinBenzamidineSystemType.add_association_type(TrypsinBenzamidineAssociationT
 
 # now when we make the system the selections are put into an
 # Association that can be profiled
+import ipdb; ipdb.set_trace()
 trypsys = TrypsinBenzamidineSystemType.to_system(member_coords)
 
 # from mast.molecule import Molecule

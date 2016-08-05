@@ -11,8 +11,15 @@ print(gensel)
 string_selmember = SelectionMember('a')
 print(string_selmember)
 
-# test IndexedSelection
+# Selection
 selmembers = [SelectionMember(i) for i in [0,1,2]]
+sel0 = Selection(selmembers, sel=0)
+sel1 = Selection(selmembers, sel=...)
+sel2 = Selection(selmembers, sel=[0,1])
+
+
+# test IndexedSelection
+
 print("selmembers[0] is a part of these selections", selmembers[0].get_selections())
 idxsel = IndexedSelection(selmembers, [0,2])
 print("idxsel", idxsel)

@@ -137,6 +137,9 @@ Currently is a prototype.
 
 ** TODO tests for None selection id
 
+** TODO only find interactions between the association selections
+Right now it finds all of interactions between members and just takes
+out the intramember interactions.
 ** TODO implement slice inputs for selection ids
 ** TODO SystemMemberType class may be needed
 Currently I have multiple Type members allowed in a system which are

@@ -319,7 +319,7 @@ class Selection(GenericSelection, col.UserList):
     A sel of None will give all elements of the container, similar to
     a container[:] slice:
 
-    >>> all_sel = Selection(container, sel=None)
+    >>> all_sel = Selection(container, sel=...)
     >>> [sel.member for sel in all_sell]
     ['a', 'b', 'c']
 
@@ -330,8 +330,8 @@ class Selection(GenericSelection, col.UserList):
 
         # handle sel inputs
         # TODO add support for slices
-        assert type(sel) in [int, list, slice, Ellipsis], \
-            "sel must be either None, a positive int, list of positive ints or a slice"
+        assert type(sel) in [int, list, slice, type(Ellipsis)], \
+            "sel must be either ellipsis, a positive int, list of positive ints or a slice"
 
         if sel is Ellipsis:
             # select everything in the container
@@ -347,7 +347,8 @@ class Selection(GenericSelection, col.UserList):
             raise NotImplementedError
 
         assert all([issubclass(type(member), SelectionMember) for member in container]), \
-            "container members must be a subclass of SelectionMember"
+            "container members must be a subclass of SelectionMember, given {}".format(
+            [type(member) for member in container])
 
         # make the selections from container
         self.sel_ids = sel

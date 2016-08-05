@@ -20,15 +20,63 @@ class InteractionError(Exception):
 # basically just a named grouping of multiple selections from a system
 # with some methods
 class AssociationType(object):
+    """Class for defining a relationship between two selections in a
+    SystemType allowing for convenient introspection and calculations
+    on only the selections. Usually contained within the SystemType
+    and substantiated automatically when the system is substantiated
+    with the to_system method.
 
+    Examples
+    --------
+    >>> carbon_attributes = {'element':'C', 'bond_degree':3}
+    >>> oxygen_attributes = {'element':'O', 'bond_degree':3}
+    >>> COCarbonAtomType = AtomType.factory("COCarbonAtomType", **carbon_attributes)
+    >>> COOxygenAtomType = AtomType.factory("COOxygenAtomType", **oxygen_attributes)
+    >>> CO_atoms = (COCarbonAtomType, COOxygenAtomType)
+    >>> CO_attributes = {"bond_order":3}
+    >>> COBondType = BondType.factory("COBondType", atom_types=CO_atoms, **CO_attributes)
+    >>> atom_types = [COCarbonAtomType, COOxygenAtomType]
+    >>> bond_types = [COBondType]
+    >>> bond_map = {0 : (0, 1)}
+    >>> CO_attributes = {"name" : "carbon-monoxide", "toxic" : True}
+    >>> COMoleculeType = MoleculeType.factory("COType", atom_types=atom_types, bond_types=bond_types, bond_map=bond_map, **CO_attributes)
+    >>> system_attrs = {'name' : 'carbon-monoxide-system'}
+    >>> member_types = [COMoleculeType, COMoleculeType]
+    >>> COSystemType = SystemType.factory("COSystemType", member_types=member_types, **system_attrs)
+
+    We can associate the two CO molecules in the SystemType by
+    creating a mapping for which system member has what selection:
+
+    >>> selection_map = {0 : ..., 1 : ...}
+    >>> selection_types = [mastsel.Selection, mastsel.Selection]
+
+    So for system members 0 and 1 we will make a mast.Selection of the
+    whole member (...) when the AssociationType is substantiated.
+
+    We can also store metadata about an AssociationType if you would
+    like but we will keep it simple:
+
+    >>> association_attrs = {'name' : 'carbon-monoxide-carbon-monoxide-association'}
+
+    >>> COCOAssociationType = mastinx.AssociationType.factory("COCOAssociationType", system_type=COSystemType, selection_map=selection_map, selection_types=selection_types, **association_attrs)
+
+    """
     attributes = mastinxconfig.ASSOCIATION_ATTRIBUTES
 
     def __init__(self):
         pass
 
-    @property
-    def to_association(cls, coords):
-        pass
+    @classmethod
+    def to_association(cls, system):
+        """Substantiate the association by providing the System to make
+        selections on.
+
+        """
+        assert system.system_type is cls.system_type, \
+            "The system_type of system must be {0}, not {1}".format(
+                cls.system_type, system.system_type)
+
+        return Association(system=system, association_type=cls)
 
     @staticmethod
     def factory(association_type_name,
@@ -39,7 +87,11 @@ class AssociationType(object):
         name (which will be the class name) and a domain specific dictionary
         of association attributes.
 
+        association_type_name :: name for the generated class
+        system_type :: SystemType
         selection_map :: {system_member_idx : member_selection_ids}
+        selection_types :: list of classes inheriting from mast.selection.GenericSelection
+        association_attrs :: domain specific metadata dictionary
 
         See mast.config.interactions for standard AssociationType attributes.
         See class docstring for examples.
@@ -56,22 +108,22 @@ class AssociationType(object):
         assert len(selection_map) == len(selection_types)
 
         # check that the selection_map is correct
-        for i, selmap in enumerate(selection_map):
-            member_idx, sel_ids = *selmap
+        for i, selmap in enumerate(selection_map.items()):
+            member_idx, sel_ids = (selmap[0], selmap[1])
             # validate it indexes a system member
             assert member_idx < len(system_type.member_types), \
                 "member index {0} in selection_map out of"\
                 " range of {2}, length {1}".format(
                     member_idx, len(system_type.member_types), system_type)
             # validate the sel_ids for the member
-            member = system_type[member_idx]
+            member = system_type.member_types[member_idx]
 
         # validate the selection_types
-        for selection_type in selection_types:
-            assert issubclass(selection_type, mastsel.GenericSelection), \
-                "The selection_type must be a subclass of" \
-                " mast.selection.GenericSelection, not {}".format(
-                    selection_type)
+        # for selection_type in selection_types:
+        #     assert issubclass(selection_type, mastsel.GenericSelection), \
+        #         "The selection_type must be a subclass of" \
+        #         " mast.selection.GenericSelection, not {}".format(
+        #             selection_type)
 
         # keep track of which attributes the input did not provide
         for attr in AssociationType.attributes:
@@ -100,7 +152,6 @@ class AssociationType(object):
         association_type = type(association_type_name, (AssociationType,), attributes)
         # add core attributes
         association_type.system_type = system_type
-        association_type.member_types = member_types
         association_type.selection_map = selection_map
         association_type.selection_types = selection_types
 
@@ -127,9 +178,9 @@ class Association(SelectionsList):
         # check validity of the system
         assert isinstance(system, mastsys.System), \
             "system must be of type System, not {}".format(type(system))
-        assert isinstance(system.system_type, association_type.system_type), \
+        assert system.system_type is association_type.system_type, \
             "the system must be of the system_type in the association_type, not {}".format(
-                type(system))
+                system.system_type)
 
         # for selection in selections:
         #     # check member_types to make sure they are in a system
@@ -144,10 +195,19 @@ class Association(SelectionsList):
 
         # make selections on the system
         selections = []
-        for i, selmap in association_type.selection_map:
-            member_idx, sel_ids = *selmap
+        for i, selmap in enumerate(association_type.selection_map.items()):
+            member_idx, sel_ids = (selmap[0], selmap[1])
             member = system[member_idx]
-            selection = association_type.selection_types[i](member, sel_ids)
+            # if the selection_type is None do not make a selection of
+            # the member, instead just save the whole member
+            if association_type.selection_types[i] is None:
+                selection = member
+            # otherwise we will make a selection with the type
+            elif issubclass(association_type.selection_types[i], mastsel.GenericSelection):
+                selection = association_type.selection_types[i](member, sel_ids)
+            else:
+                raise TypeError("No handler for this type in making an Association selection")
+
             selections.append(selection)
 
         # create the SelectionsList
@@ -174,9 +234,9 @@ class Association(SelectionsList):
 
     def profile_interactions(self, interaction_types, between=None):
         """Profiles all interactions of all features for everything in the
-association. the between flag sets the inter-selection interactions to be profiled.
+        association. the between flag sets the inter-selection interactions to be profiled.
 
-E.g.: association.profile_interactions([HydrogenBondType], between=Molecule)
+        E.g.: association.profile_interactions([HydrogenBondType], between=Molecule)
 
         """
         from itertools import combinations
@@ -233,12 +293,10 @@ E.g.: association.profile_interactions([HydrogenBondType], between=Molecule)
         self._interactions = interactions
 
 
-class InteractionType(AssociationType):
+class InteractionType(object):
     """ Prototype class for all intermolecular interactions."""
-    def __init__(self, inx_attrs=None):
-        super().__init__(attr_dict=inx_attrs)
-        self._feature_families = None
-        self._feature_types = None
+    def __init__(self):
+        pass
 
     @classmethod
     def check(cls, *args, **kwargs):
@@ -262,8 +320,8 @@ class InteractionType(AssociationType):
 class HydrogenBondType(InteractionType):
     """ Class for checking validity of a HydrogenBondInx."""
 
-    def __init__(self, hbond_attrs=None):
-        super().__init__(attr_dict=hbond_attrs)
+    def __init__(self):
+        pass
 
     _feature_families = mastinxconfig.HBOND_FEATURE_FAMILIES
     feature_families = _feature_families
@@ -278,7 +336,10 @@ class HydrogenBondType(InteractionType):
     @classmethod
     def find_hits(cls, **kwargs):
         """Takes in key-word arguments for the donors and acceptor atom
-IndexedSelections. As an interface find_hits must take in more generic selections."""
+        IndexedSelections. As an interface find_hits must take in more
+        generic selections.
+
+        """
         from itertools import product
         # check that the keys ar okay in parent class
         super().find_hits(**kwargs)

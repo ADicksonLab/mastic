@@ -73,6 +73,7 @@ class SystemType(object):
         members in the system.
 
         """
+        # give the members coordinates
         members = []
         for member_idx, member_coords in enumerate(members_coords):
             # create each member using the coordinates
@@ -83,6 +84,7 @@ class SystemType(object):
                 members.append(member_type.to_molecule(member_coords))
 
         system = System(members, system_type=cls)
+
         return system
 
     @classmethod
@@ -116,16 +118,10 @@ class SystemType(object):
             "association_type must be a subclass of mast.interactions.Association,"\
             " not {}".format(association_type)
 
-        # there must be one member_type for each member_type in the association_type
-        sys_member_count = {member_type :  cls.member_types.count(member_type)
-                            for member_type in cls.member_types}
-        assoc_member_count = {member_type : association_type.member_types.count(member_type)
-                              for member_type in association_type.member_types}
-        for member_type, assoc_count in assoc_member_count.items():
-            assert assoc_count <= sys_member_count[member_type], \
-                "There must be greater than or equal the number of {0}"\
-                " in the system {1} as are in the association {2}".format(
-                    member_type, cls, association_type)
+        # check that it is an AssociationType of this SystemType
+        assert association_type.system_type is cls, \
+            "The SystemType of the association_type must be {0}, not {1}".format(
+                cls, association_type.system_type)
 
         cls._association_types.append(association_type)
 
