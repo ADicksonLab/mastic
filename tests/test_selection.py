@@ -31,30 +31,40 @@ class TestSelectionMember(unittest.TestCase):
     def test_get_selections(self):
         import ipdb; ipdb.set_trace()
         sel0 = mastsel.Selection([self.selection_member], [0])
-        sel1 = mastsel.Selection([self.selection_member], [0], flags='other_selection')
+        sel1 = mastsel.Selection([self.selection_member], [0], flags=['other_selection'])
         sel2 = mastsel.IndexedSelection([self.selection_member], [0])
-        # 
-        meta_selection = mastsel.Selection()
-        meta_meta_selection = mastsel.Selection([meta_selection])
+
+        meta_sel = mastsel.Selection([sel0, sel1, sel2], [0],
+                                           flags=['meta-selection'])
+        meta_meta_sel = mastsel.Selection([meta_sel], [0],
+                                                flags=['meta-meta-selection'])
+
         sel_list = mastsel.SelectionsList([sel0, sel1, sel2], flags=['list-selection'])
         meta_sel_list = mastsel.Selection(sel_list, [0], flags=['meta-list-selection'])
+        self.selection_member.get_selections(flags=['other_selection'], level=0)
 
         # level 0
         self.assertIn(sel0, self.selection_member.get_selections(level=0))
         self.assertIn(sel1, self.selection_member.get_selections(level=0))
         self.assertIn(sel2, self.selection_member.get_selections(level=0))
+        self.assertNotIn(meta_sel, self.selection_member.get_selections(level=0))
+        self.assertNotIn(meta_meta_sel, self.selection_member.get_selections(level=0))
         self.assertNotIn(sel_list, self.selection_member.get_selections(level=0))
         self.assertNotIn(meta_sel_list, self.selection_member.get_selections(level=0))
         # level 1
         self.assertIn(sel0, self.selection_member.get_selections(level=1))
         self.assertIn(sel1, self.selection_member.get_selections(level=1))
         self.assertIn(sel2, self.selection_member.get_selections(level=1))
+        self.assertIn(meta_sel, self.selection_member.get_selections(level=1))
+        self.assertNotIn(meta_meta_sel, self.selection_member.get_selections(level=1))
         self.assertIn(sel_list, self.selection_member.get_selections(level=1))
-        self.assertNotIn(meta_sel_list, self.selection_member.get_selections(level=1))
+        self.assertIn(meta_sel_list, self.selection_member.get_selections(level=1))
         # level 2
         self.assertIn(sel0, self.selection_member.get_selections(level=2))
         self.assertIn(sel1, self.selection_member.get_selections(level=2))
         self.assertIn(sel2, self.selection_member.get_selections(level=2))
+        self.assertIn(meta_sel, self.selection_member.get_selections(level=2))
+        self.assertIn(meta_meta_sel, self.selection_member.get_selections(level=2))
         self.assertIn(sel_list, self.selection_member.get_selections(level=2))
         self.assertIn(meta_sel_list, self.selection_member.get_selections(level=2))
         # recursive
@@ -62,12 +72,16 @@ class TestSelectionMember(unittest.TestCase):
         self.assertIn(sel0, self.selection_member.get_selections(level=None))
         self.assertIn(sel1, self.selection_member.get_selections(level=None))
         self.assertIn(sel2, self.selection_member.get_selections(level=None))
+        self.assertIn(meta_sel, self.selection_member.get_selections(level=None))
+        self.assertIn(meta_meta_sel, self.selection_member.get_selections(level=None))
         self.assertIn(sel_list, self.selection_member.get_selections(level=None))
         self.assertIn(meta_sel_list, self.selection_member.get_selections(level=None))
         # implicit syntax
         self.assertIn(sel0, self.selection_member.get_selections())
         self.assertIn(sel1, self.selection_member.get_selections())
         self.assertIn(sel2, self.selection_member.get_selections())
+        self.assertIn(meta_sel, self.selection_member.get_selections())
+        self.assertIn(meta_meta_sel, self.selection_member.get_selections())
         self.assertIn(sel_list, self.selection_member.get_selections())
         self.assertIn(meta_sel_list, self.selection_member.get_selections())
 
@@ -82,6 +96,14 @@ class TestSelectionMember(unittest.TestCase):
                           selection_types=[mastsel.Selection],
                           level=0))
         self.assertNotIn(sel2,
+                      self.selection_member.get_selections(
+                          selection_types=[mastsel.Selection],
+                          level=0))
+        self.assertNotIn(meta_sel,
+                      self.selection_member.get_selections(
+                          selection_types=[mastsel.Selection],
+                          level=0))
+        self.assertNotIn(meta_meta_sel,
                       self.selection_member.get_selections(
                           selection_types=[mastsel.Selection],
                           level=0))
@@ -107,6 +129,14 @@ class TestSelectionMember(unittest.TestCase):
                       self.selection_member.get_selections(
                           selection_types=[mastsel.IndexedSelection],
                           level=0))
+        self.assertNotIn(meta_sel,
+                      self.selection_member.get_selections(
+                          selection_types=[mastsel.IndexedSelection],
+                          level=0))
+        self.assertNotIn(meta_meta_sel,
+                      self.selection_member.get_selections(
+                          selection_types=[mastsel.IndexedSelection],
+                          level=0))
         self.assertNotIn(sel_list,
                       self.selection_member.get_selections(
                           selection_types=[mastsel.IndexedSelection],
@@ -126,6 +156,14 @@ class TestSelectionMember(unittest.TestCase):
                           flags=['other_selection'],
                           level=0))
         self.assertNotIn(sel2,
+                      self.selection_member.get_selections(
+                          flags=['other_selection'],
+                          level=0))
+        self.assertNotIn(meta_sel,
+                      self.selection_member.get_selections(
+                          flags=['other_selection'],
+                          level=0))
+        self.assertNotIn(meta_meta_sel,
                       self.selection_member.get_selections(
                           flags=['other_selection'],
                           level=0))
@@ -151,6 +189,14 @@ class TestSelectionMember(unittest.TestCase):
                       self.selection_member.get_selections(
                           selection_types=[mastsel.Selection],
                           level=None))
+        self.assertIn(meta_sel,
+                      self.selection_member.get_selections(
+                          selection_types=[mastsel.Selection],
+                          level=None))
+        self.assertIn(meta_meta_sel,
+                      self.selection_member.get_selections(
+                          selection_types=[mastsel.Selection],
+                          level=None))
         self.assertNotIn(sel_list,
                       self.selection_member.get_selections(
                           selection_types=[mastsel.Selection],
@@ -170,6 +216,14 @@ class TestSelectionMember(unittest.TestCase):
                           selection_types=[mastsel.SelectionsList],
                           level=None))
         self.assertNotIn(sel2,
+                      self.selection_member.get_selections(
+                          selection_types=[mastsel.SelectionsList],
+                          level=None))
+        self.assertNotIn(meta_sel,
+                      self.selection_member.get_selections(
+                          selection_types=[mastsel.SelectionsList],
+                          level=None))
+        self.assertNotIn(meta_meta_sel,
                       self.selection_member.get_selections(
                           selection_types=[mastsel.SelectionsList],
                           level=None))
@@ -195,6 +249,14 @@ class TestSelectionMember(unittest.TestCase):
                       self.selection_member.get_selections(
                           flags=['list-selection'],
                           level=None))
+        self.assertNotIn(meta_sel,
+                      self.selection_member.get_selections(
+                          flags=['list-selection'],
+                          level=None))
+        self.assertNotIn(meta_meta_sel,
+                      self.selection_member.get_selections(
+                          flags=['list-selection'],
+                          level=None))
         self.assertIn(sel_list,
                       self.selection_member.get_selections(
                           flags=['list-selection'],
@@ -214,6 +276,14 @@ class TestSelectionMember(unittest.TestCase):
                           flags=['meta-list-selection'],
                           level=None))
         self.assertNotIn(sel2,
+                      self.selection_member.get_selections(
+                          flags=['meta-list-selection'],
+                          level=None))
+        self.assertNotIn(meta_sel,
+                      self.selection_member.get_selections(
+                          flags=['meta-list-selection'],
+                          level=None))
+        self.assertNotIn(meta_meta_sel,
                       self.selection_member.get_selections(
                           flags=['meta-list-selection'],
                           level=None))

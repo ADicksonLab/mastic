@@ -166,9 +166,9 @@ class SelectionMember(object):
             # add them if
             selections = [tup[-1] for tup in self._registry if
                           # the selection's type is in the selection types
-                          type(tup[-1]) in selection_types
+                          type(tup[-1]) in selection_types and
                           # and at least one of the flags is the same
-                          and not flags.isdisjoint(tup[-1].flags)]
+                          not flags.isdisjoint(tup[-1].flags)]
 
         # only flags are given
         elif selection_types is None and flags is not None:
@@ -313,7 +313,7 @@ class Selection(GenericSelection, col.UserList):
     """
 
     def __init__(self, container, sel, flags=None):
-        super().__init__(container)
+        super().__init__(container, flags=flags)
 
         # handle sel inputs
         # TODO add support for slices
