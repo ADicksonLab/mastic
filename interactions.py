@@ -32,10 +32,14 @@ class AssociationType(object):
 
     @staticmethod
     def factory(association_type_name,
-                system_type=None, member_types=None, **association_attrs):
+                system_type=None,
+                selection_map=None, selection_types=None,
+                **association_attrs):
         """Static method for generating association types dynamically given a type
         name (which will be the class name) and a domain specific dictionary
         of association attributes.
+
+        selection_map :: {system_member_idx : member_selection_ids}
 
         See mast.config.interactions for standard AssociationType attributes.
         See class docstring for examples.
@@ -47,12 +51,27 @@ class AssociationType(object):
             "system_type must be a subclass of SystemType, not {}}".format(
                 system_type)
 
-        # check that the member types are given and correct
-        assert member_types, "member_types must be given"
-        assert len(member_types) >= 2, "At least two member_types must be given"
-        for member_type in member_types:
-            assert member_type in system_type.member_types, \
-                "association members must be in the system"
+        # check that there are the same number of selection_map
+        # records and selection_types
+        assert len(selection_map) == len(selection_types)
+
+        # check that the selection_map is correct
+        for i, selmap in enumerate(selection_map):
+            member_idx, sel_ids = *selmap
+            # validate it indexes a system member
+            assert member_idx < len(system_type.member_types), \
+                "member index {0} in selection_map out of"\
+                " range of {2}, length {1}".format(
+                    member_idx, len(system_type.member_types), system_type)
+            # validate the sel_ids for the member
+            member = system_type[member_idx]
+
+        # validate the selection_types
+        for selection_type in selection_types:
+            assert issubclass(selection_type, mastsel.GenericSelection), \
+                "The selection_type must be a subclass of" \
+                " mast.selection.GenericSelection, not {}".format(
+                    selection_type)
 
         # keep track of which attributes the input did not provide
         for attr in AssociationType.attributes:
@@ -82,12 +101,14 @@ class AssociationType(object):
         # add core attributes
         association_type.system_type = system_type
         association_type.member_types = member_types
+        association_type.selection_map = selection_map
+        association_type.selection_types = selection_types
 
         return association_type
 
 
 class Association(SelectionsList):
-    def __init__(self, selections=None, association_type=None):
+    def __init__(self, system=None, association_type=None):
         # TODO check to make sure that all the atoms are in the same system
         # print(system, id(system))
         # print([bool(member in system) for member in members])
@@ -98,16 +119,38 @@ class Association(SelectionsList):
         #     raise ValueError("Members of a SystemAssociation must all be in the same system")
 
 
-        for selection in selections:
-            # check member_types to make sure they are in a system
-            assert 'system' in selection.flags, \
-                "member_types must be in a system, {0} flags are {1}".format(
-                    selection, selection.flags)
-        # make sure they are in the same system
-        systems = [selection.find_selections(selection_type=SystemType)]
-        assert all([system is systems[0] for system in systems]), \
-            "All selections must be of the same system"
+        # check validity of association_type
+        assert issubclass(association_type, AssociationType), \
+            "association_type must be a subclass of AssociationType, not {}".format(
+                association_type)
 
+        # check validity of the system
+        assert isinstance(system, mastsys.System), \
+            "system must be of type System, not {}".format(type(system))
+        assert isinstance(system.system_type, association_type.system_type), \
+            "the system must be of the system_type in the association_type, not {}".format(
+                type(system))
+
+        # for selection in selections:
+        #     # check member_types to make sure they are in a system
+        #     assert 'system' in selection.flags, \
+        #         "member_types must be in a system, {0} flags are {1}".format(
+        #             selection, selection.flags)
+        # # make sure they are in the same system
+        # systems = [selection.find_selections(selection_type=[SystemType]) for
+        #            selection in selections]
+        # assert all([system is systems[0] for system in _systems]), \
+        #     "All selections must be of the same system"
+
+        # make selections on the system
+        selections = []
+        for i, selmap in association_type.selection_map:
+            member_idx, sel_ids = *selmap
+            member = system[member_idx]
+            selection = association_type.selection_types[i](member, sel_ids)
+            selections.append(selection)
+
+        # create the SelectionsList
         super().__init__(selection_list=selections)
         self._association_type = association_type
         self._system = system
@@ -116,6 +159,14 @@ class Association(SelectionsList):
     @property
     def system(self):
         return self._system
+
+    @property
+    def system_type(self):
+        return self._system.system_type
+
+    @property
+    def association_type(self):
+        return self._association_type
 
     @property
     def interactions(self):

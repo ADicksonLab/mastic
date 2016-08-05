@@ -135,6 +135,9 @@ Currently is a prototype.
 **** TODO NoHHydrogenBondInx
 
 
+** TODO tests for None selection id
+
+** TODO implement slice inputs for selection ids
 ** TODO SystemMemberType class may be needed
 Currently I have multiple Type members allowed in a system which are
 not identified by anything except their index in the system. Perhaps a

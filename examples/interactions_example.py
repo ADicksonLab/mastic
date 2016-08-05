@@ -52,12 +52,13 @@ print("making an AssociationType of the receptor and ligand in the TrypsinBenzam
 rec_lig_attrs = {'name' : 'trypsin-benzamidine-complex'}
 # rec_lig_attrs['ligand_type'] = ben_type
 # rec_lig_attrs['receptor_type'] = trypsin_type
-
+selection_map = {0 : }
 TrypsinBenzamidineAssociationType = \
-                            mastinx.AssociationType.factory("TrypsinBenzamidineAssociationType",
-                                                    system_type=TrypsinBenzamidineSystemType,
-                                                    member_types=member_types,
-                                                    **rec_lig_attrs)
+            mastinx.AssociationType.factory("TrypsinBenzamidineAssociationType",
+                                            system_type=TrypsinBenzamidineSystemType,
+                                            selection_map=selection_map,
+                                            selection_types=selection_types,
+                                            **rec_lig_attrs)
 
 # add it to the SystemType
 TrypsinBenzamidineSystemType.add_association_type(TrypsinBenzamidineAssociationType)

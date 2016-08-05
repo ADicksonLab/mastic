@@ -298,7 +298,7 @@ class GenericSelection(SelectionMember):
         # return "{0}[{1}]".format(self.container, self.sel_ids)
 
 class Selection(GenericSelection, col.UserList):
-    """ A simple selection of a container.
+    """A simple selection of a container.
 
     Examples
     --------
@@ -310,6 +310,19 @@ class Selection(GenericSelection, col.UserList):
     >>> selection[1].member
     'c'
 
+    You can also give just a single integer:
+
+    >>> sel2 = Selection(container, sel=1)
+    >>> sel2[0].member
+    'b'
+
+    A sel of None will give all elements of the container, similar to
+    a container[:] slice:
+
+    >>> all_sel = Selection(container, sel=None)
+    >>> [sel.member for sel in all_sell]
+    ['a', 'b', 'c']
+
     """
 
     def __init__(self, container, sel, flags=None):
@@ -317,16 +330,21 @@ class Selection(GenericSelection, col.UserList):
 
         # handle sel inputs
         # TODO add support for slices
-        assert type(sel) in [int, list], \
-            "sel must be either a positive int, list of positive ints or a slice"
+        assert type(sel) in [int, list, slice, None], \
+            "sel must be either None, a positive int, list of positive ints or a slice"
 
-        if isinstance(sel, int):
+        if sel is None:
+            # select everything in the container
+            sel = list(range(len(container)))
+        elif isinstance(sel, int):
             assert sel >=0, "an integer sel must be non-negative, {}".format(sel)
             sel = [sel]
         elif isinstance(sel, list):
             assert sel, "a list sel must be nonempty, {}".format(sel)
             assert all([(lambda x: False if x < 0 else True)(b) for b in sel]), \
                 "all values in selection keys must be non-negative"
+        elif isinstance(sel, slice):
+            raise NotImplementedError
 
         assert all([issubclass(type(member), SelectionMember) for member in container]), \
             "container members must be a subclass of SelectionMember"
