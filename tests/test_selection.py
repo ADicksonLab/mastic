@@ -29,11 +29,203 @@ class TestSelectionMember(unittest.TestCase):
         pass
 
     def test_get_selections(self):
-        sel = mastsel.Selection([self.selection_member], [0])
+        import ipdb; ipdb.set_trace()
+        sel0 = mastsel.Selection([self.selection_member], [0])
+        sel1 = mastsel.Selection([self.selection_member], [0], flags='other_selection')
+        sel2 = mastsel.IndexedSelection([self.selection_member], [0])
+        # 
+        meta_selection = mastsel.Selection()
+        meta_meta_selection = mastsel.Selection([meta_selection])
+        sel_list = mastsel.SelectionsList([sel0, sel1, sel2], flags=['list-selection'])
+        meta_sel_list = mastsel.Selection(sel_list, [0], flags=['meta-list-selection'])
+
+        # level 0
+        self.assertIn(sel0, self.selection_member.get_selections(level=0))
+        self.assertIn(sel1, self.selection_member.get_selections(level=0))
+        self.assertIn(sel2, self.selection_member.get_selections(level=0))
+        self.assertNotIn(sel_list, self.selection_member.get_selections(level=0))
+        self.assertNotIn(meta_sel_list, self.selection_member.get_selections(level=0))
+        # level 1
+        self.assertIn(sel0, self.selection_member.get_selections(level=1))
+        self.assertIn(sel1, self.selection_member.get_selections(level=1))
+        self.assertIn(sel2, self.selection_member.get_selections(level=1))
+        self.assertIn(sel_list, self.selection_member.get_selections(level=1))
+        self.assertNotIn(meta_sel_list, self.selection_member.get_selections(level=1))
+        # level 2
+        self.assertIn(sel0, self.selection_member.get_selections(level=2))
+        self.assertIn(sel1, self.selection_member.get_selections(level=2))
+        self.assertIn(sel2, self.selection_member.get_selections(level=2))
+        self.assertIn(sel_list, self.selection_member.get_selections(level=2))
+        self.assertIn(meta_sel_list, self.selection_member.get_selections(level=2))
         # recursive
-        self.assertIn(sel, self.selection_member.get_selections())
-        # non-recursive
-        self.assertIn(sel, self.selection_member.get_selections(level=0))
+        # explicit syntax
+        self.assertIn(sel0, self.selection_member.get_selections(level=None))
+        self.assertIn(sel1, self.selection_member.get_selections(level=None))
+        self.assertIn(sel2, self.selection_member.get_selections(level=None))
+        self.assertIn(sel_list, self.selection_member.get_selections(level=None))
+        self.assertIn(meta_sel_list, self.selection_member.get_selections(level=None))
+        # implicit syntax
+        self.assertIn(sel0, self.selection_member.get_selections())
+        self.assertIn(sel1, self.selection_member.get_selections())
+        self.assertIn(sel2, self.selection_member.get_selections())
+        self.assertIn(sel_list, self.selection_member.get_selections())
+        self.assertIn(meta_sel_list, self.selection_member.get_selections())
+
+        # with selection criteria
+        # level 0 only Selections
+        self.assertIn(sel0,
+                      self.selection_member.get_selections(
+                          selection_types=[mastsel.Selection],
+                          level=0))
+        self.assertIn(sel1,
+                      self.selection_member.get_selections(
+                          selection_types=[mastsel.Selection],
+                          level=0))
+        self.assertNotIn(sel2,
+                      self.selection_member.get_selections(
+                          selection_types=[mastsel.Selection],
+                          level=0))
+        self.assertNotIn(sel_list,
+                      self.selection_member.get_selections(
+                          selection_types=[mastsel.Selection],
+                          level=0))
+        self.assertNotIn(meta_sel_list,
+                      self.selection_member.get_selections(
+                          selection_types=[mastsel.Selection],
+                          level=0))
+
+        # level 0 only IndexedSelection
+        self.assertNotIn(sel0,
+                      self.selection_member.get_selections(
+                          selection_types=[mastsel.IndexedSelection],
+                          level=0))
+        self.assertNotIn(sel1,
+                      self.selection_member.get_selections(
+                          selection_types=[mastsel.IndexedSelection],
+                          level=0))
+        self.assertIn(sel2,
+                      self.selection_member.get_selections(
+                          selection_types=[mastsel.IndexedSelection],
+                          level=0))
+        self.assertNotIn(sel_list,
+                      self.selection_member.get_selections(
+                          selection_types=[mastsel.IndexedSelection],
+                          level=0))
+        self.assertNotIn(meta_sel_list,
+                      self.selection_member.get_selections(
+                          selection_types=[mastsel.IndexedSelection],
+                          level=0))
+
+        # level 0 only 'other_selection' flag
+        self.assertNotIn(sel0,
+                      self.selection_member.get_selections(
+                          flags=['other_selection'],
+                          level=0))
+        self.assertIn(sel1,
+                      self.selection_member.get_selections(
+                          flags=['other_selection'],
+                          level=0))
+        self.assertNotIn(sel2,
+                      self.selection_member.get_selections(
+                          flags=['other_selection'],
+                          level=0))
+        self.assertNotIn(sel_list,
+                      self.selection_member.get_selections(
+                          flags=['other_selection'],
+                          level=0))
+        self.assertNotIn(meta_sel_list,
+                      self.selection_member.get_selections(
+                          flags=['other_selection'],
+                          level=0))
+
+        # recursive only Selections
+        self.assertIn(sel0,
+                      self.selection_member.get_selections(
+                          selection_types=[mastsel.Selection],
+                          level=None))
+        self.assertIn(sel1,
+                      self.selection_member.get_selections(
+                          selection_types=[mastsel.Selection],
+                          level=None))
+        self.assertNotIn(sel2,
+                      self.selection_member.get_selections(
+                          selection_types=[mastsel.Selection],
+                          level=None))
+        self.assertNotIn(sel_list,
+                      self.selection_member.get_selections(
+                          selection_types=[mastsel.Selection],
+                          level=None))
+        self.assertIn(meta_sel_list,
+                      self.selection_member.get_selections(
+                          selection_types=[mastsel.Selection],
+                          level=None))
+
+        # recursive only SelectionsList
+        self.assertNotIn(sel0,
+                      self.selection_member.get_selections(
+                          selection_types=[mastsel.SelectionsList],
+                          level=None))
+        self.assertNotIn(sel1,
+                      self.selection_member.get_selections(
+                          selection_types=[mastsel.SelectionsList],
+                          level=None))
+        self.assertNotIn(sel2,
+                      self.selection_member.get_selections(
+                          selection_types=[mastsel.SelectionsList],
+                          level=None))
+        self.assertIn(sel_list,
+                      self.selection_member.get_selections(
+                          selection_types=[mastsel.SelectionsList],
+                          level=None))
+        self.assertNotIn(meta_sel_list,
+                      self.selection_member.get_selections(
+                          selection_types=[mastsel.SelectionsList],
+                          level=None))
+
+        # recursive only 'list-selection' flag
+        self.assertIn(sel0,
+                      self.selection_member.get_selections(
+                          flags=['list-selection'],
+                          level=None))
+        self.assertIn(sel1,
+                      self.selection_member.get_selections(
+                          flags=['list-selection'],
+                          level=None))
+        self.assertIn(sel2,
+                      self.selection_member.get_selections(
+                          flags=['list-selection'],
+                          level=None))
+        self.assertIn(sel_list,
+                      self.selection_member.get_selections(
+                          flags=['list-selection'],
+                          level=None))
+        self.assertNotIn(meta_sel_list,
+                      self.selection_member.get_selections(
+                          flags=['list-selection'],
+                          level=None))
+
+        # recursive only 'meta-list-selection' flag
+        self.assertIn(sel0,
+                      self.selection_member.get_selections(
+                          flags=['meta-list-selection'],
+                          level=None))
+        self.assertNotIn(sel1,
+                      self.selection_member.get_selections(
+                          flags=['meta-list-selection'],
+                          level=None))
+        self.assertNotIn(sel2,
+                      self.selection_member.get_selections(
+                          flags=['meta-list-selection'],
+                          level=None))
+        self.asserttIn(sel_list,
+                      self.selection_member.get_selections(
+                          flags=['meta-list-selection'],
+                          level=None))
+        self.assertIn(meta_sel_list,
+                      self.selection_member.get_selections(
+                          flags=['meta-list-selection'],
+                          level=None))
+
 
     def test_register_selection(self):
         pass

@@ -87,7 +87,7 @@ class AssociationType(object):
 
 
 class Association(SelectionsList):
-    def __init__(self, members=None, association_type=None, system=None):
+    def __init__(self, selections=None, association_type=None):
         # TODO check to make sure that all the atoms are in the same system
         # print(system, id(system))
         # print([bool(member in system) for member in members])
@@ -96,13 +96,19 @@ class Association(SelectionsList):
         #     super().__init__(association_list=members, association_type=association_type)
         # else:
         #     raise ValueError("Members of a SystemAssociation must all be in the same system")
-        # check member_types to make sure they are in a system
-        for selection in member_types:
+
+
+        for selection in selections:
+            # check member_types to make sure they are in a system
             assert 'system' in selection.flags, \
                 "member_types must be in a system, {0} flags are {1}".format(
                     selection, selection.flags)
+        # make sure they are in the same system
+        systems = [selection.find_selections(selection_type=SystemType)]
+        assert all([system is systems[0] for system in systems]), \
+            "All selections must be of the same system"
 
-        super().__init__(selection_list=members)
+        super().__init__(selection_list=selections)
         self._association_type = association_type
         self._system = system
         self._interactions = None

@@ -234,7 +234,10 @@ the same coordinate system.
 
         super().__init__(selection_list=members, flags=['system'])
         self._system_type = system_type
-        self._associations = None
+        # substantiate the Associations in this System
+        self._associations = []
+        for association_type in self._system_type.association_types():
+            self._associations.append(association_type.to_association(self))
 
     def __repr__(self):
         return str(self.__class__)

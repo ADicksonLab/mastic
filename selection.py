@@ -9,9 +9,8 @@ import collections.abc as colabc
 from copy import copy
 
 __all__ = ['SelectionMember', 'GenericSelection', 'IndexedSelection',
-           'SelectionDict', 'SelectionList', 'CoordArray',
-           'CoordArraySelection', 'SelectionType', 'SelectionTypeLibrary',
-           'Point',]
+           'SelectionsDict', 'SelectionsList', 'CoordArray',
+           'CoordArraySelection', 'Point', 'Selection']
 
 class SelectionMember(object):
     """The base class that allows an object to be part of a
@@ -43,6 +42,14 @@ class SelectionMember(object):
 
     def __init__(self, member, flags=None):
 
+        if flags is not None:
+            assert (issubclass(type(flags), colabc.Set) or \
+                issubclass(type(flags), colabc.Sequence)) and \
+                not isinstance(flags, str), \
+                "flags must be a container and not a string"
+            assert all([isinstance(flag, str) for flag in list(flags)]), \
+                "all flags must be strings, given{}".format(flags)
+
         super().__init__()
         self.member = member
 
@@ -57,14 +64,66 @@ class SelectionMember(object):
     def __repr__(self):
         return str(self.__class__)
 
-    def get_selections(self, level=None):
-        """Returns all the selection objects referred to in the registry,
-        recursively to the level specified, default is all.
+    # def get_selections(self, level=None):
+    #     """Returns all the selection objects referred to in the registry,
+    #     recursively to the level specified, default is all.
+
+    #     Examples
+    #     --------
+
+    #     Get all the selections this SelectionMember is a part of:
+
+    #     >>> container = [SelectionMember('a'), SelectionMember('b'), SelectionMember('c')]
+    #     >>> selection = Selection(container, [0])
+    #     >>> container[0].get_selections()[0] is selection
+    #     True
+
+    #     If these selections then become part of other selections we
+    #     want to get all of them recursively:
+
+    #     >>> len(container[0].get_selections())
+    #     1
+    #     >>> meta_selection = Selection([selection], [0])
+    #     >>> len(container[0].get_selections())
+    #     2
+
+    #     For a specific depth of selections:
+
+    #     >>> len(container[0].get_selections(level=0))
+    #     1
+
+    #     >>> len(container[0].get_selections(level=1))
+    #     2
+
+    #     """
+
+    #     # get the selections on this level
+    #     selections = [tup[-1] for tup in self._registry]
+    #     # return them if the level is at 0
+    #     if level == 0:
+    #         return selections
+    #     # otherwise get new selections from lower levels
+    #     new_selections = []
+    #     # from each selection
+    #     for selection in selections:
+    #         # if the level is not infinite reduce the level depth and continue
+    #         if level is not None:
+    #             new_selections.extend(selection.get_selections(level=(level - 1)))
+    #         else:
+    #             new_selections.extend(selection.get_selections(level=level))
+
+    #     selections.extend(list(new_selections))
+
+    #     return selections
+
+    def get_selections(self, selection_types=None, flags=None, level=None):
+        """Recursively searches for and finds all selections of this
+        SelectionMember of the specified types and flags to the given level.
+
+        If any option is None (default) then that criteria is ignored.
 
         Examples
         --------
-
-        Get all the selections this SelectionMember is a part of:
 
         >>> container = [SelectionMember('a'), SelectionMember('b'), SelectionMember('c')]
         >>> selection = Selection(container, [0])
@@ -88,10 +147,43 @@ class SelectionMember(object):
         >>> len(container[0].get_selections(level=1))
         2
 
+        When we add more selections on the SelectionMembers we can
+        select specific ones:
+
+        >>> indexed_selection = IndexedSelection(container, [1])
+        >>> selections_list = SelectionsList([selection, indexed_selection], flags=['meta-selection'])
+        >>> container[0].get_selections(selection_types=[IndexedSelection], level=0)[0] is indexed_selection
+        True
+        >>> container[0].get_selections(flags=['meta-selection'])[0] is selections_list
+        True
         """
 
-        # get the selections on this level
-        selections = [tup[-1] for tup in self._registry]
+        if flags:
+            flags = set(flags)
+        # get the selections on this level if they match the criteria
+        # if both selection_types and flags are given
+        if selection_types is not None and flags is not None:
+            # add them if
+            selections = [tup[-1] for tup in self._registry if
+                          # the selection's type is in the selection types
+                          type(tup[-1]) in selection_types
+                          # and at least one of the flags is the same
+                          and not flags.isdisjoint(tup[-1].flags)]
+
+        # only flags are given
+        elif selection_types is None and flags is not None:
+            selections = [tup[-1] for tup in self._registry if
+                          not flags.isdisjoint(tup[-1].flags)]
+
+        # only the selection_types are given
+        elif selection_types is not None and flags is None:
+            selections = [tup[-1] for tup in self._registry if
+                          type(tup[-1]) in selection_types]
+
+        # neither are given add everything
+        elif selection_types is None and flags is None:
+            selections = [tup[-1] for tup in self._registry]
+
         # return them if the level is at 0
         if level == 0:
             return selections
@@ -101,9 +193,15 @@ class SelectionMember(object):
         for selection in selections:
             # if the level is not infinite reduce the level depth and continue
             if level is not None:
-                new_selections.extend(selection.get_selections(level - 1))
+                new_selections.extend(
+                    selection.get_selections(selection_types=selection_types,
+                                              flags=flags,
+                                              level=(level - 1)))
             else:
-                new_selections.extend(selection.get_selections(level))
+                new_selections.extend(
+                    selection.get_selections(selection_types=selection_types,
+                                              flags=flags,
+                                              level=level))
 
         selections.extend(list(new_selections))
 
