@@ -52,7 +52,8 @@ print("making an AssociationType of the receptor and ligand in the TrypsinBenzam
 rec_lig_attrs = {'name' : 'trypsin-benzamidine-complex'}
 # rec_lig_attrs['ligand_type'] = ben_type
 # rec_lig_attrs['receptor_type'] = trypsin_type
-selection_map = {0 : }
+selection_map = {0 : ..., 1 : ...}
+selection_types = [mastsel.Selection, mastsel.Selection]
 TrypsinBenzamidineAssociationType = \
             mastinx.AssociationType.factory("TrypsinBenzamidineAssociationType",
                                             system_type=TrypsinBenzamidineSystemType,
@@ -67,6 +68,6 @@ TrypsinBenzamidineSystemType.add_association_type(TrypsinBenzamidineAssociationT
 # Association that can be profiled
 trypsys = TrypsinBenzamidineSystemType.to_system(member_coords)
 
-from mast.molecule import Molecule
-print("testing Hbond interaction between molecules in the receptor ligand association")
-rec_lig_assoc.profile_interactions([HydrogenBondType], between=Molecule)
+# from mast.molecule import Molecule
+# print("testing Hbond interaction between molecules in the receptor ligand association")
+# rec_lig_assoc.profile_interactions([HydrogenBondType], between=Molecule)

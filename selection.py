@@ -330,10 +330,10 @@ class Selection(GenericSelection, col.UserList):
 
         # handle sel inputs
         # TODO add support for slices
-        assert type(sel) in [int, list, slice, None], \
+        assert type(sel) in [int, list, slice, Ellipsis], \
             "sel must be either None, a positive int, list of positive ints or a slice"
 
-        if sel is None:
+        if sel is Ellipsis:
             # select everything in the container
             sel = list(range(len(container)))
         elif isinstance(sel, int):
