@@ -4,6 +4,7 @@ import collections as col
 import numpy as np
 
 import mast.molecule as mastmol
+import mast.features as mastfeat
 
 from rdkit import RDConfig
 from rdkit.Chem import ChemicalFeatures
@@ -244,11 +245,6 @@ class RDKitMoleculeWrapper(object):
         # get relevant data
         bond_map = self.bonds_map()
         molecule_data = self.molecule_data()
-        if find_features:
-            features = self.find_features()
-        else:
-            features = {}
-
         # AtomTypes
         atom_types = self.make_atom_types()
         # BondTypes
@@ -260,8 +256,22 @@ class RDKitMoleculeWrapper(object):
         molecule_type = mastmol.MoleculeType.factory(molecule_type_name,
                                              atom_types=atom_types,
                                              bond_types=bond_types, bond_map=bond_map,
-                                             features=features,
                                              **molecule_data)
+
+        if find_features:
+            for idx, feat_dict in self.find_features().items():
+                atom_idxs = feat_dict['atom_ids']
+                feature_attrs = {}
+                feature_attrs['rdkit_family'] = feat_dict['family']
+                feature_attrs['rdkit_type'] = feat_dict['type']
+                feature_attrs['rdkit_position'] = feat_dict['position']
+
+                feature_type_name = "{0}Feature{1}Type".format(self.mol_name, idx)
+                feature_type = mastfeat.FeatureType.factory(feature_type_name,
+                                                            molecule_type=molecule_type,
+                                                            atom_idxs=atom_idxs,
+                                                            **feature_attrs)
+                molecule_type.add_feature_type(idx, feature_type)
 
         return molecule_type
 

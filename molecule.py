@@ -215,40 +215,20 @@ class MoleculeType(object):
         return list(cls.bond_type_library)
 
     @classmethod
-    def features(cls):
-        """The chemical features of this MoleculeType."""
-        return cls.features
-
-    @classmethod
-    def feature_families_map(cls):
-        """A dictionary mapping the feature families to the indices of the
-        feature."""
-
-        families = col.defaultdict(list)
-        for idx, info in cls.features.items():
-            families[info['family']].append(idx)
-        return families
-
-    @classmethod
-    def feature_types_map(cls):
-        """A dictionary mapping the feature types to the indices of the
-        feature."""
-
-        types = col.defaultdict(list)
-        for idx, info in cls.features.items():
-            types[info['type']].append(idx)
-
-        return types
-
-    @classmethod
-    def feature_families(cls):
-        """The unique feature families."""
-        return set(cls.feature_families_map().keys())
-
-    @classmethod
     def feature_types(cls):
-        """The unique feature types."""
-        return set(cls.feature_types_map().keys())
+        """The chemical features of this MoleculeType."""
+        return cls._feature_types
+
+    @classmethod
+    def add_feature_type(cls, key, feature_type):
+        from mast.features import FeatureType
+        assert issubclass(feature_type, FeatureType), \
+            "feature must be a subclass of a mast.features.FeatureType class, not {}".format(
+                feature_type)
+        assert feature_type.molecule_type is cls, \
+            "The molecule of the feature must be this molecule, not {}".format(
+                feature_type.molecule_type)
+        cls._feature_types[key] = feature_type
 
     @classmethod
     def to_molecule(cls, coords):
@@ -282,7 +262,7 @@ class MoleculeType(object):
     def factory(mol_type_name, atom_types=None,
                 bond_types=None, bond_map=None,
                 angle_types=None, angle_map=None, # stubbed out
-                features={},
+                feature_types=dict(),
                 **molecule_attrs):
         """Static method for generating molecule types dynamically given a type
         name (which will be the class name) and a domain specific dictionary
@@ -361,7 +341,7 @@ class MoleculeType(object):
         molecule_type.atom_type_library = set(atom_types)
         molecule_type.bond_type_library = set(bond_types)
         # molecule_type.angle_type_library = set(angle_types)
-        molecule_type.features = features
+        molecule_type._feature_types = feature_types
 
         return molecule_type
 
@@ -719,9 +699,9 @@ class Molecule(SelectionsDict):
 
         self._molecule_type = mol_type
 
+        self._features = self.make_features()
+
         # attributes must explicitly be called due to computation time
-        self._feature_family_selections = None
-        self._feature_type_selections = None
         self._internal_interactions = None
 
     @property
@@ -738,13 +718,6 @@ class Molecule(SelectionsDict):
     def molecule_type(self):
         """The MoleculeType subclass of this Molecule."""
         return self._molecule_type
-
-    # @molecule_type.setter
-    # def molecule_type(self, mol_type):
-    #     assert issubclass(type(mol_type), MoleculeType), \
-    #         "mol_type must be a subclass of MoleculeType, not {}".format(
-    #             type(mol_type))
-    #     self._molecule_type = mol_type
 
     @property
     def isin_system(self):
@@ -770,9 +743,9 @@ class Molecule(SelectionsDict):
         return coords
 
     @property
-    def features(self):
+    def feature_types(self):
         """The chemical features of this Molecule's MoleculeType subclass."""
-        return self.molecule_type.features
+        return self.molecule_type.feature_types()
 
     def overlaps(self, other):
         """Check whether this molecule overlaps with another.
@@ -802,7 +775,7 @@ class Molecule(SelectionsDict):
                     flag = False
         return False
 
-    def make_feature_selections(self):
+    def make_features(self):
         """Using the features attribute make IndexedSelections of those
         Atoms. Sets these to the feature_family_selections and
         feature_type_selections attributes of this object.
@@ -816,34 +789,21 @@ class Molecule(SelectionsDict):
         > molecule.feature_family_selections[0]
         IndexedSelection
         The selection is the feature's atoms
-        > molecule.feature_family_selections[0][0]
+        > molecule.features[0][0]
         Atom
 
         """
 
-        family_selections = col.defaultdict(list)
-        type_selections = col.defaultdict(list)
-        for idx, feature in self.features.items():
-            atom_idxs = list(feature['atom_ids'])
-            # make the selection
-            feature_selection = IndexedSelection(self.atoms, atom_idxs)
-            # add it to it's families selections
-            family_selections[feature['family']].append(feature_selection)
-            # add it to it's type's selections
-            type_selections[feature['type']].append(feature_selection)
+        features = {}
+        for key, feature_type in self.molecule_type.feature_types().items():
+            features[key] = feature_type.to_feature(self)
 
-        self._feature_family_selections = family_selections
-        self._feature_type_selections = type_selections
+        return features
+
 
     @property
-    def family_selections(self):
-        """Selections on the Molecule for every feature family."""
-        return self._feature_family_selections
-
-    @property
-    def type_selections(self):
-        """Selections on the Molecule for every feature type."""
-        return self._feature_type_selections
+    def features(self):
+        return self._features
 
     @property
     def feature_dataframe(self):
