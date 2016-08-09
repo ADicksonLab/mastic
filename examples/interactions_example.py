@@ -69,7 +69,6 @@ tryp_ben_assoc = trypsys.associations[0]
 
 intermember_key_pairs, intermember_interactions = \
 tryp_ben_assoc.profile_interactions([mastinx.HydrogenBondType])
-import ipdb; ipdb.set_trace()
 
 intramember_key_pairs, intramember_interactions = \
 tryp_ben_assoc.profile_interactions([mastinx.HydrogenBondType],

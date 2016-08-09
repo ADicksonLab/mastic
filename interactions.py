@@ -249,7 +249,8 @@ class Association(SelectionsList):
         if intramember_interactions:
             member_pairs = it.combinations_with_replacement(self.members, 2)
             # the key to each pairing is a tuple of the members indices
-            member_idx_pairs = list(it.combinations(range(len(self.members)), 2))
+            member_idx_pairs = list(it.combinations_with_replacement(
+                range(len(self.members)), 2))
         # if intramember_interactions is False only get interactions between members
         else:
             member_pairs = it.combinations(self.members, 2)

@@ -16,13 +16,12 @@ import mast.config.interactions as mastinxconfig
 
 if __name__ == "__main__":
 
-    from mast import interactions
+    from mast import features
 
     # doctests
     print("\n\n\n Doc Tests\n-----------")
-    nfail, ntests = doctest.testmod(interactions, verbose=True)
+    nfail, ntests = doctest.testmod(features, verbose=True)
 
     # unit tests
     print("\n\n\n Unit Tests\n-----------")
     unittest.main()
-
