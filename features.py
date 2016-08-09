@@ -129,3 +129,7 @@ class Feature(mastsel.SelectionsDict):
     @property
     def molecule(self):
         return self._molecule
+
+    @property
+    def system(self):
+        return self.molecule.system

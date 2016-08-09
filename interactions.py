@@ -249,18 +249,20 @@ class Association(SelectionsList):
         if intramember_interactions:
             member_pairs = it.combinations_with_replacement(self.members, 2)
             # the key to each pairing is a tuple of the members indices
-            member_idx_pairs = it.combinations(range(len(self.members)), 2)
+            member_idx_pairs = list(it.combinations(range(len(self.members)), 2))
         # if intramember_interactions is False only get interactions between members
         else:
             member_pairs = it.combinations(self.members, 2)
             # the key to each pairing is a tuple of the members indices
-            member_idx_pairs = it.combinations(range(len(self.members)), 2)
+            member_idx_pairs = list(it.combinations(range(len(self.members)), 2))
 
         # go through each interaction_type and check for hits
         interactions = {}
+        inx_feature_key_pairs = {}
         for interaction_type in interaction_types:
 
             inx_hits = {}
+            member_feature_key_pairs = {}
             # for each pair find the hits in this interaction_type
             for idx, member_pair in enumerate(member_pairs):
                 member_a = member_pair[0]
@@ -301,8 +303,6 @@ class InteractionType(object):
         #         "{0} is not a feature needed for finding hits for {1}".format(
         #             key, cls)
 
-
-
 class HydrogenBondType(InteractionType):
     """ Class for checking validity of a HydrogenBondInx."""
 
@@ -329,68 +329,87 @@ class HydrogenBondType(InteractionType):
 
         # for each member collect the grouped features
         # initialize list of members
-        member_a_acceptors = []
-        member_a_donors = []
-        for feature_key, feature in member_a.features.items():
-            # get groupby attribute to use as a key
-            group_attribute = feature.feature_type.attributes_data[cls._grouping_attribute]
+        members_features = [{'donors':[], 'acceptors':[]} for member in [member_a, member_b]]
+        for i, member in enumerate([member_a, member_b]):
+            for feature_key, feature in member.features.items():
+                # get groupby attribute to use as a key
+                group_attribute = feature.feature_type.attributes_data[cls._grouping_attribute]
 
-            if group_attribute == cls._acceptor_key:
-                # get the acceptor atom
-                acceptor_atom = feature.atoms[0]
-                acceptor_tup = (feature_key, acceptor_atom)
-                member_a_acceptors.append(acceptor_tup)
+                if group_attribute == cls._acceptor_key:
+                    # get the acceptor atom
+                    acceptor_tup = (feature_key, feature)
+                    members_features[i]['acceptors'].append(acceptor_tup)
 
-            elif group_attribute == cls._donor_key:
-                # get the donor-H pairs of atoms for this donor
-                donor_atom = feature.atoms[0]
-                donor_H_pairs = [(donor_atom, atom) for atom in
-                                 donor_atom.adjacent_atoms if
-                                 atom.atom_type.element == 'H']
-                donor_H_pairs_tup = [(feature_key, donor_H_pair) for
-                                     donor_H_pair in donor_H_pairs]
-                member_a_donors.extend(donor_H_pairs_tup)
+                elif group_attribute == cls._donor_key:
+                    # get the donor-H pairs of atoms for this donor
+                    donor_atom = feature.atoms[0]
+                    donor_H_pairs = [(feature, atom) for atom in
+                                     donor_atom.adjacent_atoms if
+                                     atom.atom_type.element == 'H']
+                    donor_H_pairs_tup = [(feature_key, donor_H_pair) for
+                                         donor_H_pair in donor_H_pairs]
+                    members_features[i]['donors'].extend(donor_H_pairs_tup)
 
-        member_b_acceptors = []
-        member_b_donors = []
-        for feature_key, feature in member_b.features.items():
-            # get groupby attribute to use as a key
-            group_attribute = feature.feature_type.attributes_data[cls._grouping_attribute]
+        # member_a_acceptors = []
+        # member_a_donors = []
+        # for feature_key, feature in member_a.features.items():
+        #     # get groupby attribute to use as a key
+        #     group_attribute = feature.feature_type.attributes_data[cls._grouping_attribute]
 
-            if group_attribute == cls._acceptor_key:
-                # get the acceptor atom
-                acceptor_atom = feature.atoms[0]
-                acceptor_tup = (feature_key, acceptor_atom)
-                member_b_acceptors.append(acceptor_tup)
+        #     if group_attribute == cls._acceptor_key:
+        #         # get the acceptor atom
+        #         acceptor_tup = (feature_key, acceptor)
+        #         member_a_acceptors.append(acceptor_tup)
 
-            elif group_attribute == cls._donor_key:
-                # get the donor-H pairs of atoms for this donor
-                donor_atom = feature.atoms[0]
-                donor_H_pairs = [(donor_atom, atom) for atom in
-                                 donor_atom.adjacent_atoms if
-                                 atom.atom_type.element == 'H']
-                donor_H_pairs_tup = [(feature_key, donor_H_pair) for
-                                     donor_H_pair in donor_H_pairs]
-                member_b_donors.extend(donor_H_pairs_tup)
+        #     elif group_attribute == cls._donor_key:
+        #         # get the donor-H pairs of atoms for this donor
+        #         donor_atom = feature.atoms[0]
+        #         donor_H_pairs = [(feature, atom) for atom in
+        #                          donor_atom.adjacent_atoms if
+        #                          atom.atom_type.element == 'H']
+        #         donor_H_pairs_tup = [(feature_key, donor_H_pair) for
+        #                              donor_H_pair in donor_H_pairs]
+        #         member_a_donors.extend(donor_H_pairs_tup)
+
+        # member_b_acceptors = []
+        # member_b_donors = []
+        # for feature_key, feature in member_b.features.items():
+        #     # get groupby attribute to use as a key
+        #     group_attribute = feature.feature_type.attributes_data[cls._grouping_attribute]
+
+        #     if group_attribute == cls._acceptor_key:
+        #         # get the acceptor atom
+        #         acceptor_tup = (feature_key, feature)
+        #         member_b_acceptors.append(acceptor_tup)
+
+        #     elif group_attribute == cls._donor_key:
+        #         # get the donor-H pairs of atoms for this donor
+        #         donor_atom = feature.atoms[0]
+        #         donor_H_pairs = [(feature, atom) for atom in
+        #                          donor_atom.adjacent_atoms if
+        #                          atom.atom_type.element == 'H']
+        #         donor_H_pairs_tup = [(feature_key, donor_H_pair) for
+        #                              donor_H_pair in donor_H_pairs]
+        #         member_b_donors.extend(donor_H_pairs_tup)
 
 
         donor_acceptor_pairs = []
         # pair the donors from the first with acceptors of the second
-        donor_acceptor_pairs.extend(it.product(member_a_donors,
-                                               member_b_acceptors))
+        donor_acceptor_pairs.extend(it.product(members_features[0]['donors'],
+                                               members_features[1]['acceptors']))
         # pair the acceptors from the first with the donors of the second
-        donor_acceptor_pairs.extend(it.product(member_b_donors,
-                                               member_a_acceptors))
+        donor_acceptor_pairs.extend(it.product(members_features[1]['donors'],
+                                               members_features[0]['acceptors']))
 
         # scan the pairs for hits
         hit_pair_keys = []
         hbonds = []
         for donor_tup, acceptor_tup in donor_acceptor_pairs:
             donor_feature_key = donor_tup[0]
-            donor_atom = donor_tup[1][0]
+            donor_feature = donor_tup[1][0]
             h_atom = donor_tup[1][1]
             acceptor_feature_key = acceptor_tup[0]
-            acceptor_atom = acceptor_tup[1]
+            acceptor_feature = acceptor_tup[1]
             # try to make a HydrogenBondInx object, which calls check,
             # OPTIMIZATION
             #
@@ -402,7 +421,7 @@ class HydrogenBondType(InteractionType):
             # in this 'safe' InteractionType, an unsafe optimized
             # version can be made separately if desired.
             try:
-                hbond = HydrogenBondInx(donor=donor_atom, H=h_atom, acceptor=acceptor_atom)
+                hbond = HydrogenBondInx(donor=donor_feature, H=h_atom, acceptor=acceptor_feature)
             # else continue to the next pairing
             except InteractionError:
                 continue
@@ -466,142 +485,19 @@ class HydrogenBondType(InteractionType):
                                               delim,
                                               inx.acceptor.atom_type.pdb_serial_number))
 
+class Interaction(SelectionsList):
 
-class NoHHydrogenBondType(InteractionType):
-    """Class for checking validity of a NoHHydrogenBondInx. Different
-from HydrogenBondType in that having the hydrogens present is not necessary."""
+    def __init__(self, features=None, system=None, interaction_type=None):
 
-    def __init__(self, hbond_attrs=None):
-        super().__init__(attr_dict=hbond_attrs)
+        assert interaction_type, "interaction_type must be given"
+        assert issubclass(interaction_type, InteractionType), \
+            "interaction_type must be a subclass of mast.interactions.InteractionType"
 
-    _feature_families = mastinxconfig.HBOND_FEATURE_FAMILIES
-    feature_families = _feature_families
-    _donor_key = 'Donor'
-    _acceptor_key = 'Acceptor'
-    _feature_types = mastinxconfig.HBOND_FEATURE_TYPES
-    feature_type = _feature_types
+        for feature in features:
+            assert feature.system is system, \
+                "feature's system must be all the same"
 
-    def __repr__(self):
-        return str(self.__class__)
-
-    @classmethod
-    def find_hits(cls, **kwargs):
-        """Takes in key-word arguments for the donors and acceptor atom
-IndexedSelections. As an interface find_hits must take in more generic selections."""
-        # check that the keys ar okay in parent class
-        super().find_hits(**kwargs)
-
-        # Hbond specific stuff
-        donors = kwargs[cls._donor_key]
-        acceptors = kwargs[cls._acceptor_key]
-        donor_Hs = []
-        # determine the virtual Hydrogens the donor would have
-        for donor in donors:
-            # donors are given in an IndexedSelections by the
-            # interface, must get the atom from this to use
-            donor = list(donor.values())[0]
-            # get the inferred number of hydrogen bonds
-            # TODO dependent on RDKit setting the num_Hs attribute
-            num_virtual_Hs = donor.num_Hs
-            adj_atoms = donor.adjacent_atoms
-            # make a pseudo atom for each virtual hydrogen
-            H_coords = virtual_H_coords(donor, adj_atoms, num_virtual_Hs)
-            # make pairs of the pseudo-atoms and donors
-            for H_coord in H_coords:
-                # create a pseudo-atom
-                H = PseudoAtom(coords=H_coords)
-                donor_Hs.append((donor, H))
-        # make pairs of Donor-H and acceptors
-        hits = []
-        # acceptors are given in as IndexedSelections
-        # make pairs of them to compare
-        acceptors = [list(acceptor.values())[0] for acceptor in acceptors]
-        pairs = it.product(donor_Hs, acceptors)
-        for pair in pairs:
-            donor_atom = pair[0][0]
-            h_atom = pair[0][1]
-            acceptor_atom = pair[1]
-            # try to make a HydrogenBondInx object, which calls check
-            try:
-                hbond = NoHHydrogenBondInx(donor=donor_atom, pseudo_H=h_atom, acceptor=acceptor_atom)
-            # else continue to the next pairing
-            except InteractionError:
-                continue
-            # if it succeeds add it to the list of H-Bonds
-            hits.append(hbond)
-
-        return hits
-
-    @classmethod
-    def check(cls, donor_atom, h_atom, acceptor_atom):
-        """Checks if the 3 atoms qualify as a hydrogen bond. Returns a tuple
-        (bool, float, float) where the first element is whether or not it
-        qualified, the second and third are the distance and angle
-        respectively. Angle may be None if distance failed to qualify.
-
-        """
-        from scipy.spatial.distance import cdist
-        distance = cdist(np.array([donor_atom.coords]), np.array([acceptor_atom.coords]))[0,0]
-        if cls.check_distance(distance) is False:
-            return (False, distance, None)
-
-        v1 = donor_atom.coords - h_atom.coords
-        v2 = acceptor_atom.coords - h_atom.coords
-        try:
-            angle = np.degrees(np.arccos(np.dot(v1,v2)/(la.norm(v1) * la.norm(v2))))
-        except RuntimeWarning:
-            print("v1: {0} \n"
-                  "v2: {1}".format(v1, v2))
-        if cls.check_angle(angle) is False:
-            return (False, distance, angle)
-
-        return (True, distance, angle)
-
-    @classmethod
-    def check_distance(cls, distance):
-        if distance < mastinxconfig.HBOND_DIST_MAX:
-            return True
-        else:
-            return False
-
-    @classmethod
-    def check_angle(cls, angle):
-        if angle > mastinxconfig.HBOND_DON_ANGLE_MIN:
-            return True
-        else:
-            return False
-
-    @classmethod
-    def pdb_serial_output(self, inxs, path, delim=","):
-        """Output the pdb serial numbers (index in pdb) of the donor and
-        acceptor in each HBond to a file:
-
-        donor_1, acceptor_1
-        donor_2, acceptor_2"""
-
-        with open(path, 'w') as wf:
-            for inx in inxs:
-                wf.write("{0}{1}{2}\n".format(inx.donor.atom_type.pdb_serial_number,
-                                              delim,
-                                              inx.acceptor.atom_type.pdb_serial_number))
-
-
-
-class Interaction(Association):
-    """Base class for associating Selections from a SelectionsList with
-information about an about the interaction.
-
-    """
-
-    def __init__(self, members=None, interaction_type=None, system=None):
-        super().__init__(members=members, system=system)
-        if not interaction_type:
-            interaction_type = InteractionType()
-
-        if not issubclass(interaction_type, InteractionType):
-            raise TypeError(
-                "interaction_type must be a subclass of InteractionType, not {}".format(
-                type(interaction_type)))
+        super().__init__(selection_list=features)
         self._interaction_type = interaction_type
 
     @property
@@ -615,7 +511,9 @@ class HydrogenBondInx(Interaction):
 
     def __init__(self, donor=None, H=None, acceptor=None):
 
-        okay, distance, angle = HydrogenBondType.check(donor, H, acceptor)
+        donor_atom = donor.atoms[0]
+        acceptor_atom = acceptor.atoms[0]
+        okay, distance, angle = HydrogenBondType.check(donor_atom, H, acceptor_atom)
         if not okay:
             if angle is None:
                 raise InteractionError(
@@ -623,7 +521,7 @@ class HydrogenBondInx(Interaction):
                     H: {1}
                     acceptor: {2}
                     distance = {3} FAILED
-                    angle = not calculated""".format(donor, H, acceptor, distance))
+                    angle = not calculated""".format(donor_atom, H, acceptor_atom, distance))
 
             else:
                 raise InteractionError(
@@ -631,15 +529,13 @@ class HydrogenBondInx(Interaction):
                     H: {1}
                     acceptor: {2}
                     distance = {3}
-                    angle = {4} FAILED""".format(donor, H, acceptor, distance, angle))
+                    angle = {4} FAILED""".format(donor_atom, H, acceptor_atom, distance, angle))
 
         # success, finish creating interaction
-        import ipdb; ipdb.set_trace()
-        atom_system = donor.molecule.system
-        super().__init__(members=[donor,H,acceptor],
+        atom_system = donor.system
+        super().__init__(features=[donor, acceptor],
                          interaction_type=HydrogenBondType,
                          system=atom_system)
-        self._interaction_type = HydrogenBondType
         self._donor = donor
         self._H = H
         self._acceptor = acceptor
