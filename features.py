@@ -65,6 +65,8 @@ class FeatureType(object):
             attributes[attr] = value
 
         feature_type = type(feature_type_name, (FeatureType,), attributes)
+        # add the attributes as a dict
+        feature_type.attributes_data = attributes
         # add core attributes
         feature_type.molecule_type = molecule_type
         if atom_idxs:
@@ -75,6 +77,7 @@ class FeatureType(object):
             feature_type.bond_idxs = bond_idxs
         else:
             feature_type.bond_idxs = []
+
 
         # feature_type.angle_idxs = angle_idxs
 
@@ -110,6 +113,14 @@ class Feature(mastsel.SelectionsDict):
         super().__init__(selection_dict=selections, flags=['feature'])
         self._feature_type = feature_type
         self._molecule = molecule
+
+    @property
+    def atoms(self):
+        return self['atoms']
+
+    @property
+    def bonds(self):
+        return self['bonds']
 
     @property
     def feature_type(self):

@@ -24,15 +24,9 @@ BEN_rdkit_wrapper = RDKitMoleculeWrapper(BEN_rdkit, mol_name="BEN")
 trypsin_rdkit_wrapper = RDKitMoleculeWrapper(trypsin_rdkit, mol_name="Trypsin")
 
 print("making molecule type for trypsin")
-TrypsinType = trypsin_rdkit_wrapper.make_molecule_type()
+TrypsinType = trypsin_rdkit_wrapper.make_molecule_type(find_features=True)
 print("making molecule type for benzamidine")
-BENType = BEN_rdkit_wrapper.make_molecule_type()
-
-print("Finding features for trypsin")
-TrypsinType.features = trypsin_rdkit_wrapper.find_features()
-print("finding features for benzamidine")
-BENType.features = BEN_rdkit_wrapper.find_features()
-
+BENType = BEN_rdkit_wrapper.make_molecule_type(find_features=True)
 
 BEN_coords = BEN_rdkit_wrapper.get_conformer_coords(0)
 trypsin_coords = trypsin_rdkit_wrapper.get_conformer_coords(0)
@@ -66,9 +60,15 @@ TrypsinBenzamidineSystemType.add_association_type(TrypsinBenzamidineAssociationT
 
 # now when we make the system the selections are put into an
 # Association that can be profiled
-import ipdb; ipdb.set_trace()
 trypsys = TrypsinBenzamidineSystemType.to_system(member_coords)
 
 # from mast.molecule import Molecule
-# print("testing Hbond interaction between molecules in the receptor ligand association")
-# rec_lig_assoc.profile_interactions([HydrogenBondType], between=Molecule)
+print("testing Hbond interaction between molecules in the receptor ligand association")
+tryp_ben_assoc = trypsys.associations[0]
+
+intermember_key_pairs, intermember_interactions = \
+tryp_ben_assoc.profile_interactions([mastinx.HydrogenBondType])
+
+# intermember_key_pairs, intermember_interactions = \
+# tryp_ben_assoc.profile_interactions([mastinx.HydrogenBondType],
+#                                     intramember_interactions=True)

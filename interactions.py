@@ -1,9 +1,12 @@
 """ The interactions module. """
+import itertools as it
+from collections import defaultdict
+
 import numpy as np
 import numpy.linalg as la
 
 from mast.selection import SelectionsList
-
+from mast.system import System
 import mast.selection as mastsel
 import mast.molecule as mastmol
 import mast.system as mastsys
@@ -217,6 +220,10 @@ class Association(SelectionsList):
         self._interactions = None
 
     @property
+    def members(self):
+        return self.data
+
+    @property
     def system(self):
         return self._system
 
@@ -232,65 +239,43 @@ class Association(SelectionsList):
     def interactions(self):
         return self._interactions
 
-    def profile_interactions(self, interaction_types, between=None):
-        """Profiles all interactions of all features for everything in the
-        association. the between flag sets the inter-selection interactions to be profiled.
-
-        E.g.: association.profile_interactions([HydrogenBondType], between=Molecule)
-
-        """
-        from itertools import combinations
-        from collections import defaultdict
-
-        assert not between is None, "between must be provided"
+    def profile_interactions(self, interaction_types,
+                             intramember_interactions=False):
         assert all([issubclass(itype, InteractionType) for itype in interaction_types]), \
                    "All interaction_types must be a subclass of InteractionType"
+
+        # if intramember interactions is True make pairs of each
+        # member to itself
+        if intramember_interactions:
+            member_pairs = it.combinations_with_replacement(self.members, 2)
+            # the key to each pairing is a tuple of the members indices
+            member_idx_pairs = it.combinations(range(len(self.members)), 2)
+        # if intramember_interactions is False only get interactions between members
+        else:
+            member_pairs = it.combinations(self.members, 2)
+            # the key to each pairing is a tuple of the members indices
+            member_idx_pairs = it.combinations(range(len(self.members)), 2)
+
         # go through each interaction_type and check for hits
         interactions = {}
         for interaction_type in interaction_types:
-            # collect the specific features for each family
-            family_features = defaultdict(list)
-            for family in interaction_type.feature_families:
-                for member in self:
-                    try:
-                        family_features[family].extend(member.family_selections[family])
-                    except KeyError:
-                        print("No {0} in {1}".format(family, member))
-                        continue
 
-            # pass these to the check class method of the InteractionType
-            all_inxs = interaction_type.find_hits(**family_features)
-            # separate into intra- and inter-member interactions
-            intramember_inxs = []
-            intermember_inxs = []
-            for inx in all_inxs:
-                # get the selections of type `between`
-                selections = []
-                for member in inx:
-                    member_sels = [member for key, member in member.registry]
-                    for sel in member_sels:
-                        if isinstance(sel, between):
-                            selections.append(sel)
-                # if they are all in the same selection they are in
-                # the same member
-                sel_pairs = combinations(selections, 2)
-                intra = True
-                for pair in sel_pairs:
-                    if pair[0] is pair[1]:
-                        pass
-                    else:
-                        intra = False
-                if intra:
-                    intramember_inxs.append(inx)
-                else:
-                    intermember_inxs.append(inx)
+            inx_hits = {}
+            # for each pair find the hits in this interaction_type
+            for idx, member_pair in enumerate(member_pairs):
+                member_a = member_pair[0]
+                member_b = member_pair[1]
+                feature_key_pairs, pair_hits = interaction_type.find_hits(member_a,
+                                                       member_b)
+                inx_hits[member_idx_pairs[idx]] = pair_hits
+                member_feature_key_pairs[member_idx_pairs[idx]] = feature_key_pairs
 
-            interactions[interaction_type] = intermember_inxs
-
-        # TODO handle the intramember_interactions
+            # save the results for this interaction for all member pairs
+            interactions[interaction_type] = inx_hits
+            inx_feature_key_pairs[interaction_type] = member_feature_key_pairs
 
         # set the interactions for only the intermember interactions
-        self._interactions = interactions
+        return inx_feature_key_pairs, interactions
 
 
 class InteractionType(object):
@@ -303,17 +288,18 @@ class InteractionType(object):
         raise NotImplementedError
 
     @classmethod
-    def find_hits(cls, **kwargs):
-        # make sure all the necessary key word argument families were passed
-        for family in cls._feature_families:
-            assert family in kwargs.keys(), \
-                "{0} feature family must be in keyword arguments".format(
-                    family)
-        # make sure there are no extra key word argument families
-        for key in kwargs:
-            assert key in cls._feature_families, \
-                "{0} is not a feature needed for finding hits for {1}".format(
-                    key, cls)
+    def find_hits(cls, members_features):
+        pass
+        # # make sure all the necessary key word argument families were passed
+        # for family in cls._feature_families:
+        #     assert family in kwargs.keys(), \
+        #         "{0} feature family must be in keyword arguments".format(
+        #             family)
+        # # make sure there are no extra key word argument families
+        # for key in kwargs:
+        #     assert key in cls._feature_families, \
+        #         "{0} is not a feature needed for finding hits for {1}".format(
+        #             key, cls)
 
 
 
@@ -327,6 +313,7 @@ class HydrogenBondType(InteractionType):
     feature_families = _feature_families
     _donor_key = 'Donor'
     _acceptor_key = 'Acceptor'
+    _grouping_attribute = 'rdkit_family'
     _feature_types = mastinxconfig.HBOND_FEATURE_TYPES
     feature_type = _feature_types
 
@@ -334,49 +321,97 @@ class HydrogenBondType(InteractionType):
         return str(self.__class__)
 
     @classmethod
-    def find_hits(cls, **kwargs):
-        """Takes in key-word arguments for the donors and acceptor atom
-        IndexedSelections. As an interface find_hits must take in more
-        generic selections.
+    def find_hits(cls, member_a, member_b):
 
-        """
-        from itertools import product
         # check that the keys ar okay in parent class
-        super().find_hits(**kwargs)
+        # super().find_hits(members_features)
 
-        # Hbond specific stuff
-        donors = kwargs[cls._donor_key]
-        acceptors = kwargs[cls._acceptor_key]
-        donor_Hs = []
-        # find Hs for all donors and make Donor-H pairs
-        for donor in donors:
-            # donors are given in as INdexedSelections by the
-            # interface must get the atom
-            donor = list(donor.values())[0]
-            Hs = [atom for atom in donor.adjacent_atoms if
-                        atom.atom_type.element == 'H']
-            for H in Hs:
-                donor_Hs.append((donor, H))
-        # make pairs of Donor-H and acceptors
-        hits = []
-        # acceptors are given in as IndexedSelections
-        # make pairs of them to compare
-        acceptors = [list(acceptor.values())[0] for acceptor in acceptors]
-        pairs = product(donor_Hs, acceptors)
-        for pair in pairs:
-            donor_atom = pair[0][0]
-            h_atom = pair[0][1]
-            acceptor_atom = pair[1]
-            # try to make a HydrogenBondInx object, which calls check
+
+        # for each member collect the grouped features
+        # initialize list of members
+        member_a_acceptors = []
+        member_a_donors = []
+        for feature_key, feature in member_a.features.items():
+            # get groupby attribute to use as a key
+            group_attribute = feature.feature_type.attributes_data[cls._grouping_attribute]
+
+            if group_attribute == cls._acceptor_key:
+                # get the acceptor atom
+                acceptor_atom = feature.atoms[0]
+                acceptor_tup = (feature_key, acceptor_atom)
+                member_a_acceptors.append(acceptor_tup)
+
+            elif group_attribute == cls._donor_key:
+                # get the donor-H pairs of atoms for this donor
+                donor_atom = feature.atoms[0]
+                donor_H_pairs = [(donor_atom, atom) for atom in
+                                 donor_atom.adjacent_atoms if
+                                 atom.atom_type.element == 'H']
+                donor_H_pairs_tup = [(feature_key, donor_H_pair) for
+                                     donor_H_pair in donor_H_pairs]
+                member_a_donors.extend(donor_H_pairs_tup)
+
+        member_b_acceptors = []
+        member_b_donors = []
+        for feature_key, feature in member_b.features.items():
+            # get groupby attribute to use as a key
+            group_attribute = feature.feature_type.attributes_data[cls._grouping_attribute]
+
+            if group_attribute == cls._acceptor_key:
+                # get the acceptor atom
+                acceptor_atom = feature.atoms[0]
+                acceptor_tup = (feature_key, acceptor_atom)
+                member_b_acceptors.append(acceptor_tup)
+
+            elif group_attribute == cls._donor_key:
+                # get the donor-H pairs of atoms for this donor
+                donor_atom = feature.atoms[0]
+                donor_H_pairs = [(donor_atom, atom) for atom in
+                                 donor_atom.adjacent_atoms if
+                                 atom.atom_type.element == 'H']
+                donor_H_pairs_tup = [(feature_key, donor_H_pair) for
+                                     donor_H_pair in donor_H_pairs]
+                member_b_donors.extend(donor_H_pairs_tup)
+
+
+        donor_acceptor_pairs = []
+        # pair the donors from the first with acceptors of the second
+        donor_acceptor_pairs.extend(it.product(member_a_donors,
+                                               member_b_acceptors))
+        # pair the acceptors from the first with the donors of the second
+        donor_acceptor_pairs.extend(it.product(member_b_donors,
+                                               member_a_acceptors))
+
+        # scan the pairs for hits
+        hit_pair_keys = []
+        hbonds = []
+        for donor_tup, acceptor_tup in donor_acceptor_pairs:
+            donor_feature_key = donor_tup[0]
+            donor_atom = donor_tup[1][0]
+            h_atom = donor_tup[1][1]
+            acceptor_feature_key = acceptor_tup[0]
+            acceptor_atom = acceptor_tup[1]
+            # try to make a HydrogenBondInx object, which calls check,
+            # OPTIMIZATION
+            #
+            # otherwise we have to call check first then the
+            # HydrogenBondInx constructor will re-call check to get
+            # the angle and distance. If we allow passing and not
+            # checking the angle and distance in the constructor then
+            # it would be faster, however I am not going to allow that
+            # in this 'safe' InteractionType, an unsafe optimized
+            # version can be made separately if desired.
             try:
                 hbond = HydrogenBondInx(donor=donor_atom, H=h_atom, acceptor=acceptor_atom)
             # else continue to the next pairing
             except InteractionError:
                 continue
             # if it succeeds add it to the list of H-Bonds
-            hits.append(hbond)
+            hbonds.append(hbond)
+            # and the feature keys to the feature key pairs
+            hit_pair_keys.append((donor_feature_key, acceptor_feature_key))
 
-        return hits
+        return hit_pair_keys, hbonds
 
     @classmethod
     def check(cls, donor_atom, h_atom, acceptor_atom):
@@ -453,7 +488,6 @@ from HydrogenBondType in that having the hydrogens present is not necessary."""
     def find_hits(cls, **kwargs):
         """Takes in key-word arguments for the donors and acceptor atom
 IndexedSelections. As an interface find_hits must take in more generic selections."""
-        from itertools import product
         # check that the keys ar okay in parent class
         super().find_hits(**kwargs)
 
@@ -482,7 +516,7 @@ IndexedSelections. As an interface find_hits must take in more generic selection
         # acceptors are given in as IndexedSelections
         # make pairs of them to compare
         acceptors = [list(acceptor.values())[0] for acceptor in acceptors]
-        pairs = product(donor_Hs, acceptors)
+        pairs = it.product(donor_Hs, acceptors)
         for pair in pairs:
             donor_atom = pair[0][0]
             h_atom = pair[0][1]
@@ -586,21 +620,21 @@ class HydrogenBondInx(Interaction):
             if angle is None:
                 raise InteractionError(
                     """donor: {0}
-H: {1}
-acceptor: {2}
-distance = {3} FAILED
+                    H: {1}
+                    acceptor: {2}
+                    distance = {3} FAILED
                     angle = not calculated""".format(donor, H, acceptor, distance))
 
             else:
                 raise InteractionError(
                     """donor: {0}
-H: {1}
-acceptor: {2}
-distance = {3}
+                    H: {1}
+                    acceptor: {2}
+                    distance = {3}
                     angle = {4} FAILED""".format(donor, H, acceptor, distance, angle))
 
         # success, finish creating interaction
-
+        import ipdb; ipdb.set_trace()
         atom_system = donor.molecule.system
         super().__init__(members=[donor,H,acceptor],
                          interaction_type=HydrogenBondType,

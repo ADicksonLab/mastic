@@ -7,7 +7,7 @@ from mast.selection import CoordArray, CoordArraySelection, \
     Point, IndexedSelection, SelectionsDict, SelectionsList, \
     Selection
 
-# from mast.system import System
+
 import mast.config.molecule as mastmolconfig
 
 __all__ = ['AtomType', 'BondType', 'MoleculeType',]
@@ -262,7 +262,6 @@ class MoleculeType(object):
     def factory(mol_type_name, atom_types=None,
                 bond_types=None, bond_map=None,
                 angle_types=None, angle_map=None, # stubbed out
-                feature_types=dict(),
                 **molecule_attrs):
         """Static method for generating molecule types dynamically given a type
         name (which will be the class name) and a domain specific dictionary
@@ -341,7 +340,7 @@ class MoleculeType(object):
         molecule_type.atom_type_library = set(atom_types)
         molecule_type.bond_type_library = set(bond_types)
         # molecule_type.angle_type_library = set(angle_types)
-        molecule_type._feature_types = feature_types
+        molecule_type._feature_types = {}
 
         return molecule_type
 
@@ -432,6 +431,7 @@ class Atom(Point):
     @property
     def system(self):
         """The System this Atom is in else None."""
+        from mast.system import System
         if not self.isin_system:
             return None
         else:
@@ -581,6 +581,7 @@ class Bond(IndexedSelection):
     @property
     def system(self):
         """The System this Bond is in else None."""
+        from mast.system import System
         if self.isin_system is False:
             return None
         else:
@@ -727,6 +728,7 @@ class Molecule(SelectionsDict):
     @property
     def system(self):
         """The System this Molecule is in else None."""
+        from mast.system import System
         if self.isin_system is False:
             return None
         else:
