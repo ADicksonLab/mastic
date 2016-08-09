@@ -221,26 +221,43 @@ class Association(SelectionsList):
 
     @property
     def members(self):
+        """The members in the Association."""
         return self.data
 
     @property
     def system(self):
+        """The System the Association selects on."""
         return self._system
 
     @property
     def system_type(self):
+        """The SystemType of the System the Association selects on."""
         return self._system.system_type
 
     @property
     def association_type(self):
+        """The AssociationType this Association substantiates."""
         return self._association_type
 
     @property
     def interactions(self):
+        """Interactions that this Association contains between members. Must
+        be set manually due to computation time associated with
+        profiling interactions.
+
+        """
         return self._interactions
 
     def profile_interactions(self, interaction_types,
                              intramember_interactions=False):
+        """Accepts any number of InteractionType subclasses and identifies
+        Interactions between the members of the association using the
+        InteractionType.find_hits function.
+
+        Examples
+        --------
+
+        """
         assert all([issubclass(itype, InteractionType) for itype in interaction_types]), \
                    "All interaction_types must be a subclass of InteractionType"
 
@@ -282,30 +299,42 @@ class Association(SelectionsList):
 
 
 class InteractionType(object):
-    """ Prototype class for all intermolecular interactions."""
+    """Class for generating specific interaction type classes with the factory
+    method.
+
+    Examples
+    --------
+
+    """
+
     def __init__(self):
         pass
 
     @classmethod
     def check(cls, *args, **kwargs):
-        raise NotImplementedError
+        """The principle class method for testing for the existence of an
+        interaction from specified geometric constraint parameters.
+        All subclasses of InteractionType should implement this for
+        domain specificity.
+
+        """
+        pass
 
     @classmethod
-    def find_hits(cls, members_features):
+    def find_hits(cls, member_a, member_b):
+        """Returns all the 'hits' for interactions of features between two
+        members (molecules, selections, etc.), where a hit is a
+        feature set that satisfies the geometric constraints defined
+        in the InteractionType.check function.
+
+        """
         pass
-        # # make sure all the necessary key word argument families were passed
-        # for family in cls._feature_families:
-        #     assert family in kwargs.keys(), \
-        #         "{0} feature family must be in keyword arguments".format(
-        #             family)
-        # # make sure there are no extra key word argument families
-        # for key in kwargs:
-        #     assert key in cls._feature_families, \
-        #         "{0} is not a feature needed for finding hits for {1}".format(
-        #             key, cls)
 
 class HydrogenBondType(InteractionType):
-    """ Class for checking validity of a HydrogenBondInx."""
+    """Defines an InteractionType class for hydrogen bonds between members
+    with explicit hydrogens.
+
+    """
 
     def __init__(self):
         pass
@@ -326,7 +355,6 @@ class HydrogenBondType(InteractionType):
 
         # check that the keys ar okay in parent class
         # super().find_hits(members_features)
-
 
         # for each member collect the grouped features
         # initialize list of members
@@ -351,49 +379,6 @@ class HydrogenBondType(InteractionType):
                                          donor_H_pair in donor_H_pairs]
                     members_features[i]['donors'].extend(donor_H_pairs_tup)
 
-        # member_a_acceptors = []
-        # member_a_donors = []
-        # for feature_key, feature in member_a.features.items():
-        #     # get groupby attribute to use as a key
-        #     group_attribute = feature.feature_type.attributes_data[cls._grouping_attribute]
-
-        #     if group_attribute == cls._acceptor_key:
-        #         # get the acceptor atom
-        #         acceptor_tup = (feature_key, acceptor)
-        #         member_a_acceptors.append(acceptor_tup)
-
-        #     elif group_attribute == cls._donor_key:
-        #         # get the donor-H pairs of atoms for this donor
-        #         donor_atom = feature.atoms[0]
-        #         donor_H_pairs = [(feature, atom) for atom in
-        #                          donor_atom.adjacent_atoms if
-        #                          atom.atom_type.element == 'H']
-        #         donor_H_pairs_tup = [(feature_key, donor_H_pair) for
-        #                              donor_H_pair in donor_H_pairs]
-        #         member_a_donors.extend(donor_H_pairs_tup)
-
-        # member_b_acceptors = []
-        # member_b_donors = []
-        # for feature_key, feature in member_b.features.items():
-        #     # get groupby attribute to use as a key
-        #     group_attribute = feature.feature_type.attributes_data[cls._grouping_attribute]
-
-        #     if group_attribute == cls._acceptor_key:
-        #         # get the acceptor atom
-        #         acceptor_tup = (feature_key, feature)
-        #         member_b_acceptors.append(acceptor_tup)
-
-        #     elif group_attribute == cls._donor_key:
-        #         # get the donor-H pairs of atoms for this donor
-        #         donor_atom = feature.atoms[0]
-        #         donor_H_pairs = [(feature, atom) for atom in
-        #                          donor_atom.adjacent_atoms if
-        #                          atom.atom_type.element == 'H']
-        #         donor_H_pairs_tup = [(feature_key, donor_H_pair) for
-        #                              donor_H_pair in donor_H_pairs]
-        #         member_b_donors.extend(donor_H_pairs_tup)
-
-
         donor_acceptor_pairs = []
         # pair the donors from the first with acceptors of the second
         donor_acceptor_pairs.extend(it.product(members_features[0]['donors'],
@@ -412,11 +397,10 @@ class HydrogenBondType(InteractionType):
             acceptor_feature_key = acceptor_tup[0]
             acceptor_feature = acceptor_tup[1]
             # try to make a HydrogenBondInx object, which calls check,
-            # OPTIMIZATION
             #
-            # otherwise we have to call check first then the
-            # HydrogenBondInx constructor will re-call check to get
-            # the angle and distance. If we allow passing and not
+            # OPTIMIZATION: otherwise we have to call check first then
+            # the HydrogenBondInx constructor will re-call check to
+            # get the angle and distance. If we allow passing and not
             # checking the angle and distance in the constructor then
             # it would be faster, however I am not going to allow that
             # in this 'safe' InteractionType, an unsafe optimized
@@ -460,6 +444,10 @@ class HydrogenBondType(InteractionType):
 
     @classmethod
     def check_distance(cls, distance):
+        """For a float distance checks if it is less than the configuration
+        file HBOND_DIST_MAX value.
+
+        """
         if distance < mastinxconfig.HBOND_DIST_MAX:
             return True
         else:
@@ -467,6 +455,11 @@ class HydrogenBondType(InteractionType):
 
     @classmethod
     def check_angle(cls, angle):
+        """For a float distance checks if it is less than the configuration
+        file HBOND_DON_ANGLE_MIN value.
+
+        """
+
         if angle > mastinxconfig.HBOND_DON_ANGLE_MIN:
             return True
         else:
@@ -475,10 +468,13 @@ class HydrogenBondType(InteractionType):
     @classmethod
     def pdb_serial_output(self, inxs, path, delim=","):
         """Output the pdb serial numbers (index in pdb) of the donor and
-        acceptor in each HBond to a file:
+        acceptor in each HBond to a file like:
 
         donor_1, acceptor_1
-        donor_2, acceptor_2"""
+        donor_2, acceptor_2
+        ...
+
+        """
 
         with open(path, 'w') as wf:
             for inx in inxs:
@@ -487,7 +483,17 @@ class HydrogenBondType(InteractionType):
                                               inx.acceptor.atom_type.pdb_serial_number))
 
 class Interaction(SelectionsList):
+    """Substantiates the InteractionType class by containing Feature
+    objects.
 
+    SelectionsList container for multiple features which together
+    constitute an intermolecular interaction, e.g. donor and acceptor
+    features in a hydrogen bond. Specific implementations of
+    Interactions should inherit from this class, e.g. HydrogenBondInx
+    substantiates the HydrogenBondType class, where the Inx suffix is
+    short for interaction.
+
+    """
     def __init__(self, features=None, system=None, interaction_type=None):
 
         assert interaction_type, "interaction_type must be given"
@@ -503,10 +509,12 @@ class Interaction(SelectionsList):
 
     @property
     def interaction_type(self):
+        """The InteractionType this Interaction substantiates."""
         return self._interaction_type
 
 class HydrogenBondInx(Interaction):
-    """Interaction subclass that has HydrogenBondType type.
+    """Substantiates HydrogenBondType by selecting donor and acceptor
+    features, as well as the involved Hydrogen atom.
 
     """
 
@@ -545,22 +553,30 @@ class HydrogenBondInx(Interaction):
 
     @property
     def donor(self):
+        """The donor Feature in the hydrogen bond."""
         return self._donor
 
     @property
     def H(self):
+        """The donated hydrogen Atom in the hydrogen bond."""
         return self._H
 
     @property
     def acceptor(self):
+        """The acceptor Feature in the hydrogen bond."""
         return self._acceptor
 
     @property
     def distance(self):
+        """The distance between the donor atom and the acceptor atom."""
         return self._distance
 
     @property
     def angle(self):
+        """The angle (in degrees) between the donor atom, hydrogen atom, and
+        acceptor atom with the hydrogen atom as the vertex.
+
+        """
         return self._angle
 
     def pp(self):

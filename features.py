@@ -2,6 +2,10 @@
 that match a signature in a database and are known to have some
 physical property.
 
+This class defines a FeatureType class for deriving new types of
+features through either manual subclassing or through the factory
+method for dynamic generation.
+
 """
 
 import mast.config.features as mastfeatconfig
@@ -10,6 +14,14 @@ import mast.molecule as mastmol
 import mast.selection as mastsel
 
 class FeatureType(object):
+    """Class for generating specific system type classes with the factory
+    method.
+
+    Examples
+    --------
+
+
+    """
 
     attributes = mastfeatconfig.FEATURE_ATTRIBUTES
 
@@ -18,6 +30,10 @@ class FeatureType(object):
 
     @classmethod
     def to_feature(cls, molecule):
+        """Substantiate a Feature by specifying a substantiated Molecule from
+        which to make selections from.
+
+        """
         return Feature(molecule=molecule, feature_type=cls)
 
     @classmethod
@@ -25,6 +41,13 @@ class FeatureType(object):
                 molecule_type=None,
                 atom_idxs=None, bond_idxs=None,
                 **feature_attrs):
+        """Static method for generating feature types dynamically given a type
+        name (which will be the class name) and a domain specific dictionary
+        of feature attributes.
+
+        See mast.config.features for standard FeatureType attributes.
+        See class docstring for examples.
+        """
 
         # validate input
         assert molecule_type, "molecule_type must be given"
@@ -85,17 +108,26 @@ class FeatureType(object):
 
     @classmethod
     def atom_types(cls):
+        """The AtomTypes in the FeatureType."""
         return [atom_type for i, atom_type in
                 enumerate(cls.molecule_type.atom_types) if i in cls.atom_idxs]
 
     @classmethod
     def bond_types(cls):
+        """The BondTypes in the FeatureType."""
         return [bond_type for i, bond_type in
                 enumerate(cls.molecule_type.bond_types) if i in cls.bond_idxs]
 
 
 class Feature(mastsel.SelectionsDict):
+    """Feature, which is a collection of Atoms and Bonds selected from a
+    single Molecule and are described by a domain specific set of
+    attributes.
 
+    Examples
+    --------
+
+    """
     def __init__(self, molecule=None, feature_type=None):
 
         assert isinstance(molecule, mastmol.Molecule), \
@@ -116,20 +148,25 @@ class Feature(mastsel.SelectionsDict):
 
     @property
     def atoms(self):
+        """Atoms in the feature"""
         return self['atoms']
 
     @property
     def bonds(self):
+        """Bonds in the feature"""
         return self['bonds']
 
     @property
     def feature_type(self):
+        """FeatureType this Feature substantiated."""
         return self._feature_type
 
     @property
     def molecule(self):
+        """Molecule this Feature makes selections of."""
         return self._molecule
 
     @property
     def system(self):
+        """The system this Feature's molecule is in."""
         return self.molecule.system
