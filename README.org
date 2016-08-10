@@ -1,10 +1,18 @@
-#+BEGIN_SRC html
-  <a href="https://zenodo.org/badge/latestdoi/18884/salotz/mast"><img src="https://zenodo.org/badge/18884/salotz/mast.svg" alt="10.5281/zenodo.59480"></a>
-#+END_SRC   
 https://zenodo.org/badge/latestdoi/18884/salotz/mast
-* Goals            .
-MAST is currently in beta and so much might still change.
 
+MAST is currently in beta.
+* Installation
+Currently there is no package available for mast, but you can clone
+one of the releases and manually install it. 
+
+Dependencies:
+- numpy
+
+optional:
+- rdkit - highly recommended as this is used for file-parsing and feature detection
+- pandas - for output of data to DataFrames and other file formats
+
+* Rationale
 The original impetus that led to writing MAST was a need to have a general and flexible framework for interacting with macromolecules (particular biomolecules) in order to implement complex selections and queries for profiling of intermolecular interactions on large sets of data.
 
 While there are a few other high-quality projects that provide APIs for macromolecules the goals and fundamental designs of these libraries did not meet my needs.
@@ -13,6 +21,7 @@ As such amino acid "residues" are usually part of the fundamental datastructures
 Design decisions like this and others are essentially isomorphic to the way textbooks write about these molecules.
 My experience was that while this is convenient for simple systems more complicated systems with many proteins, small molecules, etc. quickly become difficult to query and manipulate.
 
+* Goals
 ** Overarching Goals
 1) An abstract layer for representing multi-atom structures and selections that is extensible via object-oriented programming in Python.
 2) An applied layer of advanced subclasses that represents the objects (Features) which are more isomorphic to textbook knowledge including:
@@ -52,7 +61,8 @@ The immediate "killer feature" will be for easily profiling intermolecular inter
 
 I have so far used it to profile hydrogen bonds between a protein and ligand for 4,000 conformations.
 
-* Version numbers
+* Misc
+** Versioning
 
 See [[http://semver.org/]] for version number meanings.
 

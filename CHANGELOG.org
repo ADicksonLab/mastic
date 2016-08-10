@@ -1,0 +1,135 @@
+* v0.2.0
+
+Because v0.1.0 was a prototype quite a bit has changed in the
+fundamental API in v0.2.0.
+
+The basic XType and X classes are still around but the capabilities of
+XType classes has been greatly expanded.
+
+All XType classes now have a factory method that can be used to
+dynamically create subclasses. E.g. WaterMoleculeType from the
+MoleculeType.factory method.
+
+This is useful for defining different AtomTypes on the fly when
+generating MoleculeTypes.
+
+Also the BondType and Bond classes are actually fully functional,
+although the Angle counterparts have been stubbed out until a use case
+arises.
+
+The RDKITMoleculeType is no more and has been moved to it's own
+submodule of the new interfaces module. This will continue to be
+populated with readers and wrappers from other libraries.
+
+Currently, RDKit is used as both a reader of PDB data and as a
+generator of atom and bond information, as well as the knowledge
+system for identifying features. Conceivably any library extension
+could perform these actions so I wanted to make the separation of mast
+and RDKit clear and able to be changed easily in the future.
+
+To accomplish this for feature detection I implemented another
+features submodule with FeatureType and Feature classes as an
+interface to any external representation of molecular features that
+may want to be profiled.
+
+With this architecture it makes it fairly easy to add wrappers to
+other representations and cast them to mast representations. However
+some more fiddling with the configurations will be necessary and needs
+will be addressed when another interface is needed and objectives are
+clearer.
+
+That said there is also a new configs module with submodules for each
+main module (molecule, features, etc.). This is basically just a list
+of the attributes that rdkit provides. The idea here is to create a
+canonical list of attributes that mast recognizes, that possibly will
+be used in other methods not particular to an interface module, and to
+keep the namespace clean and not confusing between different
+terminology of different libraries. Users are free to add other
+attributes at the time of XType creation and my intention is only to
+log when this occurs and when canonical attributes are not provided.
+
+The config file for interactions however contains more information for
+feature family names for specific interactions and geometric
+constraint parameters, copied from PLIP at the moment.
+
+Biggest changes in the selection module is introduction of the very
+simple Selection class which is like IndexedSelection but is a list
+and does not preserve the index of the container selected from.
+
+SelectionDict and SelectionList have been renamed to SelectionsDict
+and SelectionsList in order to clarify purpose as a container for
+selections.
+
+The notion of flags was introduced to the SelectionMember class. The
+purpose of this was to enable SelectionMembers to easily know if they
+are in a particular kind of selection or meta-selection. For example,
+when an Atom becomes part of a Molecule the Molecule constructor
+passes the 'molecule' flag to the selection inheritance constructor
+chain and at each step each SelectionMember adds 'molecule' to their
+flags and now knows that it is in a Molecule. However, this does not
+let that SelectionMember know which Molecule it is a part of. Which is
+the purpose of revamping the get_selections function.
+
+The get_selections function now supports recursive levels of selection
+retrieval as well as filtering for the type of the selection and
+flag. So if you want to retrieve the Molecule the Atom knows it is a
+part of, use the recursive get_selections and filter for Molecule,
+which should only return one object. The same goes for System in terms
+of uniqueness but this isn't necessarily enforced and if looking for
+all Associations the Atom is apart of filtering on Association could
+possibly give more than one.
+
+The flag works together with the more powerful recursive
+get_selections by preventing unnecessary full tree selection-hierarchy
+traversals just to discover there is no Molecule selecting this Atom.
+This also allows for a huge potential for exploratory introspection
+when looking at systems with complex Associations, Interactions,
+etc. by allowing someone to visually identify an atom or bond etc. and
+immediately see what it is a part of instead of search through every
+selection for that atom.
+
+Furthermore the SelectionsType class is gone in favor of a simpler
+"write-it yourself" approach to each Type. Because, they were so
+diverse in implementation and ultimately there won't be that many (6-8
+for base mast, 10-12 for protein extensions etc.) and I didn't see a
+need to automate creation of XType classes. However, this requires a
+bit of boilerplate but I think that is better at this point.
+
+For Molecule, System, and Interactions a lot has changed and mostly
+that has to do with making it compatibility with the new factory
+pattern and to take advantage of the flag/get_selections features.
+
+However, in interactions the Association classes have been pretty well
+revamped. They really should be back in the system module now as they
+are basically the named grouping of selections that are all in the
+same system.
+
+Within Association the profile_interactions function has almost been
+completely been rewritten. This is much cleaner and outsources a lot
+of logic to boilerplate in the find_hits of the InteractionType, but
+overall in both classes the code is much cleaner.  The
+profile_interactions just makes pairs of members in the association
+and feeds those straight to find_hits. Find_hits then takes only what
+it needs from the members and returns /only/ interactions between
+those members. Something that wasn't possible before and was slowing
+things down a lot. To get intramember interactions you can specify a
+flag to profile_interactions in the Association or pass the same
+member twice to find_hits. The profile_interactions in Molecule is not
+working but will do that as well.
+
+Also, the output of profile_interactions is now better organized by
+member pair and includes a listing of only the feature ids as well in
+case that is all you want.
+
+Forthcoming, is the addition of new InteractionTypes beyond
+HydrogenBondType! This should include a naive no explicit H structure
+H-Bond type, pi-stacking, pi-cation, ionic interactions, halogen
+bonds, and hydrophobic contacts.
+
+You can also look forward to a faster knowledge based protein feature
+finding algorithm (a huge bottleneck to development and analysis), and
+a protein specific module for AminoAcidResidueType, PeptideType,
+ProteinType, ProteinLigandAssociationType,
+ProteinProteinAssociationType which will be used in making a porcelain
+CLI for simple analyses. Also some secondary and tertiary
+structure Selection classes are planned.
