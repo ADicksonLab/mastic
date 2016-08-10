@@ -100,10 +100,9 @@ Currently is a prototype.
 
 ** Exception
 *** InteractionError(Exception)
-* Templates
-** InxType
 * TODOs
 
+** TODO finish dataframe exporters using records
 ** TODO write unit tests
 *** DONE selection.py
 **** DONE selection classes
@@ -112,7 +111,10 @@ Currently is a prototype.
 **** DONE Atom, Bond, Molecule
 *** DONE interfaces.rdkit
 *** DONE system.py
+*** TODO features.py
+started
 *** TODO interactions.py
+started
 **** TODO AssociationType
 **** TODO Association
 **** TODO InteractionType
@@ -129,7 +131,10 @@ Currently is a prototype.
 **** DONE Atom, Bond, Molecule
 *** DONE interfaces.rdkit
 *** DONE system.py
+*** TODO features.py
+started
 *** TODO interactions.py
+started
 **** TODO AssociationType
 **** TODO Association
 **** TODO InteractionType
@@ -160,7 +165,7 @@ Currently is a prototype.
 
 ** TODO tests for None selection id
 
-** TODO only find interactions between the association selections
+** DONE only find interactions between the association selections
 Right now it finds all of interactions between members and just takes
 out the intramember interactions.
 ** TODO implement slice inputs for selection ids
@@ -173,9 +178,9 @@ different kind of members.
 Of course you can just always make you MoleculeTypes and AtomTypes etc
 named to reflect that they are indeed different things in the system.
 i.e. a protein dimer.
-
-** TODO consolidate SystemAssociation and Association to just Association
-** TODO unittests with finding features functions
+** TODO migrate Association and AssociationTYpe to system.py
+** DONE consolidate SystemAssociation and Association to just Association
+** DONE unittests with finding features functions
 I was reluctant to use these because rdkit gives me trouble sometimes.
 ** TODO Type.substantiate function
 A general function for use every Type class instead of specific
@@ -187,7 +192,6 @@ Would at least provide an interface to implement and override. Need
 not be too picky.
 ** TODO coord_array and array_idx constructor options for Molecule constructor
 ** DONE finish system and molecule getters for atom, bond, molecule etc classes
-** TODO finish dataframe exporters using records
 ** DONE automatically set the in_molecule and in_system flags when the registry of elements are changed
 ** DONE type constructor and to_molecule, to_atom, to_bond
 ** TODO BondType and MoleculeType methods for getting adjacent AtomTypes
@@ -278,7 +282,7 @@ function.
 That way we can read in an RDKitMoleculeType and use that to cast to
 the mast agnostic MoleculeType for production.
 
-** TODO make the SystemType and AssociationType classes mean something
+** DONE make the SystemType and AssociationType classes mean something
 
 Currently they are just stubs. They should have their own libraries.
 
@@ -291,4 +295,5 @@ for something that is in a system for this.
 
 ** TODO handle and create angles in MoleculeType
 ** TODO allow for parametrized overlap tolerances in Molecule.overlaps
-** TODO handle intramember_interactions in Association.profile_interactions
+** DONE handle intramember_interactions in Association.profile_interactions
+eliminated the need for handling
