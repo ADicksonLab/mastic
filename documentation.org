@@ -3,49 +3,75 @@
 ** selection.py
 *** SelectionMember(object)
 
-**** GenericSelection(SelectionMember, collections.UserDict)
+*** GenericSelection(SelectionMember, collections.UserDict)
 
-***** IndexedSelection(GenericSelection)
+*** IndexedSelection(GenericSelection)
 
-***** CoordArraySelection(GenericSelection)
+*** CoordArraySelection(GenericSelection)
 
-****** Point
-**** SelectionDict(SelectionMember, collections.UserDict)
+*** GenericSelection(GenericSelection)
 
-**** SelectionList(SelectionMember, collections.UserList)
+*** Point
+*** SelectionsDict(SelectionMember, collections.UserDict)
 
-**** CoordArray(SelectionMember)
+*** SelectionsList(SelectionMember, collections.UserList)
+
+*** CoordArray(SelectionMember)
 
 
 *** SelectionType(object)
 *** SelectionTypeLibrary(col.UserDict)
 
 ** molecule.py
-
+*** AtomType
+*** BondType
+*** MoleculeType
+*** Atom
+*** Bond
+*** Molecule
 ** system.py
+*** SystemType
+*** System
+** features.py
+*** FeatureType
+*** Feature
 
 ** interactions.py
+*** AssociationType
+*** Association
+*** InteractionType
+*** Interaction
+*** HydrogenBondType
+*** HydrogenBond
 
+** interfaces
+*** rdkit.py
+**** RDKitMoleculeWrapper
+** config
+*** molecule.py
+*** system.py
+*** features.py
+*** interactions.py
 * Class Structure
 
 ** SelectionMember(object)
 
-*** GenericSelection(SelectionMember, collections.UserDict)
-
-**** IndexedSelection(GenericSelection)
+*** GenericSelection(SelectionMember)
+**** Selection(GenericSelection, collections.UserList)
+**** IndexedSelection(GenericSelection, collections.UserDict)
 ***** Bond(IndexedSelection)
-
 **** CoordArraySelection(GenericSelection)
 
 ***** Point(CoordArraySelection)
 
 ****** Atom(Point)
 
-*** SelectionDict(SelectionMember, collections.UserDict)
+*** SelectionsDict(SelectionMember, collections.UserDict)
 
-**** Molecule
+**** Molecule(SelectionsDict)
+**** Feature(SelectionsDict)
 
-*** SelectionList(SelectionMember, collections.UserList)
+*** SelectionsList(SelectionMember, collections.UserList)
 **** System(SelectionList)
 **** Association(SelectionList)
 ***** SystemAssociation(Association)
@@ -56,24 +82,21 @@
 
 *** CoordArray(SelectionMember)
 
+** AtomType(object)
 
-** SelectionType(object)
-*** AtomType(SelectionType)
+** MoleculeType(object)
 
-*** MoleculeType(SelectionType)
-**** RDKitMoleculeType(MoleculeType)
-
-*** SystemType(SelectionType)
-*** AssociationType(SelectionType)
-**** InteractionType(AssociationType)
-***** HydrogenBondType(InteractionType)
-***** NoHHydrogenBondType(InteractionType)
-***** PiStackingType(InteractionType)
+** SystemType(object)
+** AssociationType(object)
+** InteractionType(object)
+*** HydrogenBondType(InteractionType)
+*** NoHHydrogenBondType(InteractionType)
+*** PiStackingType(InteractionType)
 Currently is a prototype.
 
-** SelectionTypeLibrary(col.UserDict)
-*** AtomTypeLibrary(SelectionTypeLibrary)
-*** MoleculeTypeLibrary(SelectionTypeLibrary)
+** FeatureType(object)
+
+
 
 ** Exception
 *** InteractionError(Exception)
