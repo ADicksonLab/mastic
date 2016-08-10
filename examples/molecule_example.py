@@ -147,10 +147,14 @@ print(mol.atom_types)
 
 print("Making a mast.Molecule from the RDKitMoleculeWrapper data")
 pka_mol = PKA3Type.to_molecule(pka_coords)
-pka_mol.make_feature_selections()
 # pka_mol = Molecule(mol_type=pka_type, coords=pka_coords)
 print(pka_mol)
 print(pka_mol.molecule_type)
 
 print("testing overlap of two molecules")
 print(pka_mol.overlaps(mol))
+
+pka_atom_type = PKA3Type.atom_types[0]
+pka_atom = pka_mol.atoms[0]
+pka_bond = pka_mol.bonds[0]
+pka_feature = pka_mol.features[1]

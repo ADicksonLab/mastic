@@ -40,3 +40,4 @@ pka_mol = PKAType.to_molecule(pka_coords)
 pka_feature_1 = MyPKAFeature1Type.to_feature(molecule=pka_mol)
 
 
+feature_type = PKAType.feature_types()[1]

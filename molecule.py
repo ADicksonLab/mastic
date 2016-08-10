@@ -3,6 +3,7 @@ import collections as col
 import os.path as osp
 from itertools import product
 
+
 from mast.selection import CoordArray, CoordArraySelection, \
     Point, IndexedSelection, SelectionsDict, SelectionsList, \
     Selection
@@ -75,7 +76,24 @@ class AtomType(object):
             attributes[attr] = value
 
         atom_type = type(atom_type_name, (AtomType,), attributes)
+        atom_type.name = atom_type_name
+        atom_type.attributes_data = attributes
+
         return atom_type
+
+    def __str__(self):
+        return self.name
+
+    @classmethod
+    def record(cls):
+        # define the Record named tuple
+        record_fields = ['AtomType'] + list(cls.attributes_data.keys())
+        AtomTypeRecord = col.namedtuple('AtomTypeRecord', record_fields)
+        # build the values for it for this Type
+        record_attr = {'AtomType' : cls.name}
+        record_attr.update(cls.attributes_data)
+        # make and return
+        return AtomTypeRecord(**record_attr)
 
 class BondType(object):
     """Class for generating specific bond type classes with the factory
@@ -163,9 +181,23 @@ class BondType(object):
             attributes[attr] = value
 
         bond_type =  type(bond_type_name, (BondType,), attributes)
+        bond_type.name = bond_type_name
+        bond_type.attributes_data = attributes
         bond_type.atom_types = atom_types
 
         return bond_type
+
+
+    @classmethod
+    def record(cls):
+        # define the Record named tuple
+        record_fields = ['BondType'] + list(cls.attributes_data.keys())
+        BondTypeRecord = col.namedtuple('BondTypeRecord', record_fields)
+        # build the values for it for this Type
+        record_attr = {'BondType' : cls.name}
+        record_attr.update(cls.attributes_data)
+        # make and return
+        return BondTypeRecord(**record_attr)
 
 class MoleculeType(object):
     """Class for generating specific bond type classes with the factory
@@ -331,6 +363,8 @@ class MoleculeType(object):
 
         # create the class with the domain specific attributes
         molecule_type = type(mol_type_name, (MoleculeType,), attributes)
+        molecule_type.name = mol_type_name
+        molecule_type.attributes_data = attributes
         # add core attributes
         molecule_type.atom_types = atom_types
         molecule_type.bond_types = bond_types
@@ -343,6 +377,34 @@ class MoleculeType(object):
         molecule_type._feature_types = {}
 
         return molecule_type
+
+    @classmethod
+    def atom_type_records(cls):
+        return [atom_type.record() for atom_type in cls.atom_types]
+
+    @classmethod
+    def atom_type_df(cls):
+        import pandas as pd
+        return pd.DataFrame(cls.atom_type_records())
+
+    @classmethod
+    def bond_type_records(cls):
+        return [bond_type.record() for bond_type in cls.bond_types]
+
+    @classmethod
+    def bond_type_df(cls):
+        import pandas as pd
+        return pd.DataFrame(cls.bond_type_records())
+
+    @classmethod
+    def feature_type_records(cls):
+        return [feature_type.record() for feat_key, feature_type in
+                cls.feature_types().items()]
+
+    @classmethod
+    def feature_type_df(cls):
+        import pandas as pd
+        return pd.DataFrame(cls.feature_type_records())
 
 class Atom(Point):
     """The coordinate substantiation of an AtomType.
@@ -480,6 +542,19 @@ class Atom(Point):
         else:
             return None
 
+    @property
+    def record(self):
+        # define the Record named tuple
+        record_fields = ['AtomType', 'x', 'y', 'z']
+        AtomRecord = col.namedtuple('AtomRecord', record_fields)
+        # build the values for it for this Type
+        record_attr = {'AtomType' : self.atom_type.name}
+        record_attr['x'] = self.coords[0]
+        record_attr['y'] = self.coords[1]
+        record_attr['z'] = self.coords[2]
+        # make and return
+        return AtomRecord(**record_attr)
+
 class Bond(IndexedSelection):
     """The coordinate substantiation of a BondType.
 
@@ -594,6 +669,34 @@ class Bond(IndexedSelection):
             assert system
             return system
 
+    @property
+    def record(self):
+        # define the Record named tuple
+        record_fields = ['BondType',
+                         'AtomAType', 'atom_A_idx',
+                         'x_A', 'y_A', 'z_A',
+                         'AtomBType', 'atom_B_idx',
+                         'x_B', 'y_B', 'z_B']
+
+        AtomRecord = col.namedtuple('AtomRecord', record_fields)
+
+        # build the values for it for this Type
+        atom_idxs = list(self.data.keys())
+        record_attr = {'BondType' : self.bond_type.name}
+        # first atom
+        record_attr['AtomAType'] = self.atom_types[0].name
+        record_attr['atom_A_idx'] = atom_idxs[0]
+        record_attr['x_A'] = self.atoms[0].coords[0]
+        record_attr['y_A'] = self.atoms[0].coords[1]
+        record_attr['z_A'] = self.atoms[0].coords[2]
+        # second atom
+        record_attr['AtomBType'] = self.atom_types[1].name
+        record_attr['atom_B_idx'] = atom_idxs[1]
+        record_attr['x_B'] = self.atoms[1].coords[0]
+        record_attr['y_B'] = self.atoms[1].coords[1]
+        record_attr['z_B'] = self.atoms[1].coords[2]
+
+        return AtomRecord(**record_attr)
 
 class Molecule(SelectionsDict):
     """The coordinate substantiation of a MoleculeType.
@@ -745,6 +848,24 @@ class Molecule(SelectionsDict):
         return coords
 
     @property
+    def atom_records(self):
+        return [atom.record for atom in self.atoms]
+
+    @property
+    def atom_df(self):
+        import pandas as pd
+        return pd.DataFrame(self.atom_records)
+
+    @property
+    def bond_records(self):
+        return [bond.record for bond in self.bonds]
+
+    @property
+    def bond_df(self):
+        import pandas as pd
+        return pd.DataFrame(self.bond_records)
+
+    @property
     def feature_types(self):
         """The chemical features of this Molecule's MoleculeType subclass."""
         return self.molecule_type.feature_types()
@@ -808,10 +929,14 @@ class Molecule(SelectionsDict):
         return self._features
 
     @property
-    def feature_dataframe(self):
+    def feature_records(self):
+        return [feature.record for feature in self.features.values()]
+
+    @property
+    def feature_df(self):
         """Export a pandas.DataFrame of the features."""
         import pandas as pd
-        return pd.DataFrame(self.features)
+        return pd.DataFrame(self.feature_records)
 
     @property
     def internal_interactions(self):

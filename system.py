@@ -314,5 +314,283 @@ the same coordinate system.
         return False
 
 
+
+# basically just a named grouping of multiple selections from a system
+# with some methods
+class AssociationType(object):
+    """Class for defining a relationship between two selections in a
+    SystemType allowing for convenient introspection and calculations
+    on only the selections. Usually contained within the SystemType
+    and substantiated automatically when the system is substantiated
+    with the to_system method.
+
+    Examples
+    --------
+    >>> carbon_attributes = {'element':'C', 'bond_degree':3}
+    >>> oxygen_attributes = {'element':'O', 'bond_degree':3}
+    >>> COCarbonAtomType = AtomType.factory("COCarbonAtomType", **carbon_attributes)
+    >>> COOxygenAtomType = AtomType.factory("COOxygenAtomType", **oxygen_attributes)
+    >>> CO_atoms = (COCarbonAtomType, COOxygenAtomType)
+    >>> CO_attributes = {"bond_order":3}
+    >>> COBondType = BondType.factory("COBondType", atom_types=CO_atoms, **CO_attributes)
+    >>> atom_types = [COCarbonAtomType, COOxygenAtomType]
+    >>> bond_types = [COBondType]
+    >>> bond_map = {0 : (0, 1)}
+    >>> CO_attributes = {"name" : "carbon-monoxide", "toxic" : True}
+    >>> COMoleculeType = MoleculeType.factory("COType", atom_types=atom_types, bond_types=bond_types, bond_map=bond_map, **CO_attributes)
+    >>> system_attrs = {'name' : 'carbon-monoxide-system'}
+    >>> member_types = [COMoleculeType, COMoleculeType]
+    >>> COSystemType = SystemType.factory("COSystemType", member_types=member_types, **system_attrs)
+
+    We can associate the two CO molecules in the SystemType by
+    creating a mapping for which system member has what selection:
+
+    >>> selection_map = {0 : ..., 1 : ...}
+    >>> selection_types = [mastsel.Selection, mastsel.Selection]
+
+    So for system members 0 and 1 we will make a mast.Selection of the
+    whole member (...) when the AssociationType is substantiated.
+
+    We can also store metadata about an AssociationType if you would
+    like but we will keep it simple:
+
+    >>> association_attrs = {'name' : 'carbon-monoxide-carbon-monoxide-association'}
+
+    >>> COCOAssociationType = mastinx.AssociationType.factory("COCOAssociationType", system_type=COSystemType, selection_map=selection_map, selection_types=selection_types, **association_attrs)
+
+    """
+    attributes = mastinxconfig.ASSOCIATION_ATTRIBUTES
+
+    def __init__(self):
+        pass
+
+    @classmethod
+    def to_association(cls, system):
+        """Substantiate the association by providing the System to make
+        selections on.
+
+        """
+        assert system.system_type is cls.system_type, \
+            "The system_type of system must be {0}, not {1}".format(
+                cls.system_type, system.system_type)
+
+        return Association(system=system, association_type=cls)
+
+    @staticmethod
+    def factory(association_type_name,
+                system_type=None,
+                selection_map=None, selection_types=None,
+                **association_attrs):
+        """Static method for generating association types dynamically given a type
+        name (which will be the class name) and a domain specific dictionary
+        of association attributes.
+
+        association_type_name :: name for the generated class
+        system_type :: SystemType
+        selection_map :: {system_member_idx : member_selection_ids}
+        selection_types :: list of classes inheriting from mast.selection.GenericSelection
+        association_attrs :: domain specific metadata dictionary
+
+        See mast.config.interactions for standard AssociationType attributes.
+        See class docstring for examples.
+        """
+
+        # check that system_type is given and correct
+        assert system_type, "system_type must be given"
+        assert issubclass(system_type, SystemType), \
+            "system_type must be a subclass of SystemType, not {}}".format(
+                system_type)
+
+        # check that there are the same number of selection_map
+        # records and selection_types
+        assert len(selection_map) == len(selection_types)
+
+        # check that the selection_map is correct
+        for i, selmap in enumerate(selection_map.items()):
+            member_idx, sel_ids = (selmap[0], selmap[1])
+            # validate it indexes a system member
+            assert member_idx < len(system_type.member_types), \
+                "member index {0} in selection_map out of"\
+                " range of {2}, length {1}".format(
+                    member_idx, len(system_type.member_types), system_type)
+            # validate the sel_ids for the member
+            member = system_type.member_types[member_idx]
+
+        # validate the selection_types
+        # for selection_type in selection_types:
+        #     assert issubclass(selection_type, mastsel.GenericSelection), \
+        #         "The selection_type must be a subclass of" \
+        #         " mast.selection.GenericSelection, not {}".format(
+        #             selection_type)
+
+        # keep track of which attributes the input did not provide
+        for attr in AssociationType.attributes:
+            try:
+                assert attr in association_attrs.keys()
+            except AssertionError:
+                # LOGGING
+                pass
+                # print("Attribute {0} not found in association input.".format(attr))
+
+        # add the attributes into the class
+        attributes = {attr : None for attr in AssociationType.attributes}
+        for attr, value in association_attrs.items():
+            # Log the compliance of the attributes
+            # if the attribute isn't declared in the attributes log it
+            try:
+                assert attr in AssociationType.attributes
+            except AssertionError:
+                # LOGGING
+                pass
+                # print("Input attribute {0} not in AssociationType attributes.".format(attr))
+
+            # add it to the attributes
+            attributes[attr] = value
+
+        association_type = type(association_type_name, (AssociationType,), attributes)
+        # add core attributes
+        association_type.system_type = system_type
+        association_type.selection_map = selection_map
+        association_type.selection_types = selection_types
+
+        return association_type
+
+
+class Association(SelectionsList):
+    def __init__(self, system=None, association_type=None):
+        # TODO check to make sure that all the atoms are in the same system
+        # print(system, id(system))
+        # print([bool(member in system) for member in members])
+        # print([(member.molecule.system, id(member.molecule.system)) for member in members])
+        # if all([(member in system) for member in members]):
+        #     super().__init__(association_list=members, association_type=association_type)
+        # else:
+        #     raise ValueError("Members of a SystemAssociation must all be in the same system")
+
+
+        # check validity of association_type
+        assert issubclass(association_type, AssociationType), \
+            "association_type must be a subclass of AssociationType, not {}".format(
+                association_type)
+
+        # check validity of the system
+        assert isinstance(system, System), \
+            "system must be of type System, not {}".format(type(system))
+        assert system.system_type is association_type.system_type, \
+            "the system must be of the system_type in the association_type, not {}".format(
+                system.system_type)
+
+        # for selection in selections:
+        #     # check member_types to make sure they are in a system
+        #     assert 'system' in selection.flags, \
+        #         "member_types must be in a system, {0} flags are {1}".format(
+        #             selection, selection.flags)
+        # # make sure they are in the same system
+        # systems = [selection.find_selections(selection_type=[SystemType]) for
+        #            selection in selections]
+        # assert all([system is systems[0] for system in _systems]), \
+        #     "All selections must be of the same system"
+
+        # make selections on the system
+        selections = []
+        for i, selmap in enumerate(association_type.selection_map.items()):
+            member_idx, sel_ids = (selmap[0], selmap[1])
+            member = system[member_idx]
+            # if the selection_type is None do not make a selection of
+            # the member, instead just save the whole member
+            if association_type.selection_types[i] is None:
+                selection = member
+            # otherwise we will make a selection with the type
+            elif issubclass(association_type.selection_types[i], mastsel.GenericSelection):
+                selection = association_type.selection_types[i](member, sel_ids)
+            else:
+                raise TypeError("No handler for this type in making an Association selection")
+
+            selections.append(selection)
+
+        # create the SelectionsList
+        super().__init__(selection_list=selections)
+        self._association_type = association_type
+        self._system = system
+        self._interactions = None
+
+    @property
+    def members(self):
+        """The members in the Association."""
+        return self.data
+
+    @property
+    def system(self):
+        """The System the Association selects on."""
+        return self._system
+
+    @property
+    def system_type(self):
+        """The SystemType of the System the Association selects on."""
+        return self._system.system_type
+
+    @property
+    def association_type(self):
+        """The AssociationType this Association substantiates."""
+        return self._association_type
+
+    @property
+    def interactions(self):
+        """Interactions that this Association contains between members. Must
+        be set manually due to computation time associated with
+        profiling interactions.
+
+        """
+        return self._interactions
+
+    def profile_interactions(self, interaction_types,
+                             intramember_interactions=False):
+        """Accepts any number of InteractionType subclasses and identifies
+        Interactions between the members of the association using the
+        InteractionType.find_hits function.
+
+        Examples
+        --------
+
+        """
+        assert all([issubclass(itype, InteractionType) for itype in interaction_types]), \
+                   "All interaction_types must be a subclass of InteractionType"
+
+        # if intramember interactions is True make pairs of each
+        # member to itself
+        if intramember_interactions:
+            member_pairs = it.combinations_with_replacement(self.members, 2)
+            # the key to each pairing is a tuple of the members indices
+            member_idx_pairs = list(it.combinations_with_replacement(
+                range(len(self.members)), 2))
+        # if intramember_interactions is False only get interactions between members
+        else:
+            member_pairs = it.combinations(self.members, 2)
+            # the key to each pairing is a tuple of the members indices
+            member_idx_pairs = list(it.combinations(range(len(self.members)), 2))
+
+        # go through each interaction_type and check for hits
+        interactions = {}
+        inx_feature_key_pairs = {}
+        for interaction_type in interaction_types:
+
+            inx_hits = {}
+            member_feature_key_pairs = {}
+            # for each pair find the hits in this interaction_type
+            for idx, member_pair in enumerate(member_pairs):
+                member_a = member_pair[0]
+                member_b = member_pair[1]
+                feature_key_pairs, pair_hits = interaction_type.find_hits(member_a,
+                                                       member_b)
+                inx_hits[member_idx_pairs[idx]] = pair_hits
+                member_feature_key_pairs[member_idx_pairs[idx]] = feature_key_pairs
+
+            # save the results for this interaction for all member pairs
+            interactions[interaction_type] = inx_hits
+            inx_feature_key_pairs[interaction_type] = member_feature_key_pairs
+
+        # set the interactions for only the intermember interactions
+        return inx_feature_key_pairs, interactions
+
 if __name__ == "__main__":
     pass

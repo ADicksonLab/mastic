@@ -7,6 +7,7 @@ features through either manual subclassing or through the factory
 method for dynamic generation.
 
 """
+import collections as col
 
 import mast.config.features as mastfeatconfig
 
@@ -88,7 +89,7 @@ class FeatureType(object):
             attributes[attr] = value
 
         feature_type = type(feature_type_name, (FeatureType,), attributes)
-        # add the attributes as a dict
+        feature_type.name = feature_type_name
         feature_type.attributes_data = attributes
         # add core attributes
         feature_type.molecule_type = molecule_type
@@ -118,6 +119,29 @@ class FeatureType(object):
         return [bond_type for i, bond_type in
                 enumerate(cls.molecule_type.bond_types) if i in cls.bond_idxs]
 
+    @classmethod
+    def member_types(cls):
+        return atom_types + bond_types
+
+    @classmethod
+    def record(cls):
+        # define the Record namedtuple
+        record_fields = ['FeatureType', 'MoleculeType',
+                         'AtomTypes', 'atom_idxs',
+                         'BondTypes', 'bond_idxs'] + \
+                         list(cls.attributes_data.keys())
+
+        FeatureTypeRecord = col.namedtuple('FeatureTypeRecord', record_fields)
+        # build the values for it for this Type
+        record_attr = {'FeatureType' : cls.name}
+        record_attr['MoleculeType'] = cls.molecule_type().name
+        record_attr['AtomTypes'] = cls.atom_types()
+        record_attr['atom_idxs'] = cls.atom_idxs
+        record_attr['BondTypes'] = cls.bond_types()
+        record_attr['bond_idxs'] = cls.bond_idxs
+        record_attr.update(cls.attributes_data)
+
+        return FeatureTypeRecord(**record_attr)
 
 class Feature(mastsel.SelectionsDict):
     """Feature, which is a collection of Atoms and Bonds selected from a
@@ -170,3 +194,8 @@ class Feature(mastsel.SelectionsDict):
     def system(self):
         """The system this Feature's molecule is in."""
         return self.molecule.system
+
+    @property
+    def record(self):
+        # would be too much to have all the coordinates
+        return self.feature_type.record()
