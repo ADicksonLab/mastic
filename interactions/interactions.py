@@ -32,6 +32,18 @@ class InteractionType(object):
     def __init__(self):
         pass
 
+    @staticmethod
+    def factory(interaction_type_name,
+                feature_types=None,
+                **interaction_attrs):
+
+        assert feature_types, "feature_types must be given."
+        for feature_type in feature_types:
+            assert issubclass(feature_type, FeatureType), \
+                "All feature_type members must be a subclass of FeatureType, " \
+                "not, {}".format(feature_type)
+
+        
     @classmethod
     def check(cls, *args, **kwargs):
         """The principle class method for testing for the existence of an

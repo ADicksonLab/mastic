@@ -1,3 +1,11 @@
+"""The HydrogenBond module defines the HydrogenBondType and
+HydrogenBondInx for explicit hydrogens.
+
+"""
+
+import mast.config.interactions as mastinxconfig
+from mast.config.interactions import InteractionType, Interaction
+
 class HydrogenBondType(InteractionType):
     """Defines an InteractionType class for hydrogen bonds between members
     with explicit hydrogens.
@@ -132,6 +140,13 @@ class HydrogenBondType(InteractionType):
             return True
         else:
             return False
+
+    @classmethod
+    def record(cls):
+        record_fields = ['donor', 'acceptor', 'H']
+        HydrogenBondTypeRecord = namedtuple('HydrogenBondTypeRecord')
+        record_attr = {'InteractionType' : 'HydrogenBondType' }
+        record_attr['donor'] = cls.
 
     @classmethod
     def pdb_serial_output(self, inxs, path, delim=","):
