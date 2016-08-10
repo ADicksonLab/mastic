@@ -191,10 +191,13 @@ class BondType(object):
     @classmethod
     def record(cls):
         # define the Record named tuple
-        record_fields = ['BondType'] + list(cls.attributes_data.keys())
+        record_fields = ['BondType', 'AtomAType', 'AtomBType'] + \
+                        list(cls.attributes_data.keys())
         BondTypeRecord = col.namedtuple('BondTypeRecord', record_fields)
         # build the values for it for this Type
         record_attr = {'BondType' : cls.name}
+        record_attr['AtomAType'] = cls.atom_types[0]
+        record_attr['AtomBType'] = cls.atom_types[1]
         record_attr.update(cls.attributes_data)
         # make and return
         return BondTypeRecord(**record_attr)
@@ -405,6 +408,17 @@ class MoleculeType(object):
     def feature_type_df(cls):
         import pandas as pd
         return pd.DataFrame(cls.feature_type_records())
+
+    @classmethod
+    def record(cls):
+        # define the Record named tuple
+        record_fields = ['MoleculeType'] + list(cls.attributes_data.keys())
+        MoleculeTypeRecord = col.namedtuple('MoleculeTypeRecord', record_fields)
+        # build the values for it for this Type
+        record_attr = {'MoleculeType' : cls.name}
+        record_attr.update(cls.attributes_data)
+        # make and return
+        return MoleculeTypeRecord(**record_attr)
 
 class Atom(Point):
     """The coordinate substantiation of an AtomType.
@@ -678,7 +692,7 @@ class Bond(IndexedSelection):
                          'AtomBType', 'atom_B_idx',
                          'x_B', 'y_B', 'z_B']
 
-        AtomRecord = col.namedtuple('AtomRecord', record_fields)
+        BondRecord = col.namedtuple('BondRecord', record_fields)
 
         # build the values for it for this Type
         atom_idxs = list(self.data.keys())
@@ -696,7 +710,7 @@ class Bond(IndexedSelection):
         record_attr['y_B'] = self.atoms[1].coords[1]
         record_attr['z_B'] = self.atoms[1].coords[2]
 
-        return AtomRecord(**record_attr)
+        return BondRecord(**record_attr)
 
 class Molecule(SelectionsDict):
     """The coordinate substantiation of a MoleculeType.
@@ -972,6 +986,10 @@ class Molecule(SelectionsDict):
             interactions[interaction_type] = interaction_type.find_hits(**family_feature_sels)
 
         self._internal_interactions = interactions
+
+    @property
+    def record(self):
+        pass
 
 if __name__ == "__main__":
     pass

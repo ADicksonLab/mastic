@@ -1,4 +1,3 @@
-ASSOCIATION_ATTRIBUTES = ['name']
 INTERACTION_ATTRIBUTES = ['name']
 
 # families and types from the RDKit feature definition database

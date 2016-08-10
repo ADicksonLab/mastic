@@ -94,11 +94,28 @@ class SystemType(object):
                 issubclass(member_type, MoleculeType)]
 
     @classmethod
+    def molecule_type_records(cls):
+        return [molecule_type.record() for molecule_type in cls.molecule_types()]
+
+    @classmethod
+    def molecule_type_df(cls):
+        import pandas as pd
+        return pd.DataFrame(cls.molecule_type_records())
+
+    @classmethod
     def atom_types(cls):
         """The AtomTypes of all Atom system members."""
         return [member_type for member_type in cls.member_types if
-
                 issubclass(member_type, AtomType)]
+
+    @classmethod
+    def atom_type_records(cls):
+        return [atom_type.record() for atom_type in cls.atom_types()]
+
+    @classmethod
+    def atom_type_df(cls):
+        import pandas as pd
+        return pd.DataFrame(cls.atom_type_records())
 
     @classmethod
     def make_member_association_type(self, member_idxs, association_type=None):
@@ -113,7 +130,6 @@ class SystemType(object):
     def add_association_type(cls, association_type):
         # check to make sure that it's selection types are in this
         # SystemType
-        from mast.interactions import AssociationType
         assert issubclass(association_type, AssociationType), \
             "association_type must be a subclass of mast.interactions.Association,"\
             " not {}".format(association_type)
@@ -124,6 +140,15 @@ class SystemType(object):
                 cls, association_type.system_type)
 
         cls._association_types.append(association_type)
+
+    @classmethod
+    def association_type_records(cls):
+        return [assoc_type.record() for assoc_type in cls.association_types()]
+
+    @classmethod
+    def association_type_df(cls):
+        import pandas as pd
+        return pd.DataFrame(cls.association_type_records())
 
     @staticmethod
     def factory(system_type_name, member_types=None,
@@ -168,11 +193,24 @@ class SystemType(object):
             attributes[attr] = value
 
         system_type = type(system_type_name, (SystemType,), attributes)
+        system_type.name = system_type_name
+        system_type.attributes_data = attributes
         system_type.member_types = member_types
         system_type.member_type_library = set(member_types)
         system_type._association_types = []
 
         return system_type
+
+    @classmethod
+    def record(cls):
+        # define the Record named tuple
+        record_fields = ['SystemType'] + list(cls.attributes_data.keys())
+        SystemTypeRecord = col.namedtuple('SystemTypeRecord', record_fields)
+        # build the values for it for this Type
+        record_attr = {'SystemType' : cls.name}
+        record_attr.update(cls.attributes_data)
+        # make and return
+        return SystemTypeRecord(**record_attr)
 
 
 class System(SelectionsList):
@@ -313,7 +351,9 @@ the same coordinate system.
         # if none overlap
         return False
 
-
+    @property
+    def record(self):
+        pass
 
 # basically just a named grouping of multiple selections from a system
 # with some methods
@@ -356,10 +396,10 @@ class AssociationType(object):
 
     >>> association_attrs = {'name' : 'carbon-monoxide-carbon-monoxide-association'}
 
-    >>> COCOAssociationType = mastinx.AssociationType.factory("COCOAssociationType", system_type=COSystemType, selection_map=selection_map, selection_types=selection_types, **association_attrs)
+    >>> COCOAssociationType = mastsys.AssociationType.factory("COCOAssociationType", system_type=COSystemType, selection_map=selection_map, selection_types=selection_types, **association_attrs)
 
     """
-    attributes = mastinxconfig.ASSOCIATION_ATTRIBUTES
+    attributes = mastsysconfig.ASSOCIATION_ATTRIBUTES
 
     def __init__(self):
         pass
@@ -448,12 +488,27 @@ class AssociationType(object):
             attributes[attr] = value
 
         association_type = type(association_type_name, (AssociationType,), attributes)
+        association_type.name = association_type_name
+        association_type.attributes_data = attributes
         # add core attributes
         association_type.system_type = system_type
         association_type.selection_map = selection_map
         association_type.selection_types = selection_types
 
         return association_type
+
+
+    @classmethod
+    def record(cls):
+        # define the Record named tuple
+        record_fields = ['AssociationType'] + list(cls.attributes_data.keys())
+        AssociationTypeRecord = col.namedtuple('AssociationTypeRecord', record_fields)
+        # build the values for it for this Type
+        record_attr = {'AssociationType' : cls.name}
+        record_attr.update(cls.attributes_data)
+        # make and return
+        return AssociationTypeRecord(**record_attr)
+
 
 
 class Association(SelectionsList):
@@ -542,6 +597,10 @@ class Association(SelectionsList):
 
         """
         return self._interactions
+
+    @property
+    def record(self):
+        pass
 
     def profile_interactions(self, interaction_types,
                              intramember_interactions=False):
