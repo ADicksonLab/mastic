@@ -1,5 +1,7 @@
 """ The system module. """
 import collections as col
+from functools import reduce
+import operator as op
 
 from mast.selection import SelectionsList, IndexedSelection
 from mast.molecule import Atom, Bond, Molecule, AtomType, BondType, MoleculeType
@@ -420,6 +422,7 @@ class AssociationType(object):
     def factory(association_type_name,
                 system_type=None,
                 selection_map=None, selection_types=None,
+                association_name=None,
                 **association_attrs):
         """Static method for generating association types dynamically given a type
         name (which will be the class name) and a domain specific dictionary
@@ -489,6 +492,12 @@ class AssociationType(object):
 
         association_type = type(association_type_name, (AssociationType,), attributes)
         association_type.name = association_type_name
+        if association_name:
+            association_type.association_name = association_name
+        elif association_type_name.endswith('Type'):
+            association_type.association_name = association_type.name.split('Type')[0]
+        else:
+            association_type.association_name = association_type.name
         association_type.attributes_data = attributes
         # add core attributes
         association_type.system_type = system_type
@@ -633,7 +642,7 @@ class Association(SelectionsList):
         inx_feature_key_pairs = {}
         for interaction_type in interaction_types:
 
-            inx_hits = {}
+            member_inx_hits = {}
             member_feature_key_pairs = {}
             # for each pair find the hits in this interaction_type
             for idx, member_pair in enumerate(member_pairs):
@@ -641,11 +650,70 @@ class Association(SelectionsList):
                 member_b = member_pair[1]
                 feature_key_pairs, pair_hits = interaction_type.find_hits(member_a,
                                                        member_b)
-                inx_hits[member_idx_pairs[idx]] = pair_hits
+                member_inx_hits[member_idx_pairs[idx]] = pair_hits
                 member_feature_key_pairs[member_idx_pairs[idx]] = feature_key_pairs
 
-            # save the results for this interaction for all member pairs
-            interactions[interaction_type] = inx_hits
+            # make interaction classes with interaction_type.factory
+            for member_pair_idx, item in enumerate(member_feature_key_pairs.items()):
+                # member_pair_idx is the pair of members
+                # get the member and feature idx pairs (member_a_idx, member_b_idx)
+                member_pair_idxs = item[0]
+                # the list of feature pair idxs (idx_feature_a, idx_feature_b)
+                feature_pairs_idxs = item[0]
+                member_a = self.members[member_pair_idxs[0]]
+                member_b = self.members[member_pair_idxs[1]]
+                # get the unique feature pairs
+                unique_feature_pair_idxs = set(feature_pairs_idxs)
+                # make a subclass of interaction_type for all of these
+                for inx_class_idx, inx_pair_idxs in enumerate(unique_feature_pair_idxs):
+                    # inx_class_idx is the index of the unique pair of
+                    # features (or the interaction class)
+                    # inx_pair_idxs is a tuple of the feature idxs
+                    # that make up the interaction class, for each
+                    # member respectively
+
+                    # collect the actual objects
+                    feat_a_type = member_a.features[inx_pair_idxs[0]].feature_type
+                    feat_b_type = member_b.features[inx_pair_idxs[1]].feature_type
+                    feat_types = [feat_a_type, feat_b_type]
+                    # make a name for the interaction class
+                    inx_class_name = "{0}{1}_{2}InxType".format(
+                        interaction_type.interaction_name,
+                        self.association_name,
+                        inx_class_idx)
+                    # TODO empty for now but could add stuff in the future
+                    inx_class_attrs = {}
+                    # make the interaction class
+                    inx_class = mastinx.interaction_type.factory(inx_type_name,
+                                                                 feature_types=feat_types,
+                                                                 association_type=self,
+                                                                 assoc_member_pair_idxs=member_pair_idxs,
+                                                                 **inx_class_attrs)
+
+                    # associate the inx hits for this inx class
+
+                    # get the indices of the hits that are the same
+                    # features of this pair
+                    class_inxs_idxs = [idx for idx, pair in
+                                       enumerate(feature_pairs_idxs)
+                                       if pair == inx_pair_idxs]
+
+                    # then get the actual interaction hits (not just
+                    # indices) for this member_pair
+                    member_inxs = member_inx_hits[member_pair_idxs]
+                    # then filter these inxs for those that match the
+                    # feature paired indices
+                    class_inxs = [inx for i, inx in
+                                  enumerate(member_inxs) if i in class_inxs_idxs]
+                    # set the interaction_class attribute in each of
+                    # these to inx_class
+                    for class_inx in class_inxs:
+                        class_inx.interaction_class = inx_class
+
+            # flatten the member_inx_hits dict
+            all_inx_hits = list(reduce(op.add, [inxs for inxs in member_inx_hits.values()]))
+            # add them to the interaction type entry
+            interactions[interaction_type] = all_inx_hits
             inx_feature_key_pairs[interaction_type] = member_feature_key_pairs
 
         # set the interactions for only the intermember interactions

@@ -1,6 +1,7 @@
 from rdkit import Chem
 from rdkit.Chem import AllChem
 import os.path as osp
+import pickle
 
 import mast.selection as mastsel
 import mast.molecule as mastmol
@@ -16,6 +17,8 @@ from rdkit import Chem
 trypsin_dir = osp.expanduser("~/Dropbox/lab/trypsin")
 trypsin_pdb_path = osp.join(trypsin_dir, "trypsin_Hs.pdb")
 ben_pdb_path = osp.join(trypsin_dir, "BEN_Hs.pdb")
+TrypsinType_pickle_path = osp.join(trypsin_dir, "TrypsinType.pkl")
+BENType_pickle_path = osp.join(trypsin_dir, "BENType.pkl")
 
 BEN_rdkit = Chem.MolFromPDBFile(ben_pdb_path, removeHs=False, sanitize=False)
 trypsin_rdkit = Chem.MolFromPDBFile(trypsin_pdb_path, removeHs=False, sanitize=False)
@@ -27,6 +30,12 @@ print("making molecule type for trypsin")
 TrypsinType = trypsin_rdkit_wrapper.make_molecule_type(find_features=True)
 print("making molecule type for benzamidine")
 BENType = BEN_rdkit_wrapper.make_molecule_type(find_features=True)
+
+with open(TrypsinType_pickle_path, 'rb') as wf:
+    pickle.dump(TrypsinType)
+
+with open(BENType_pickle_path, 'rb') as wf:
+    pickle.dump(BENType)
 
 BEN_coords = BEN_rdkit_wrapper.get_conformer_coords(0)
 trypsin_coords = trypsin_rdkit_wrapper.get_conformer_coords(0)
@@ -49,7 +58,7 @@ rec_lig_attrs = {'name' : 'trypsin-benzamidine-complex'}
 selection_map = {0 : None, 1 : None}
 selection_types = [None, None]
 TrypsinBenzamidineAssociationType = \
-            mastinx.AssociationType.factory("TrypsinBenzamidineAssociationType",
+            mastsys.AssociationType.factory("TrypsinBenzamidineAssociationType",
                                             system_type=TrypsinBenzamidineSystemType,
                                             selection_map=selection_map,
                                             selection_types=selection_types,
@@ -66,7 +75,7 @@ trypsys = TrypsinBenzamidineSystemType.to_system(member_coords)
 print("testing Hbond interaction between molecules in the receptor ligand association")
 tryp_ben_assoc = trypsys.associations[0]
 
-
+import ipdb; ipdb.set_trace()
 intermember_key_pairs, intermember_interactions = \
 tryp_ben_assoc.profile_interactions([mastinx.HydrogenBondType])
 
