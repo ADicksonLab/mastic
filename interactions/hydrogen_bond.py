@@ -257,8 +257,8 @@ class HydrogenBondInx(Interaction):
                          'H_atom_type', 'H_atom_idx', 'H_atom_coords']
         HydrogenBondInxRecord = namedtuple('HydrogenBondInxRecord', record_fields)
         record_attr = {'interaction_class' : self.interaction_class.name}
-        record_attr['donor_coords'] = self.donor.coords
-        record_attr['acceptor_coords'] = self.acceptor.coords
+        record_attr['donor_coords'] = self.donor.atoms[0].coords
+        record_attr['acceptor_coords'] = self.acceptor.atoms[0].coords
         record_attr['distance'] = self.distance
         record_attr['angle'] = self.angle
         record_attr['H_atom_type'] = self.H.atom_type
