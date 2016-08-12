@@ -17,6 +17,7 @@ class HydrogenBondType(InteractionType):
 
     """
 
+    attributes = {}
     interaction_name = "HydrogenBond"
     feature_keywords = mastinxconfig.HBOND_FEATURES
     donor_key = 'Donor'
@@ -24,19 +25,20 @@ class HydrogenBondType(InteractionType):
     grouping_attribute = 'rdkit_family'
 
     def __init__(self, hydrogen_bond_type_name,
-                 acceptor_feature=None, donor_feature=None,
+                 feature_types=None,
                  association_type=None,
                  assoc_member_pair_idxs=None,
                  **hydrogen_bond_attrs):
 
         super().__init__(hydrogen_bond_type_name,
-                         feature_types=[acceptor_feature, donor_feature],
+                         feature_types=feature_types,
                          association_type=association_type,
                          assoc_member_pair_idxs=None,
                          **hydrogen_bond_attrs)
 
-        self.acceptor = acceptor_feature
-        self.donor = donor_feature
+        self.donor = feature_types[0]
+        self.acceptor = feature_types[1]
+
 
     def __repr__(self):
         return str(self.__class__)

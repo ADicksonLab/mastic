@@ -71,7 +71,9 @@ class InteractionType(object):
         self.association_type = association_type
         self.assoc_member_pair_idxs = assoc_member_pair_idxs
 
-        return interaction_type
+    @property
+    def feature_types(self):
+        return self._feature_types
 
     def check(self, *args, **kwargs):
         """The principle class method for testing for the existence of an

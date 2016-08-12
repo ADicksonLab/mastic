@@ -269,8 +269,11 @@ the same coordinate system.
         self._system_type = system_type
         # substantiate the Associations in this System
         self._associations = []
-        for association_type in self._system_type.association_types:
-            self._associations.append(association_type.to_association(self))
+        for i, association_type in enumerate(self._system_type.association_types):
+            association_class_name = "Association{}".format(i)
+            self._associations.append(
+                association_type.to_association(self,
+                                                association_name=association_class_name))
 
     def __repr__(self):
         return str(self.__class__)
@@ -478,8 +481,8 @@ class AssociationType(object):
         self.selection_map = selection_map
         self.selection_types = selection_types
 
-    
-    def to_association(self, system):
+
+    def to_association(self, system, association_name=None):
         """Substantiate the association by providing the System to make
         selections on.
 
@@ -488,7 +491,8 @@ class AssociationType(object):
             "The system_type of system must be {0}, not {1}".format(
                 self.system_type, system.system_type)
 
-        return Association(system=system, association_type=self)
+        return Association(system=system, association_type=self,
+                           association_name=association_name)
 
 
 
@@ -506,7 +510,8 @@ class AssociationType(object):
 
 
 class Association(SelectionsList):
-    def __init__(self, system=None, association_type=None):
+
+    def __init__(self, system=None, association_type=None, association_name=None):
         # TODO check to make sure that all the atoms are in the same system
         # print(system, id(system))
         # print([bool(member in system) for member in members])
@@ -559,6 +564,7 @@ class Association(SelectionsList):
 
         # create the SelectionsList
         super().__init__(selection_list=selections)
+        self.name = association_name
         self._association_type = association_type
         self._system = system
         self._interactions = None
