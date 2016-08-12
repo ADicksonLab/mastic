@@ -67,7 +67,7 @@ trypsys = TrypsinBenzamidineSystemType.to_system(member_coords)
 print("testing Hbond interaction between molecules in the receptor ligand association")
 tryp_ben_assoc = trypsys.associations[0]
 
-
+import ipdb; ipdb.set_trace()
 intermember_key_pairs, intermember_interactions = \
 tryp_ben_assoc.profile_interactions([HydrogenBondType])
 

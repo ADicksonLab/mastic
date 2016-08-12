@@ -665,7 +665,7 @@ class Association(SelectionsList):
                 # get the member and feature idx pairs (member_a_idx, member_b_idx)
                 member_pair_idxs = item[0]
                 # the list of feature pair idxs (idx_feature_a, idx_feature_b)
-                feature_pairs_idxs = item[0]
+                feature_pairs_idxs = item[1]
                 member_a = self.members[member_pair_idxs[0]]
                 member_b = self.members[member_pair_idxs[1]]
                 # get the unique feature pairs
@@ -690,11 +690,11 @@ class Association(SelectionsList):
                     # TODO empty for now but could add stuff in the future
                     inx_class_attrs = {}
                     # make the interaction class
-                    inx_class = mastinx.interaction_type.factory(inx_type_name,
-                                                                 feature_types=feat_types,
-                                                                 association_type=self,
-                                                                 assoc_member_pair_idxs=member_pair_idxs,
-                                                                 **inx_class_attrs)
+                    inx_class = interaction_type.factory(inx_class_name,
+                                                         feature_types=feat_types,
+                                                         association_type=self,
+                                                         assoc_member_pair_idxs=member_pair_idxs,
+                                                         **inx_class_attrs)
 
                     # associate the inx hits for this inx class
 

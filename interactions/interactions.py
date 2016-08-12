@@ -9,6 +9,7 @@ from mast.selection import SelectionsList
 from mast.system import System
 import mast.selection as mastsel
 import mast.molecule as mastmol
+import mast.features as mastfeat
 import mast.system as mastsys
 
 import mast.config.interactions as mastinxconfig
@@ -37,11 +38,12 @@ class InteractionType(object):
                 feature_types=None,
                 association_type=None,
                 assoc_member_pair_idxs=None,
+                interaction_name=None,
                 **interaction_attrs):
 
         assert feature_types, "feature_types must be given."
         for feature_type in feature_types:
-            assert issubclass(feature_type, FeatureType), \
+            assert issubclass(feature_type, mastfeat.FeatureType), \
                 "All feature_type members must be a subclass of FeatureType, " \
                 "not, {}".format(feature_type)
         # keep track of which attributes the input did not provide
@@ -68,7 +70,15 @@ class InteractionType(object):
             attributes[attr] = value
 
         interaction_type = type(interaction_type_name, (cls,), attributes)
-        interaction_type.name = attributes
+        interaction_type.name = interaction_type_name
+
+        if interaction_name:
+            interaction_type.interaction_name = interaction_name
+        elif interaction_type_name.endswith('Type'):
+            interaction_type.interaction_name = interaction_type.name.split('Type')[0]
+        else:
+            interaction_type.interaction_name = interaction_type.name
+
         interaction_type.attributes_data = attributes
         interaction_type.interaction_type = cls
         interaction_type.feature_types = feature_types
