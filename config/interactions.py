@@ -2,8 +2,8 @@ INTERACTION_ATTRIBUTES = ['name']
 
 # families and types from the RDKit feature definition database
 # (.fdef)
-HBOND_FEATURE_FAMILIES = ['Donor', 'Acceptor']
-HBOND_FEATURE_TYPES = []
+HBOND_FEATURES = {'rdkit_family' : ['Donor', 'Acceptor'],
+                  'rdkit_type' : []}
 
 PISTACK_FEATURE_FAMILIES = ['Aromatic']
 PISTACK_FEATURE_TYPES = []

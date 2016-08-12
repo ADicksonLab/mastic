@@ -404,7 +404,6 @@ class AssociationType(object):
     def __init__(self, association_type_name,
                 system_type=None,
                 selection_map=None, selection_types=None,
-                association_name=None,
                 **association_attrs):
         """Static method for generating association types dynamically given a type
         name (which will be the class name) and a domain specific dictionary
@@ -668,8 +667,8 @@ class Association(SelectionsList):
                     feat_types = [feat_a_type, feat_b_type]
                     # make a name for the interaction class
                     inx_class_name = "{0}_{1}_{2}InxType".format(
-                        interaction_type.interaction_name,
-                        self.association_type.association_name,
+                        interaction_type.name,
+                        self.name,
                         inx_class_idx)
                     # TODO empty for now but could add stuff in the future
                     inx_class_attrs = {}

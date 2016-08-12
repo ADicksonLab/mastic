@@ -26,7 +26,7 @@ feature1_attrs = {}
 feature1_attrs['rdkit_family'] = feature1['family']
 feature1_attrs['rdkit_type'] = feature1['type']
 feature1_attrs['rdkit_position'] = feature1['position']
-MyPKAFeature1Type = mastfeat.FeatureType.factory("MyPKAFeature1Type",
+MyPKAFeature1Type = mastfeat.FeatureType("MyPKAFeature1Type",
                                                molecule_type=PKAType,
                                                atom_idxs=atom_idxs,
                                                **feature1_attrs)
@@ -40,4 +40,4 @@ pka_mol = PKAType.to_molecule(pka_coords)
 pka_feature_1 = MyPKAFeature1Type.to_feature(molecule=pka_mol)
 
 
-feature_type = PKAType.feature_types()[1]
+feature_type = PKAType.feature_types[1]

@@ -6,3 +6,5 @@ __pycache__/*
 /*.pyc
 *__pycache__*
 /.coverage
+/tmp/test_wf.pkl
+/tmp*
