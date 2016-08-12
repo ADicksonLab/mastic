@@ -262,7 +262,6 @@ class HydrogenBondInx(Interaction):
         record_attr['distance'] = self.distance
         record_attr['angle'] = self.angle
         record_attr['H_atom_type'] = self.H.atom_type
-        record_attr['H_atom_idx'] = None
         record_attr['H_atom_coords'] = self.H.coords
 
         return HydrogenBondInxRecord(**record_attr)
