@@ -19,9 +19,6 @@ class HydrogenBondType(InteractionType):
 
 
     feature_keywords = mastinxconfig.HBOND_FEATURES
-    """Dictionary of the Feature attribute and values that this
-    interaction recognizes."""
-
     donor_key = 'Donor'
     acceptor_key = 'Acceptor'
     grouping_attribute = 'rdkit_family'
@@ -30,7 +27,8 @@ class HydrogenBondType(InteractionType):
                  acceptor_feature=None, donor_feature=None,
                  association_type=None,
                  assoc_member_pair_idxs=None,
-                 **hydrogen_bond_attrs)
+                 **hydrogen_bond_attrs):
+
         super().__init__(hydrogen_bond_type_name,
                          feature_types=[acceptor_feature, donor_feature],
                          association_type=association_type,
@@ -38,6 +36,8 @@ class HydrogenBondType(InteractionType):
                          **hydrogen_bond_attrs)
 
         self.interaction_name = "HydrogenBond"
+        self.acceptor = acceptor_feature
+        self.donor = donor_feature
 
     def __repr__(self):
         return str(self.__class__)
@@ -125,7 +125,7 @@ class HydrogenBondType(InteractionType):
         v1 = donor_atom.coords - h_atom.coords
         v2 = acceptor_atom.coords - h_atom.coords
         try:
-            angle = np.degrees(np.arccos(np.dot(v1,v2)/(la.norm(v1) * la.norm(v2))))
+            angle = np.degrees(np.arccos(np.dot(v1, v2)/(la.norm(v1) * la.norm(v2))))
         except RuntimeWarning:
             print("v1: {0} \n"
                   "v2: {1}".format(v1, v2))
@@ -289,22 +289,21 @@ class HydrogenBondInx(Interaction):
                   "          pdb_residue_index = {acceptor_resnum}\n"
                   "distance: {distance}\n"
                   "angle: {angle}\n").format(
-                      self_str = str(self),
-                      donor_el = self.donor.atom_type.element,
-                      donor_coords = tuple(self.donor.coords),
-                      donor_mol_name = self.donor.molecule.molecule_type.name,
-                      donor_serial = self.donor.atom_type.pdb_serial_number,
-                      donor_resname = self.donor.atom_type.pdb_residue_name,
-                      donor_resnum = self.donor.atom_type.pdb_residue_number,
-                      acceptor_el = self.acceptor.atom_type.element,
-                      acceptor_coords = tuple(self.acceptor.coords),
-                      acceptor_mol_name = self.acceptor.molecule.molecule_type.name,
-                      acceptor_serial = self.acceptor.atom_type.pdb_serial_number,
-                      acceptor_resname = self.acceptor.atom_type.pdb_residue_name,
-                      acceptor_resnum = self.acceptor.atom_type.pdb_residue_number,
-                      distance = self.distance,
-                      angle = self.angle,
-                 )
+                      self_str=str(self),
+                      donor_el=self.donor.atom_type.element,
+                      donor_coords=tuple(self.donor.coords),
+                      donor_mol_name=self.donor.molecule.molecule_type.name,
+                      donor_serial=self.donor.atom_type.pdb_serial_number,
+                      donor_resname=self.donor.atom_type.pdb_residue_name,
+                      donor_resnum=self.donor.atom_type.pdb_residue_number,
+                      acceptor_el=self.acceptor.atom_type.element,
+                      acceptor_coords=tuple(self.acceptor.coords),
+                      acceptor_mol_name=self.acceptor.molecule.molecule_type.name,
+                      acceptor_serial=self.acceptor.atom_type.pdb_serial_number,
+                      acceptor_resname=self.acceptor.atom_type.pdb_residue_name,
+                      acceptor_resnum=self.acceptor.atom_type.pdb_residue_number,
+                      distance=self.distance,
+                      angle=self.angle,)
 
         print(string)
 
