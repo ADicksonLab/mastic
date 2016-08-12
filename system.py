@@ -84,7 +84,7 @@ class SystemType(object):
             assert (isinstance(member_type, MoleculeType) or
                     isinstance(member_type, AtomType)), \
                     "molecule_types must contain only MoleculeType or"\
-                    " AtomType subclasses, not {}".format(
+                    " AtomType instancees, not {}".format(
                         type(member_type))
 
         # keep track of which attributes the input did not provide
@@ -117,7 +117,6 @@ class SystemType(object):
         self.member_type_library = set(member_types)
         self._association_types = []
 
-    
     def to_system(self, members_coords):
         """Substantiate a System using input coordinates in the order of the
         members in the system.
@@ -181,7 +180,7 @@ class SystemType(object):
         # check to make sure that it's selection types are in this
         # SystemType
         assert isinstance(association_type, AssociationType), \
-            "association_type must be a subclass of mast.interactions.Association,"\
+            "association_type must be a instance of mast.interactions.Association,"\
             " not {}".format(association_type)
 
         # check that it is an AssociationType of this SystemType
@@ -263,7 +262,7 @@ the same coordinate system.
 
         if system_type:
             assert isinstance(system_type, SystemType), \
-                "system_type must be a subclass of SystemType, not {}".format(
+                "system_type must be a instance of SystemType, not {}".format(
                     type(system_type))
 
         super().__init__(selection_list=members, flags=['system'])
@@ -422,7 +421,7 @@ class AssociationType(object):
         # check that system_type is given and correct
         assert system_type, "system_type must be given"
         assert isinstance(system_type, SystemType), \
-            "system_type must be a subclass of SystemType, not {}}".format(
+            "system_type must be a instance of SystemType, not {}}".format(
                 system_type)
 
         # check that there are the same number of selection_map
@@ -520,7 +519,7 @@ class Association(SelectionsList):
 
         # check validity of association_type
         assert isinstance(association_type, AssociationType), \
-            "association_type must be a subclass of AssociationType, not {}".format(
+            "association_type must be a instance of AssociationType, not {}".format(
                 association_type)
 
         # check validity of the system
@@ -599,7 +598,7 @@ class Association(SelectionsList):
 
     def profile_interactions(self, interaction_types,
                              intramember_interactions=False):
-        """Accepts any number of InteractionType subclasses and identifies
+        """Accepts any number of InteractionType instancees and identifies
         Interactions between the members of the association using the
         InteractionType.find_hits function.
 
@@ -609,7 +608,7 @@ class Association(SelectionsList):
         """
         from mast.interactions.interactions import InteractionType
 
-        assert all([isinstance(itype, InteractionType) for itype in interaction_types]), \
+        assert all([issubclass(itype, InteractionType) for itype in interaction_types]), \
                    "All interaction_types must be a subclass of InteractionType"
 
         # if intramember interactions is True make pairs of each
@@ -642,7 +641,7 @@ class Association(SelectionsList):
                 member_feature_key_pairs[member_idx_pairs[idx]] = feature_key_pairs
 
 
-            # make interaction classes with interaction_type.factory
+            # make interaction classes with interaction_type constructor
             for member_pair_idx, item in enumerate(member_feature_key_pairs.items()):
                 # member_pair_idx is the pair of members
                 # get the member and feature idx pairs (member_a_idx, member_b_idx)
@@ -653,7 +652,7 @@ class Association(SelectionsList):
                 member_b = self.members[member_pair_idxs[1]]
                 # get the unique feature pairs
                 unique_feature_pair_idxs = set(feature_pairs_idxs)
-                # make a subclass of interaction_type for all of these
+                # make an instance of interaction_type for all of these
                 for inx_class_idx, inx_pair_idxs in enumerate(unique_feature_pair_idxs):
                     # inx_class_idx is the index of the unique pair of
                     # features (or the interaction class)
@@ -667,17 +666,17 @@ class Association(SelectionsList):
                     feat_types = [feat_a_type, feat_b_type]
                     # make a name for the interaction class
                     inx_class_name = "{0}_{1}_{2}InxType".format(
-                        interaction_type.name,
+                        interaction_type.interaction_name,
                         self.name,
                         inx_class_idx)
                     # TODO empty for now but could add stuff in the future
                     inx_class_attrs = {}
                     # make the interaction class
-                    inx_class = interaction_type.factory(inx_class_name,
-                                                         feature_types=feat_types,
-                                                         association_type=self,
-                                                         assoc_member_pair_idxs=member_pair_idxs,
-                                                         **inx_class_attrs)
+                    inx_class = interaction_type(inx_class_name,
+                                                 feature_types=feat_types,
+                                                 association_type=self,
+                                                 assoc_member_pair_idxs=member_pair_idxs,
+                                                 **inx_class_attrs)
 
                     # associate the inx hits for this inx class
 

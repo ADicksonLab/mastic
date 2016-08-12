@@ -107,8 +107,10 @@ class Interaction(SelectionsList):
     def __init__(self, features=None, system=None, interaction_type=None):
 
         assert interaction_type, "interaction_type must be given"
-        assert isinstance(interaction_type, InteractionType), \
-            "interaction_type must be a subclass of mast.interactions.InteractionType"
+        assert issubclass(interaction_type, InteractionType), \
+            "interaction_type must be a subclass of " \
+            "mast.interactions.InteractionType, not {}".format(
+                interaction_type)
 
         for feature in features:
             assert feature.system is system, \
