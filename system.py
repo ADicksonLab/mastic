@@ -7,6 +7,7 @@ from mast.selection import SelectionsList, IndexedSelection
 from mast.molecule import Atom, Bond, Molecule, AtomType, BondType, MoleculeType
 
 
+
 import mast.config.system as mastsysconfig
 
 __all__ = ['overlaps', 'SystemType', 'System']
@@ -497,6 +498,7 @@ class AssociationType(object):
         elif association_type_name.endswith('Type'):
             association_type.association_name = association_type.name.split('Type')[0]
         else:
+            association_type.association_name = association_type.name
 
         association_type.attributes_data = attributes
         # add core attributes
@@ -621,6 +623,8 @@ class Association(SelectionsList):
         --------
 
         """
+        from mast.interactions.interactions import InteractionType
+
         assert all([issubclass(itype, InteractionType) for itype in interaction_types]), \
                    "All interaction_types must be a subclass of InteractionType"
 

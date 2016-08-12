@@ -6,6 +6,7 @@ import mast.selection as mastsel
 import mast.molecule as mastmol
 import mast.system as mastsys
 import mast.interactions as mastinx
+from mast.interactions.hydrogen_bond import HydrogenBondType
 
 from mast.interfaces.rdkit import RDKitMoleculeWrapper
 
@@ -68,8 +69,8 @@ tryp_ben_assoc = trypsys.associations[0]
 
 
 intermember_key_pairs, intermember_interactions = \
-tryp_ben_assoc.profile_interactions([mastinx.HydrogenBondType])
+tryp_ben_assoc.profile_interactions([HydrogenBondType])
 
 intramember_key_pairs, intramember_interactions = \
-tryp_ben_assoc.profile_interactions([mastinx.HydrogenBondType],
+tryp_ben_assoc.profile_interactions([HydrogenBondType],
                                     intramember_interactions=True)

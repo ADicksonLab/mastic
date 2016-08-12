@@ -118,7 +118,7 @@ class Interaction(SelectionsList):
 
         super().__init__(selection_list=features)
         self._interaction_type = interaction_type
-        self.interactino_class = None
+        self.interaction_class = None
 
     @property
     def features(self):
@@ -126,7 +126,7 @@ class Interaction(SelectionsList):
 
     @property
     def feature_types(self):
-        rturn [faeture.feature_type for feature in self.features]
+        return [faeture.feature_type for feature in self.features]
 
     @property
     def interaction_type(self):
