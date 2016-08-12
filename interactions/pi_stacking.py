@@ -23,8 +23,7 @@ class PiStackingType(InteractionType):
     attributes = {}
     interaction_name = "PiStacking"
     feature_families = mastinxconfig.PISTACKING_FEATURES
-    donor_key = 'Donor'
-    acceptor_key = 'Acceptor'
+    aromatic_key = 'Donor'
     grouping_attribute = 'rdkit_family'
 
     def __repr__(self):
@@ -38,7 +37,7 @@ class PiStackingType(InteractionType):
 
         # for each member collect the grouped features
         # initialize list of members
-        members_features = [{'donors':[], 'acceptors':[]} for member in [member_a, member_b]]
+        members_features = [[] for member in [member_a, member_b]]
         for i, member in enumerate([member_a, member_b]):
             for feature_key, feature in member.features.items():
                 # get groupby attribute to use as a key
