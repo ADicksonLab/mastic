@@ -2,9 +2,13 @@
 HydrogenBondInx for explicit hydrogens.
 
 """
+import itertools as it
+
+import numpy as np
+import numpy.linalg as la
 
 import mast.config.interactions as mastinxconfig
-from mast.interactions.interactions import InteractionType, Interaction
+from mast.interactions.interactions import InteractionType, Interaction, InteractionError
 
 class HydrogenBondType(InteractionType):
     """Defines an InteractionType class for hydrogen bonds between members
@@ -143,10 +147,17 @@ class HydrogenBondType(InteractionType):
 
     @classmethod
     def record(cls):
-        record_fields = ['donor', 'acceptor', 'H']
-        HydrogenBondTypeRecord = namedtuple('HydrogenBondTypeRecord')
-        record_attr = {'InteractionType' : 'HydrogenBondType' }
-        # record_attr['donor'] = cls.
+        record_fields = ['interaction_class', 'interaction_type',
+                         'association_type', 'assoc_member_pair_idxs',
+                         'donor_feature_type', 'acceptor_feature_type'] + \
+                         list(cls.attributes_data.keys())
+        HydrogenBondTypeRecord = namedtuple('HydrogenBondTypeRecord', record_fields)
+        record_attr = {'interaction_class' : cls.name}
+        record_attr['interaction_type'] = cls.interaction_type
+        record_attr['association_type'] = cls.association_type
+        record_attr['assoc_member_pair_idxs'] = cls.assoc_member_pair_idxs
+        record_attr['donor_feature_type'] = cls.feature_types[0]
+        record_attr['acceptor_feature_type'] = cls.feature_types[1]
 
     @classmethod
     def pdb_serial_output(self, inxs, path, delim=","):
@@ -232,6 +243,25 @@ class HydrogenBondInx(Interaction):
 
         """
         return self._angle
+
+    @property
+    def record(self):
+        record_fields = ['interaction_class',
+                         'donor_coords', 'acceptor_coords',
+                         'distance', 'angle',
+                         'H_atom_type', 'H_atom_idx', 'H_atom_coords'] + \
+                         list(cls.attributes_data.keys())
+        HydrogenBondInxRecord = namedtuple('HydrogenBondInxRecord', record_fields)
+        record_attr = {'interaction_class' : self.interaction_class.name}
+        record_attr['donor_coords'] = self.donor.coords
+        record_attr['acceptor_coords'] = self.acceptor.coords
+        record_attr['distance'] = self.distance
+        record_attr['angle'] = self.angle
+        record_attr['H_atom_type'] = self.H.atom_type
+        record_attr['H_atom_idx'] = None
+        record_attr['H_atom_coords'] = self.H.coords
+
+        return HydrogenBondInxRecord(**record_attr)
 
     def pp(self):
 

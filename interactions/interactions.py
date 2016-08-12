@@ -35,6 +35,8 @@ class InteractionType(object):
     @classmethod
     def factory(cls, interaction_type_name,
                 feature_types=None,
+                association_type=None,
+                assoc_member_pair_idxs=None,
                 **interaction_attrs):
 
         assert feature_types, "feature_types must be given."
@@ -70,8 +72,8 @@ class InteractionType(object):
         interaction_type.attributes_data = attributes
         interaction_type.interaction_type = cls
         interaction_type.feature_types = feature_types
-
-
+        interaction_type.association_type = association_type
+        interaction_type.assoc_member_pair_idxs = assoc_member_pair_idxs
 
     @classmethod
     def check(cls, *args, **kwargs):
@@ -118,7 +120,7 @@ class Interaction(SelectionsList):
 
         super().__init__(selection_list=features)
         self._interaction_type = interaction_type
-        self.interaction_class = None
+        self._interaction_class = None
 
     @property
     def features(self):

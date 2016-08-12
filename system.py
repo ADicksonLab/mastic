@@ -1,5 +1,6 @@
 """ The system module. """
 import collections as col
+import itertools as it
 from functools import reduce
 import operator as op
 
@@ -658,7 +659,7 @@ class Association(SelectionsList):
                 member_feature_key_pairs[member_idx_pairs[idx]] = feature_key_pairs
 
 
-                        # make interaction classes with interaction_type.factory
+            # make interaction classes with interaction_type.factory
             for member_pair_idx, item in enumerate(member_feature_key_pairs.items()):
                 # member_pair_idx is the pair of members
                 # get the member and feature idx pairs (member_a_idx, member_b_idx)

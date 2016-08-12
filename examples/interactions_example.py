@@ -63,7 +63,7 @@ TrypsinBenzamidineSystemType.add_association_type(TrypsinBenzamidineAssociationT
 # Association that can be profiled
 trypsys = TrypsinBenzamidineSystemType.to_system(member_coords)
 
-# from mast.molecule import Molecule
+# from mast.molecule import Molecules
 print("testing Hbond interaction between molecules in the receptor ligand association")
 tryp_ben_assoc = trypsys.associations[0]
 
