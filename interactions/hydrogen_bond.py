@@ -17,7 +17,7 @@ class HydrogenBondType(InteractionType):
 
     """
 
-
+    interaction_name = "HydrogenBond"
     feature_keywords = mastinxconfig.HBOND_FEATURES
     donor_key = 'Donor'
     acceptor_key = 'Acceptor'
@@ -35,7 +35,6 @@ class HydrogenBondType(InteractionType):
                          assoc_member_pair_idxs=None,
                          **hydrogen_bond_attrs)
 
-        self.interaction_name = "HydrogenBond"
         self.acceptor = acceptor_feature
         self.donor = donor_feature
 
