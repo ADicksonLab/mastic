@@ -162,6 +162,8 @@ class HydrogenBondType(InteractionType):
         record_attr['donor_feature_type'] = cls.feature_types[0]
         record_attr['acceptor_feature_type'] = cls.feature_types[1]
 
+        return HydrogenBondTypeRecord(**record_attr)
+
     @classmethod
     def pdb_serial_output(self, inxs, path, delim=","):
         """Output the pdb serial numbers (index in pdb) of the donor and
@@ -253,7 +255,7 @@ class HydrogenBondInx(Interaction):
                          'donor_coords', 'acceptor_coords',
                          'distance', 'angle',
                          'H_atom_type', 'H_atom_idx', 'H_atom_coords'] + \
-                         list(cls.attributes_data.keys())
+                         list(self.attributes_data.keys())
         HydrogenBondInxRecord = namedtuple('HydrogenBondInxRecord', record_fields)
         record_attr = {'interaction_class' : self.interaction_class.name}
         record_attr['donor_coords'] = self.donor.coords

@@ -74,3 +74,13 @@ tryp_ben_assoc.profile_interactions([HydrogenBondType])
 intramember_key_pairs, intramember_interactions = \
 tryp_ben_assoc.profile_interactions([HydrogenBondType],
                                     intramember_interactions=True)
+
+intermember_inx_class_records = [inx.interaction_class.record() for
+                                 inx in intermember_interactions[HydrogenBondType]]
+intramember_inx_class_records = [inx.interaction_class.record() for
+                                 inx in intramember_interactions[HydrogenBondType]]
+
+intermember_inx_records = [inx.record for inx in
+                           intermember_interactions[HydrogenBondType]]
+intramember_inx_records = [inx.record for inx in
+                           intramember_interactions[HydrogenBondType]]

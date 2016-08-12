@@ -624,7 +624,6 @@ class Association(SelectionsList):
         --------
 
         """
-        import ipdb; ipdb.set_trace()
         from mast.interactions.interactions import InteractionType
 
         assert all([issubclass(itype, InteractionType) for itype in interaction_types]), \
