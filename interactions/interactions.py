@@ -1,6 +1,6 @@
 """ The interactions module. """
 import itertools as it
-from collections import defaultdict, Counter
+from collections import defaultdict, Counter, namedtuple
 
 import numpy as np
 import numpy.linalg as la
@@ -72,18 +72,13 @@ class InteractionType(object):
         interaction_type = type(interaction_type_name, (cls,), attributes)
         interaction_type.name = interaction_type_name
 
-        if interaction_name:
-            interaction_type.interaction_name = interaction_name
-        elif interaction_type_name.endswith('Type'):
-            interaction_type.interaction_name = interaction_type.name.split('Type')[0]
-        else:
-            interaction_type.interaction_name = interaction_type.name
-
         interaction_type.attributes_data = attributes
         interaction_type.interaction_type = cls
         interaction_type.feature_types = feature_types
         interaction_type.association_type = association_type
         interaction_type.assoc_member_pair_idxs = assoc_member_pair_idxs
+
+        return interaction_type
 
     @classmethod
     def check(cls, *args, **kwargs):
@@ -138,7 +133,7 @@ class Interaction(SelectionsList):
 
     @property
     def feature_types(self):
-        return [faeture.feature_type for feature in self.features]
+        return [feature.feature_type for feature in self.features]
 
     @property
     def interaction_type(self):

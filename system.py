@@ -624,6 +624,7 @@ class Association(SelectionsList):
         --------
 
         """
+        import ipdb; ipdb.set_trace()
         from mast.interactions.interactions import InteractionType
 
         assert all([issubclass(itype, InteractionType) for itype in interaction_types]), \
@@ -683,9 +684,9 @@ class Association(SelectionsList):
                     feat_b_type = member_b.features[inx_pair_idxs[1]].feature_type
                     feat_types = [feat_a_type, feat_b_type]
                     # make a name for the interaction class
-                    inx_class_name = "{0}{1}_{2}InxType".format(
+                    inx_class_name = "{0}_{1}_{2}InxType".format(
                         interaction_type.interaction_name,
-                        self.association_name,
+                        self.association_type.association_name,
                         inx_class_idx)
                     # TODO empty for now but could add stuff in the future
                     inx_class_attrs = {}
@@ -717,9 +718,9 @@ class Association(SelectionsList):
                         class_inx.interaction_class = inx_class
 
             # flatten the member_inx_hits dict
-            all_inx_hits = list(reduce(op.add, [inxs for inxs in member_inx_hits.values()]))
+            all_inx_hits = reduce(op.add, [inxs for inxs in member_inx_hits.values()])
             # add them to the interaction type entry
-
+            interactions[interaction_type] = all_inx_hits
             inx_feature_key_pairs[interaction_type] = member_feature_key_pairs
 
         # set the interactions for only the intermember interactions

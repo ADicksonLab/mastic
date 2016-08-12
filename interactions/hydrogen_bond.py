@@ -3,6 +3,7 @@ HydrogenBondInx for explicit hydrogens.
 
 """
 import itertools as it
+from collections import namedtuple
 
 import numpy as np
 import numpy.linalg as la
@@ -19,6 +20,8 @@ class HydrogenBondType(InteractionType):
     def __init__(self):
         pass
 
+    attributes = {}
+    interaction_name = "HydrogenBond"
     _feature_families = mastinxconfig.HBOND_FEATURE_FAMILIES
     feature_families = _feature_families
     _donor_key = 'Donor'
