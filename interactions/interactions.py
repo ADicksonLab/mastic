@@ -152,6 +152,7 @@ class Interaction(SelectionsList):
         assert Counter(self.feature_types) == Counter(interaction_class.feature_types), \
             "the interaction_class must have the same number and types of features" \
             "as this Interaction, not {}".format(Counter(interaction_class.feature_types))
+        self._interaction_class = interaction_class
 
 
 if __name__ == "__main__":
