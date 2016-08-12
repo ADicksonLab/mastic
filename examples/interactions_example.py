@@ -49,7 +49,7 @@ rec_lig_attrs = {'name' : 'trypsin-benzamidine-complex'}
 selection_map = {0 : None, 1 : None}
 selection_types = [None, None]
 TrypsinBenzamidineAssociationType = \
-            mastinx.AssociationType.factory("TrypsinBenzamidineAssociationType",
+            mastsys.AssociationType.factory("TrypsinBenzamidineAssociationType",
                                             system_type=TrypsinBenzamidineSystemType,
                                             selection_map=selection_map,
                                             selection_types=selection_types,
