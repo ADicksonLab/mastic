@@ -30,25 +30,20 @@ class InteractionType(object):
 
     """
 
-    def __init__(self):
-        pass
-
-    @classmethod
-    def factory(cls, interaction_type_name,
+    def __init__(self, interaction_type_name,
                 feature_types=None,
                 association_type=None,
                 assoc_member_pair_idxs=None,
-                interaction_name=None,
                 **interaction_attrs):
 
         assert feature_types, "feature_types must be given."
         for feature_type in feature_types:
-            assert issubclass(feature_type, mastfeat.FeatureType), \
+            assert isinstance(feature_type, mastfeat.FeatureType), \
                 "All feature_type members must be a subclass of FeatureType, " \
                 "not, {}".format(feature_type)
         # keep track of which attributes the input did not provide
         # compared to the config file
-        for attr in cls.attributes:
+        for attr in self.attributes:
             try:
                 assert attr in interaction_attrs.keys()
             except AssertionError:
@@ -57,10 +52,10 @@ class InteractionType(object):
                 # print("Attribute {0} not found in interaction input.".format(attr))
 
         # add the attributes into the class
-        attributes = {attr : None for attr in cls.attributes}
+        attributes = {attr : None for attr in self.attributes}
         for attr, value in interaction_attrs.items():
             try:
-                assert attr in cls.attributes
+                assert attr in self.attributes
             # if it doesn't then log
             except AssertionError:
                 # LOGGING
@@ -69,19 +64,18 @@ class InteractionType(object):
             # add it regardless
             attributes[attr] = value
 
-        interaction_type = type(interaction_type_name, (cls,), attributes)
-        interaction_type.name = interaction_type_name
+        self.name = interaction_type_name
+        self.attributes_data = attributes
+        self.__dict__.update(attributes)
+        self._feature_types = feature_types
+        self.association_type = association_type
+        self.assoc_member_pair_idxs = assoc_member_pair_idxs
 
-        interaction_type.attributes_data = attributes
-        interaction_type.interaction_type = cls
-        interaction_type.feature_types = feature_types
-        interaction_type.association_type = association_type
-        interaction_type.assoc_member_pair_idxs = assoc_member_pair_idxs
+    @property
+    def feature_types(self):
+        return self._feature_types
 
-        return interaction_type
-
-    @classmethod
-    def check(cls, *args, **kwargs):
+    def check(self, *args, **kwargs):
         """The principle class method for testing for the existence of an
         interaction from specified geometric constraint parameters.
         All subclasses of InteractionType should implement this for
@@ -90,8 +84,7 @@ class InteractionType(object):
         """
         pass
 
-    @classmethod
-    def find_hits(cls, member_a, member_b):
+    def find_hits(self, member_a, member_b):
         """Returns all the 'hits' for interactions of features between two
         members (molecules, selections, etc.), where a hit is a
         feature set that satisfies the geometric constraints defined
@@ -117,7 +110,9 @@ class Interaction(SelectionsList):
 
         assert interaction_type, "interaction_type must be given"
         assert issubclass(interaction_type, InteractionType), \
-            "interaction_type must be a subclass of mast.interactions.InteractionType"
+            "interaction_type must be a subclass of " \
+            "mast.interactions.InteractionType, not {}".format(
+                interaction_type)
 
         for feature in features:
             assert feature.system is system, \
@@ -146,7 +141,7 @@ class Interaction(SelectionsList):
 
     @interaction_class.setter
     def interaction_class(self, interaction_class):
-        assert issubclass(interaction_class, self.interaction_type), \
+        assert isinstance(interaction_class, self.interaction_type), \
             "interaction_classes must be subclasses of this Interaction's" \
             "interaction_type, not {}".format(interaction_class)
         assert Counter(self.feature_types) == Counter(interaction_class.feature_types), \

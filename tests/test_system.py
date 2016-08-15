@@ -15,18 +15,18 @@ class TestSystemType(unittest.TestCase):
         self.mock_atom1_attrs = {}
         self.mock_atom1_attrs[mastmolconfig.ATOM_ATTRIBUTES[0]] = "mock_attribute"
         self.mock_atom1_attrs['undefined_attribute'] = "undefined_mock_attribute"
-        self.Mock1AtomType = mastmol.AtomType.factory("Mock1AtomType", **self.mock_atom1_attrs)
+        self.Mock1AtomType = mastmol.AtomType("Mock1AtomType", **self.mock_atom1_attrs)
         self.mock_atom2_attrs = {}
         self.mock_atom2_attrs[mastmolconfig.ATOM_ATTRIBUTES[0]] = "mock_attribute_2"
         self.mock_atom2_attrs['undefined_attribute'] = "undefined_mock_attribute"
-        self.Mock2AtomType = mastmol.AtomType.factory("Mock2AtomType", **self.mock_atom2_attrs)
+        self.Mock2AtomType = mastmol.AtomType("Mock2AtomType", **self.mock_atom2_attrs)
 
         self.atom_types = (self.Mock1AtomType, self.Mock2AtomType)
         self.mock_bond_attrs = {}
         self.mock_bond_attrs[mastmolconfig.BOND_ATTRIBUTES[0]] = "mock_attribute"
         self.mock_bond_attrs['undefined_attribute'] = "undefined_mock_attribute"
 
-        self.MockBondType = mastmol.BondType.factory("MockBondType",
+        self.MockBondType = mastmol.BondType("MockBondType",
                                                      atom_types=self.atom_types,
                                                      **self.mock_bond_attrs)
 
@@ -36,7 +36,7 @@ class TestSystemType(unittest.TestCase):
         self.mock_mol_attrs[mastmolconfig.MOLECULE_ATTRIBUTES[0]] = "mock_attribute"
         self.mock_mol_attrs['undefined_attribute'] = "undefined_mock_attribute"
 
-        self.MockMoleculeType = mastmol.MoleculeType.factory("MockMoleculeType",
+        self.MockMoleculeType = mastmol.MoleculeType("MockMoleculeType",
                                                         atom_types=self.atom_types,
                                                         bond_types=self.bond_types,
                                                         bond_map=self.bond_map,
@@ -52,7 +52,7 @@ class TestSystemType(unittest.TestCase):
         pass
 
     def test_factory_molecules_only(self):
-        MockSystemType = mastsys.SystemType.factory("MockSystemType",
+        MockSystemType = mastsys.SystemType("MockSystemType",
                                                     member_types=self.molecule_types,
                                                     **self.system_attributes)
         for attribute in mastsysconfig.SYSTEM_ATTRIBUTES:
@@ -62,16 +62,16 @@ class TestSystemType(unittest.TestCase):
         for member_type in MockSystemType.member_types:
             self.assertIs(member_type, self.MockMoleculeType)
 
-        for molecule_type in MockSystemType.molecule_types():
+        for molecule_type in MockSystemType.molecule_types:
             self.assertIs(molecule_type, self.MockMoleculeType)
 
-        self.assertFalse(MockSystemType.atom_types())
+        self.assertFalse(MockSystemType.atom_types)
         self.assertFalse(MockSystemType.association_types)
         self.assertEqual(MockSystemType.member_type_library, {self.MockMoleculeType})
         self.assertEqual(MockSystemType.name, self.system_attributes['name'])
 
     def test_factory_atoms_only(self):
-        MockSystemType = mastsys.SystemType.factory("MockSystemType",
+        MockSystemType = mastsys.SystemType("MockSystemType",
                                                     member_types=self.atom_types,
                                                     **self.system_attributes)
 
@@ -80,16 +80,16 @@ class TestSystemType(unittest.TestCase):
         for i, member_type in enumerate(MockSystemType.member_types):
             self.assertIs(member_type, self.atom_types[i])
 
-        for i, atom_type in enumerate(MockSystemType.atom_types()):
+        for i, atom_type in enumerate(MockSystemType.atom_types):
             self.assertIs(atom_type, self.atom_types[i])
 
-        self.assertFalse(MockSystemType.molecule_types())
+        self.assertFalse(MockSystemType.molecule_types)
         self.assertFalse(MockSystemType.association_types)
         self.assertEqual(MockSystemType.member_type_library, set(self.atom_types))
         self.assertEqual(MockSystemType.name, self.system_attributes['name'])
 
     def test_factory_atoms_and_molecules(self):
-        MockSystemType = mastsys.SystemType.factory("MockSystemType",
+        MockSystemType = mastsys.SystemType("MockSystemType",
                                                     member_types=self.member_types,
                                                     **self.system_attributes)
 
@@ -98,7 +98,7 @@ class TestSystemType(unittest.TestCase):
         for i, member_type in enumerate(MockSystemType.member_types):
             self.assertIs(member_type, self.member_types[i])
 
-        for i, atom_type in enumerate(MockSystemType.atom_types()):
+        for i, atom_type in enumerate(MockSystemType.atom_types):
             self.assertIs(atom_type, self.atom_types[i])
 
         self.assertFalse(MockSystemType.association_types)
@@ -111,18 +111,18 @@ class TestSystem(unittest.TestCase):
         self.mock_atom1_attrs = {}
         self.mock_atom1_attrs[mastmolconfig.ATOM_ATTRIBUTES[0]] = "mock_attribute"
         self.mock_atom1_attrs['undefined_attribute'] = "undefined_mock_attribute"
-        self.Mock1AtomType = mastmol.AtomType.factory("Mock1AtomType", **self.mock_atom1_attrs)
+        self.Mock1AtomType = mastmol.AtomType("Mock1AtomType", **self.mock_atom1_attrs)
         self.mock_atom2_attrs = {}
         self.mock_atom2_attrs[mastmolconfig.ATOM_ATTRIBUTES[0]] = "mock_attribute_2"
         self.mock_atom2_attrs['undefined_attribute'] = "undefined_mock_attribute"
-        self.Mock2AtomType = mastmol.AtomType.factory("Mock2AtomType", **self.mock_atom2_attrs)
+        self.Mock2AtomType = mastmol.AtomType("Mock2AtomType", **self.mock_atom2_attrs)
 
         self.atom_types = (self.Mock1AtomType, self.Mock2AtomType)
         self.mock_bond_attrs = {}
         self.mock_bond_attrs[mastmolconfig.BOND_ATTRIBUTES[0]] = "mock_attribute"
         self.mock_bond_attrs['undefined_attribute'] = "undefined_mock_attribute"
 
-        self.MockBondType = mastmol.BondType.factory("MockBondType",
+        self.MockBondType = mastmol.BondType("MockBondType",
                                                      atom_types=self.atom_types,
                                                      **self.mock_bond_attrs)
 
@@ -132,7 +132,7 @@ class TestSystem(unittest.TestCase):
         self.mock_mol_attrs[mastmolconfig.MOLECULE_ATTRIBUTES[0]] = "mock_attribute"
         self.mock_mol_attrs['undefined_attribute'] = "undefined_mock_attribute"
 
-        self.MockMoleculeType = mastmol.MoleculeType.factory("MockMoleculeType",
+        self.MockMoleculeType = mastmol.MoleculeType("MockMoleculeType",
                                                         atom_types=self.atom_types,
                                                         bond_types=self.bond_types,
                                                         bond_map=self.bond_map,
@@ -157,13 +157,13 @@ class TestSystem(unittest.TestCase):
         for coords in self.overlapping_coords:
             self.molecules.append(self.MockMoleculeType.to_molecule(coords))
 
-        self.MockAtomsSystemType = mastsys.SystemType.factory("MockSystemType",
+        self.MockAtomsSystemType = mastsys.SystemType("MockSystemType",
                                                     member_types=self.atom_types,
                                                     **self.system_attributes)
-        self.MockMoleculesSystemType = mastsys.SystemType.factory("MockSystemType",
+        self.MockMoleculesSystemType = mastsys.SystemType("MockSystemType",
                                                     member_types=self.molecule_types,
                                                     **self.system_attributes)
-        self.MockSystemType = mastsys.SystemType.factory("MockSystemType",
+        self.MockSystemType = mastsys.SystemType("MockSystemType",
                                                     member_types=self.member_types,
                                                     **self.system_attributes)
 

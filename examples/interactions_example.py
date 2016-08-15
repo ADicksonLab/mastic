@@ -41,7 +41,7 @@ trypsin_mol = TrypsinType.to_molecule(trypsin_coords)
 member_types = [BENType, TrypsinType]
 system_attrs = {'name' : 'trypsin-benzamidine-complex'}
 
-TrypsinBenzamidineSystemType = mastsys.SystemType.factory("TrypsinBenzamidineSystemType",
+TrypsinBenzamidineSystemType = mastsys.SystemType("TrypsinBenzamidineSystemType",
                                                           member_types=member_types,
                                                           **system_attrs)
 
@@ -52,7 +52,7 @@ rec_lig_attrs = {'name' : 'trypsin-benzamidine-complex'}
 selection_map = {0 : None, 1 : None}
 selection_types = [None, None]
 TrypsinBenzamidineAssociationType = \
-            mastsys.AssociationType.factory("TrypsinBenzamidineAssociationType",
+            mastsys.AssociationType("TrypsinBenzamidineAssociationType",
                                             system_type=TrypsinBenzamidineSystemType,
                                             selection_map=selection_map,
                                             selection_types=selection_types,

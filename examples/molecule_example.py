@@ -15,21 +15,21 @@ import mast.config.molecule as mastmolconfig
 ### Making AtomTypes, BondTypes, and MoleculeTypes
 print("making AtomTypes")
 atom1_attrs = {'pdb_name' : "FAKE1"}
-Atom1Type = AtomType.factory("Atom1Type", **atom1_attrs)
+Atom1Type = AtomType("Atom1Type", **atom1_attrs)
 
 atom2_attrs = {'pdb_name' : "FAKE2"}
-Atom2Type = AtomType.factory("Atom2Type", **atom2_attrs)
+Atom2Type = AtomType("Atom2Type", **atom2_attrs)
 
 atom3_attrs = {'pdb_name' : "FAKE3"}
-Atom3Type = AtomType.factory("Atom3Type", **atom3_attrs)
+Atom3Type = AtomType("Atom3Type", **atom3_attrs)
 
 print("making BondType")
 bond1_attrs = {'bond_type' : "TRIPLE"}
-Bond1Type = BondType.factory("Bond1Type", atom_types=(Atom1Type, Atom2Type), **bond1_attrs)
+Bond1Type = BondType("Bond1Type", atom_types=(Atom1Type, Atom2Type), **bond1_attrs)
 
 print("making MoleculeType")
 molecule1_attrs = {'name' : "FAKE"}
-Molecule1Type = MoleculeType.factory("Molecule1Type",
+Molecule1Type = MoleculeType("Molecule1Type",
                                      atom_types=[Atom1Type, Atom2Type],
                                      bond_types=[Bond1Type], bond_map = {0 : (0,1)},
                                      **molecule1_attrs)
@@ -67,7 +67,7 @@ pka_coords = pka_rdkit_wrapper.get_conformer_coords(0)
 pka_atom_types = []
 for atom_data in pka_atom_data:
     atom_type_name = "PKAAtom{0}Type".format(atom_data['name'])
-    atom_type = AtomType.factory(atom_type_name, **atom_data)
+    atom_type = AtomType(atom_type_name, **atom_data)
     pka_atom_types.append(atom_type)
 
 # BondTypes
@@ -76,11 +76,11 @@ for bond_data in pka_bond_data:
     bond_type_name = "PKABond{0}Type".format(bond_data['name'])
     atom_types = (pka_atom_types[bond_data['rdkit_atom_idxs'][0]],
                   pka_atom_types[bond_data['rdkit_atom_idxs'][1]])
-    bond_type = BondType.factory(bond_type_name, atom_types=atom_types, **bond_data)
+    bond_type = BondType(bond_type_name, atom_types=atom_types, **bond_data)
     pka_bond_types.append(bond_type)
 
 # MoleculeType
-PKA1Type = MoleculeType.factory("PKAType", atom_types=pka_atom_types,
+PKA1Type = MoleculeType("PKAType", atom_types=pka_atom_types,
                                bond_types=pka_bond_types, bond_map=pka_bond_map,
                                **pka_molecule_data)
 # using the rdkit wrapper converter

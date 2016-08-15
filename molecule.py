@@ -26,31 +26,7 @@ class AtomType(object):
     """
     attributes = mastmolconfig.ATOM_ATTRIBUTES
 
-    def __init__(self):
-        pass
-
-    @classmethod
-    def to_atom(cls, coords):
-        """Substantiate this AtomType with coordinates"""
-        assert len(coords) == 3, \
-            "coords must be length 3, not {}".format(len(coords))
-        assert all([(lambda x: isinstance(x, float))(i)
-                    for i in coords]), \
-            "coords must be 3 floats, not {}".format(coords)
-        coords = np.array(coords)
-        atom = Atom(coords, atom_type=cls)
-
-        return atom
-
-    @staticmethod
-    def factory(atom_type_name, **atom_attrs):
-        """Static method for generating atom types dynamically given a type
-        name (which will be the class name) and a domain specific dictionary
-        of atom attributes.
-
-        See mast.config.molecule for standard AtomType attributes.
-        See class docstring for examples.
-        """
+    def __init__(self, atom_type_name, **atom_attrs):
         # keep track of which attributes the input did not provide
         for attr in AtomType.attributes:
             try:
@@ -75,23 +51,33 @@ class AtomType(object):
             # add it to the attributes
             attributes[attr] = value
 
-        atom_type = type(atom_type_name, (AtomType,), attributes)
-        atom_type.name = atom_type_name
-        atom_type.attributes_data = attributes
+        self.name = atom_type_name
+        self.attributes_data = attributes
+        self.__dict__.update(attributes)
 
-        return atom_type
+    def to_atom(self, coords):
+        """Substantiate this AtomType with coordinates"""
+        assert len(coords) == 3, \
+            "coords must be length 3, not {}".format(len(coords))
+        assert all([(lambda x: isinstance(x, float))(i)
+                    for i in coords]), \
+            "coords must be 3 floats, not {}".format(coords)
+        coords = np.array(coords)
+        atom = Atom(coords, atom_type=self)
+
+        return atom
 
     def __str__(self):
         return self.name
 
-    @classmethod
-    def record(cls):
+    @property
+    def record(self):
         # define the Record named tuple
-        record_fields = ['AtomType'] + list(cls.attributes_data.keys())
+        record_fields = ['AtomType'] + list(self.attributes_data.keys())
         AtomTypeRecord = col.namedtuple('AtomTypeRecord', record_fields)
         # build the values for it for this Type
-        record_attr = {'AtomType' : cls.name}
-        record_attr.update(cls.attributes_data)
+        record_attr = {'AtomType' : self.name}
+        record_attr.update(self.attributes_data)
         # make and return
         return AtomTypeRecord(**record_attr)
 
@@ -116,29 +102,7 @@ class BondType(object):
     attributes = mastmolconfig.BOND_ATTRIBUTES
     """Domain specific properties of the BondType"""
 
-    def __init__(self):
-        pass
-
-    @classmethod
-    def to_bond(cls, atom1_coords, atom2_coords):
-        """Substantiate this Bond with given coordinates for each atom type."""
-        # test the inputs
-        for coords in [atom1_coords, atom2_coords]:
-            assert len(coords) == 3, \
-                "coords must be length 3, not {}".format(len(coords))
-            assert all([(lambda x: isinstance(x, int) or isinstance(x, float))(i)
-                        for i in coords]), \
-                "coords must be 3 numbers, not {}".format(coords)
-
-        atoms = []
-        atoms.append(cls.atom_types[0].to_atom(atom1_coords))
-        atoms.append(cls.atom_types[1].to_atom(atom2_coords))
-
-        bond = Bond(atoms, (0,1), bond_type=cls)
-        return bond
-
-    @staticmethod
-    def factory(bond_type_name, atom_types=None, **bond_attrs):
+    def __init__(self, bond_type_name, atom_types=None, **bond_attrs):
         """Static method for generating bond types dynamically given a type
         name (which will be the class name) and a domain specific dictionary
         of bond attributes.
@@ -154,7 +118,7 @@ class BondType(object):
         assert len(atom_types) == 2, \
             "atom_types must be a length 2 tuple, not len={}".format(
                 len(atom_types))
-        assert all([(lambda x: issubclass(x, AtomType))(i)
+        assert all([(lambda x: isinstance(x, AtomType))(i)
                     for i in atom_types]), \
             "atom_types must be a length 2 tuple of AtomType subclasses"
 
@@ -180,25 +144,42 @@ class BondType(object):
             # add it regardless
             attributes[attr] = value
 
-        bond_type =  type(bond_type_name, (BondType,), attributes)
-        bond_type.name = bond_type_name
-        bond_type.attributes_data = attributes
-        bond_type.atom_types = atom_types
-
-        return bond_type
+        self.name = bond_type_name
+        self.attributes_data = attributes
+        self.__dict__.update(attributes)
+        self.atom_types = atom_types
 
 
-    @classmethod
-    def record(cls):
+    
+    def to_bond(self, atom1_coords, atom2_coords):
+        """Substantiate this Bond with given coordinates for each atom type."""
+        # test the inputs
+        for coords in [atom1_coords, atom2_coords]:
+            assert len(coords) == 3, \
+                "coords must be length 3, not {}".format(len(coords))
+            assert all([(lambda x: isinstance(x, int) or isinstance(x, float))(i)
+                        for i in coords]), \
+                "coords must be 3 numbers, not {}".format(coords)
+
+        atoms = []
+        atoms.append(self.atom_types[0].to_atom(atom1_coords))
+        atoms.append(self.atom_types[1].to_atom(atom2_coords))
+
+        bond = Bond(atoms, (0,1), bond_type=self)
+        return bond
+
+
+    @property
+    def record(self):
         # define the Record named tuple
         record_fields = ['BondType', 'AtomAType', 'AtomBType'] + \
-                        list(cls.attributes_data.keys())
+                        list(self.attributes_data.keys())
         BondTypeRecord = col.namedtuple('BondTypeRecord', record_fields)
         # build the values for it for this Type
-        record_attr = {'BondType' : cls.name}
-        record_attr['AtomAType'] = cls.atom_types[0]
-        record_attr['AtomBType'] = cls.atom_types[1]
-        record_attr.update(cls.attributes_data)
+        record_attr = {'BondType' : self.name}
+        record_attr['AtomAType'] = self.atom_types[0]
+        record_attr['AtomBType'] = self.atom_types[1]
+        record_attr.update(self.attributes_data)
         # make and return
         return BondTypeRecord(**record_attr)
 
@@ -236,65 +217,7 @@ class MoleculeType(object):
     attributes = mastmolconfig.MOLECULE_ATTRIBUTES
     """Domain specific properties of the MoleculeType"""
 
-    def __init__(self):
-        pass
-
-    @classmethod
-    def atom_type_library(cls):
-        """The unique AtomTypes in this MoleculeType."""
-        return list(cls.atom_type_library)
-
-    @classmethod
-    def bond_type_library(cls):
-        """The unique BondTypes in this MoleculeType."""
-        return list(cls.bond_type_library)
-
-    @classmethod
-    def feature_types(cls):
-        """The chemical features of this MoleculeType."""
-        return cls._feature_types
-
-    @classmethod
-    def add_feature_type(cls, key, feature_type):
-        from mast.features import FeatureType
-        assert issubclass(feature_type, FeatureType), \
-            "feature must be a subclass of a mast.features.FeatureType class, not {}".format(
-                feature_type)
-        assert feature_type.molecule_type is cls, \
-            "The molecule of the feature must be this molecule, not {}".format(
-                feature_type.molecule_type)
-        cls._feature_types[key] = feature_type
-
-    @classmethod
-    def to_molecule(cls, coords):
-        """Substantiate this MoleculeType with the given coordinates for each
-        atom.
-        """
-
-        # make one CoordArray to put everything in
-        coord_array = CoordArray(coords)
-
-        # Make atoms out of the coord array
-        atoms = []
-        for atom_idx, atom_type in enumerate(cls.atom_types):
-            atom = Atom(atom_array=coord_array, array_idx=atom_idx, atom_type=atom_type)
-            atoms.append(atom)
-
-        # make the bonds from the atoms
-        bond_map = cls.bond_map
-        bonds = []
-        for bond_idx, bond_type in enumerate(cls.bond_types):
-            bond = Bond(atom_container=atoms, atom_ids=bond_map[bond_idx],
-                        bond_type=bond_type)
-            bonds.append(bond)
-
-        # TODO handle and create angles
-        angles = None
-
-        return Molecule(atoms=atoms, bonds=bonds, angles=angles, mol_type=cls)
-
-    @staticmethod
-    def factory(mol_type_name, atom_types=None,
+    def __init__(self, mol_type_name, atom_types=None,
                 bond_types=None, bond_map=None,
                 angle_types=None, angle_map=None, # stubbed out
                 **molecule_attrs):
@@ -312,11 +235,11 @@ class MoleculeType(object):
         assert bond_types, "bond_types must be provided"
         assert bond_map, "bond_map must be provided"
         # assert angle_types, "angle_types must be provided"
-        assert all([(lambda x: issubclass(x, AtomType))(i)
+        assert all([(lambda x: isinstance(x, AtomType))(i)
                     for i in atom_types]), \
             "atom_types must contain only AtomType subclasses"
 
-        assert all([(lambda x: issubclass(x, BondType))(i)
+        assert all([(lambda x: isinstance(x, BondType))(i)
                     for i in bond_types]), \
             "bond_types must contain only BondType subclasses"
 
@@ -337,7 +260,7 @@ class MoleculeType(object):
                     atom_idxs[1], len(atom_types), bond_idx)
 
         # check angle input
-        # assert all([(lambda x: issubclass(x, AngleType))(i)
+        # assert all([(lambda x: isinstance(x, AngleType))(i)
         #             for i in angle_types]), \
         #     "angle_types must contain only AngleType subclasses"
 
@@ -365,58 +288,110 @@ class MoleculeType(object):
             attributes[attr] = value
 
         # create the class with the domain specific attributes
-        molecule_type = type(mol_type_name, (MoleculeType,), attributes)
-        molecule_type.name = mol_type_name
-        molecule_type.attributes_data = attributes
+        self.name = mol_type_name
+        self.attributes_data = attributes
+        self.__dict__.update(attributes)
         # add core attributes
-        molecule_type.atom_types = atom_types
-        molecule_type.bond_types = bond_types
-        molecule_type.bond_map = bond_map
-        # molecule_type.angle_types = angle_types
-        # molecule_type.angle_map = angle_map
-        molecule_type.atom_type_library = set(atom_types)
-        molecule_type.bond_type_library = set(bond_types)
-        # molecule_type.angle_type_library = set(angle_types)
-        molecule_type._feature_types = {}
+        self.atom_types = atom_types
+        self.bond_types = bond_types
+        self.bond_map = bond_map
+        # self.angle_types = angle_types
+        # self.angle_map = angle_map
+        self._atom_type_library = set(atom_types)
+        self._bond_type_library = set(bond_types)
+        # self.angle_type_library = set(angle_types)
+        self._feature_types = {}
 
-        return molecule_type
+    @property
+    def atom_type_library(self):
+        """The unique AtomTypes in this MoleculeType."""
+        return list(self._atom_type_library)
 
-    @classmethod
-    def atom_type_records(cls):
-        return [atom_type.record() for atom_type in cls.atom_types]
+    @property
+    def bond_type_library(self):
+        """The unique BondTypes in this MoleculeType."""
+        return list(self._bond_type_library)
 
-    @classmethod
-    def atom_type_df(cls):
+    @property
+    def feature_types(self):
+        """The chemical features of this MoleculeType."""
+        return self._feature_types
+
+    def add_feature_type(self, key, feature_type):
+        from mast.features import FeatureType
+        assert isinstance(feature_type, FeatureType), \
+            "feature must be a subclass of a mast.features.FeatureType class, not {}".format(
+                feature_type)
+        assert feature_type.molecule_type is self, \
+            "The molecule of the feature must be this molecule, not {}".format(
+                feature_type.molecule_type)
+        self._feature_types[key] = feature_type
+
+    
+    def to_molecule(self, coords):
+        """Substantiate this MoleculeType with the given coordinates for each
+        atom.
+        """
+
+        # make one CoordArray to put everything in
+        coord_array = CoordArray(coords)
+
+        # Make atoms out of the coord array
+        atoms = []
+        for atom_idx, atom_type in enumerate(self.atom_types):
+            atom = Atom(atom_array=coord_array, array_idx=atom_idx, atom_type=atom_type)
+            atoms.append(atom)
+
+        # make the bonds from the atoms
+        bond_map = self.bond_map
+        bonds = []
+        for bond_idx, bond_type in enumerate(self.bond_types):
+            bond = Bond(atom_container=atoms, atom_ids=bond_map[bond_idx],
+                        bond_type=bond_type)
+            bonds.append(bond)
+
+        # TODO handle and create angles
+        angles = None
+
+        return Molecule(atoms=atoms, bonds=bonds, angles=angles, mol_type=self)
+
+
+    @property
+    def atom_type_records(self):
+        return [atom_type.record for atom_type in self.atom_types]
+
+    @property
+    def atom_type_df(self):
         import pandas as pd
-        return pd.DataFrame(cls.atom_type_records())
+        return pd.DataFrame(self.atom_type_records)
 
-    @classmethod
-    def bond_type_records(cls):
-        return [bond_type.record() for bond_type in cls.bond_types]
+    @property
+    def bond_type_records(self):
+        return [bond_type.record for bond_type in self.bond_types]
 
-    @classmethod
-    def bond_type_df(cls):
+    @property
+    def bond_type_df(self):
         import pandas as pd
-        return pd.DataFrame(cls.bond_type_records())
+        return pd.DataFrame(self.bond_type_records)
 
-    @classmethod
-    def feature_type_records(cls):
-        return [feature_type.record() for feat_key, feature_type in
-                cls.feature_types().items()]
+    @property
+    def feature_type_records(self):
+        return [feature_type.record for feat_key, feature_type in
+                self.feature_types.items()]
 
-    @classmethod
-    def feature_type_df(cls):
+    @property
+    def feature_type_df(self):
         import pandas as pd
-        return pd.DataFrame(cls.feature_type_records())
+        return pd.DataFrame(self.feature_type_records)
 
-    @classmethod
-    def record(cls):
+    @property
+    def record(self):
         # define the Record named tuple
-        record_fields = ['MoleculeType'] + list(cls.attributes_data.keys())
+        record_fields = ['MoleculeType'] + list(self.attributes_data.keys())
         MoleculeTypeRecord = col.namedtuple('MoleculeTypeRecord', record_fields)
         # build the values for it for this Type
-        record_attr = {'MoleculeType' : cls.name}
-        record_attr.update(cls.attributes_data)
+        record_attr = {'MoleculeType' : self.name}
+        record_attr.update(self.attributes_data)
         # make and return
         return MoleculeTypeRecord(**record_attr)
 
@@ -458,7 +433,7 @@ class Atom(Point):
 
         assert atom_type is not None, \
             "An atom_type must be given."
-        assert issubclass(atom_type, AtomType), \
+        assert isinstance(atom_type, AtomType), \
             "atom_type must be a subclass of AtomType, not {}".format(atom_type)
 
         if atom_array:
@@ -589,7 +564,7 @@ class Bond(IndexedSelection):
         # check the bond_type
         assert bond_type is not None, \
             "A BondType subclass must be given"
-        assert issubclass(bond_type, BondType), \
+        assert isinstance(bond_type, BondType), \
             "bond_type must be a subclass of BondType, not {}".format(bond_type)
 
         # if the atoms are passed in on their own, i.e. with coordinates already
@@ -882,7 +857,7 @@ class Molecule(SelectionsDict):
     @property
     def feature_types(self):
         """The chemical features of this Molecule's MoleculeType subclass."""
-        return self.molecule_type.feature_types()
+        return self.molecule_type.feature_types
 
     def overlaps(self, other):
         """Check whether this molecule overlaps with another.
@@ -932,7 +907,7 @@ class Molecule(SelectionsDict):
         """
 
         features = {}
-        for key, feature_type in self.molecule_type.feature_types().items():
+        for key, feature_type in self.molecule_type.feature_types.items():
             features[key] = feature_type.to_feature(self)
 
         return features
@@ -964,7 +939,7 @@ class Molecule(SelectionsDict):
 
         """
         from mast.interactions import InteractionType
-        assert all([issubclass(itype, InteractionType) for itype in interaction_types]), \
+        assert all([isinstance(itype, InteractionType) for itype in interaction_types]), \
                    "All interaction_types must be a subclass of InteractionType"
         # go through each interaction_type and check for hits
         interactions = {}

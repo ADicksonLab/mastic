@@ -21,11 +21,11 @@ member_coords = [BEN_coords]
 member_types = [BENType]
 system_attrs = {'name' : 'benzamidine-system'}
 
-BenzamidineSystemType = SystemType.factory("BenzamidineSystemType",
+BenzamidineSystemType = SystemType("BenzamidineSystemType",
                                                   member_types=member_types,
                                                   **system_attrs)
 
-MockAssocType = AssociationType.factory('MockAssocType', system_type=BenzamidineSystemType,
+MockAssocType = AssociationType('MockAssocType', system_type=BenzamidineSystemType,
                                 selection_map={0 : None},
                                 selection_types=[None],
                                 name='uuuhhhh')

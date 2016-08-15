@@ -22,17 +22,17 @@ class TestFeatureType(unittest.TestCase):
         self.mock_atom1_attrs = {}
         self.mock_atom1_attrs[mastmolconfig.ATOM_ATTRIBUTES[0]] = "mock_attribute"
         self.mock_atom1_attrs['undefined_attribute'] = "undefined_mock_attribute"
-        self.Mock1AtomType = mastmol.AtomType.factory("Mock1AtomType", **self.mock_atom1_attrs)
+        self.Mock1AtomType = mastmol.AtomType("Mock1AtomType", **self.mock_atom1_attrs)
         self.mock_atom2_attrs = {}
         self.mock_atom2_attrs[mastmolconfig.ATOM_ATTRIBUTES[0]] = "mock_attribute_2"
         self.mock_atom2_attrs['undefined_attribute'] = "undefined_mock_attribute"
-        self.Mock2AtomType = mastmol.AtomType.factory("Mock2AtomType", **self.mock_atom2_attrs)
+        self.Mock2AtomType = mastmol.AtomType("Mock2AtomType", **self.mock_atom2_attrs)
 
         self.atom_types = (self.Mock1AtomType, self.Mock2AtomType)
         self.mock_bond_attrs = {}
         self.mock_bond_attrs[mastmolconfig.BOND_ATTRIBUTES[0]] = "mock_attribute"
         self.mock_bond_attrs['undefined_attribute'] = "undefined_mock_attribute"
-        self.MockBondType = mastmol.BondType.factory("MockBondType",
+        self.MockBondType = mastmol.BondType("MockBondType",
                                                 atom_types=self.atom_types,
                                                 **self.mock_bond_attrs)
 
@@ -41,7 +41,7 @@ class TestFeatureType(unittest.TestCase):
         self.bond_map = {0:(0,1)}
         self.mock_attrs[mastmolconfig.MOLECULE_ATTRIBUTES[0]] = "mock_attribute"
         self.mock_attrs['undefined_attribute'] = "undefined_mock_attribute"
-        self.MockMoleculeType = mastmol.MoleculeType.factory("MockMoleculeType",
+        self.MockMoleculeType = mastmol.MoleculeType("MockMoleculeType",
                                                              atom_types=self.atom_types,
                                                              bond_types=self.bond_types,
                                                              bond_map=self.bond_map,
@@ -70,11 +70,11 @@ class TestFeatureType(unittest.TestCase):
         wrapper = RDKitMoleculeWrapper(sml_rdkit)
 
         BENType = wrapper.make_molecule_type(find_features=True)
-        for feature_id, feature in BENType.feature_types():
+        for feature_id, feature in BENType.feature_types.items():
             self.assertTrue(feature.attributes == mastfeatconfig.FEATURE_ATTRIBUTES)
-            for atom_type in feature.atom_types():
+            for atom_type in feature.atom_types:
                 self.assertIn(atom_type, BENType.atom_types)
-            for bond_type in feature.bond_types():
+            for bond_type in feature.bond_types:
                 self.assertIn(bond_type, BENType.bond_types)
 
 

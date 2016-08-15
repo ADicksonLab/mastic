@@ -26,19 +26,7 @@ class FeatureType(object):
 
     attributes = mastfeatconfig.FEATURE_ATTRIBUTES
 
-    def __init__(self):
-        pass
-
-    @classmethod
-    def to_feature(cls, molecule):
-        """Substantiate a Feature by specifying a substantiated Molecule from
-        which to make selections from.
-
-        """
-        return Feature(molecule=molecule, feature_type=cls)
-
-    @classmethod
-    def factory(cls, feature_type_name,
+    def __init__(self, feature_type_name,
                 molecule_type=None,
                 atom_idxs=None, bond_idxs=None,
                 **feature_attrs):
@@ -52,7 +40,7 @@ class FeatureType(object):
 
         # validate input
         assert molecule_type, "molecule_type must be given"
-        assert issubclass(molecule_type, mastmol.MoleculeType), \
+        assert isinstance(molecule_type, mastmol.MoleculeType), \
             "molecule_type must be a subclass of MoleculeType, not {}".format(
                 molecule_type)
 
@@ -88,58 +76,65 @@ class FeatureType(object):
             # add it to the attributes
             attributes[attr] = value
 
-        feature_type = type(feature_type_name, (FeatureType,), attributes)
-        feature_type.name = feature_type_name
-        feature_type.attributes_data = attributes
+        self.name = feature_type_name
+        self.attributes_data = attributes
+        self.__dict__.update(attributes)
         # add core attributes
-        feature_type.molecule_type = molecule_type
+        self.molecule_type = molecule_type
         if atom_idxs:
-            feature_type.atom_idxs = atom_idxs
+            self.atom_idxs = atom_idxs
         else:
-            feature_type.atom_idxs = []
+            self.atom_idxs = []
         if bond_idxs:
-            feature_type.bond_idxs = bond_idxs
+            self.bond_idxs = bond_idxs
         else:
-            feature_type.bond_idxs = []
+            self.bond_idxs = []
 
 
         # feature_type.angle_idxs = angle_idxs
 
-        return feature_type
 
-    @classmethod
-    def atom_types(cls):
+    def to_feature(self, molecule):
+        """Substantiate a Feature by specifying a substantiated Molecule from
+        which to make selections from.
+
+        """
+        return Feature(molecule=molecule, feature_type=self)
+
+
+    @property
+    def atom_types(self):
         """The AtomTypes in the FeatureType."""
         return [atom_type for i, atom_type in
-                enumerate(cls.molecule_type.atom_types) if i in cls.atom_idxs]
+                enumerate(self.molecule_type.atom_types) if i in self.atom_idxs]
 
-    @classmethod
-    def bond_types(cls):
+    @property
+    def bond_types(self):
         """The BondTypes in the FeatureType."""
         return [bond_type for i, bond_type in
-                enumerate(cls.molecule_type.bond_types) if i in cls.bond_idxs]
+                enumerate(self.molecule_type.bond_types) if i in self.bond_idxs]
 
-    @classmethod
-    def member_types(cls):
+    @property
+    def member_types(self):
         return atom_types + bond_types
 
-    @classmethod
-    def record(cls):
+    @property
+    def record(self):
         # define the Record namedtuple
         record_fields = ['FeatureType', 'MoleculeType',
                          'AtomTypes', 'atom_idxs',
                          'BondTypes', 'bond_idxs'] + \
-                         list(cls.attributes_data.keys())
+                         list(self.attributes_data.keys())
 
         FeatureTypeRecord = col.namedtuple('FeatureTypeRecord', record_fields)
         # build the values for it for this Type
-        record_attr = {'FeatureType' : cls.name}
-        record_attr['MoleculeType'] = cls.molecule_type().name
-        record_attr['AtomTypes'] = cls.atom_types()
-        record_attr['atom_idxs'] = cls.atom_idxs
-        record_attr['BondTypes'] = cls.bond_types()
-        record_attr['bond_idxs'] = cls.bond_idxs
-        record_attr.update(cls.attributes_data)
+        record_attr = {'FeatureType' : self.name}
+        record_attr['MoleculeType'] = self.molecule_type().name
+        record_attr['AtomTypes'] = self.atom_types()
+        record_attr['atom_idxs'] = self.atom_idxs
+        record_attr['BondTypes'] = self.bond_types()
+        record_attr['bond_idxs'] = self.bond_idxs
+        record_attr.update(self.attributes_data)
 
         return FeatureTypeRecord(**record_attr)
 
@@ -158,7 +153,7 @@ class Feature(mastsel.SelectionsDict):
             "molecule must be a mast.molecule.Molecule instance, not {}".format(
                 type(molecule))
 
-        assert issubclass(feature_type, FeatureType), \
+        assert isinstance(feature_type, FeatureType), \
             "feature_type must be a subclass of FeatureType, not {}".format(
                 feature_type)
 

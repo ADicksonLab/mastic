@@ -17,18 +17,28 @@ class HydrogenBondType(InteractionType):
 
     """
 
-    def __init__(self):
-        pass
-
     attributes = {}
     interaction_name = "HydrogenBond"
-    _feature_families = mastinxconfig.HBOND_FEATURE_FAMILIES
-    feature_families = _feature_families
-    _donor_key = 'Donor'
-    _acceptor_key = 'Acceptor'
-    _grouping_attribute = 'rdkit_family'
-    _feature_types = mastinxconfig.HBOND_FEATURE_TYPES
-    feature_type = _feature_types
+    feature_keywords = mastinxconfig.HBOND_FEATURES
+    donor_key = 'Donor'
+    acceptor_key = 'Acceptor'
+    grouping_attribute = 'rdkit_family'
+
+    def __init__(self, hydrogen_bond_type_name,
+                 feature_types=None,
+                 association_type=None,
+                 assoc_member_pair_idxs=None,
+                 **hydrogen_bond_attrs):
+
+        super().__init__(hydrogen_bond_type_name,
+                         feature_types=feature_types,
+                         association_type=association_type,
+                         assoc_member_pair_idxs=None,
+                         **hydrogen_bond_attrs)
+
+        self.donor = feature_types[0]
+        self.acceptor = feature_types[1]
+
 
     def __repr__(self):
         return str(self.__class__)
@@ -45,13 +55,13 @@ class HydrogenBondType(InteractionType):
         for i, member in enumerate([member_a, member_b]):
             for feature_key, feature in member.features.items():
                 # get groupby attribute to use as a key
-                group_attribute = feature.feature_type.attributes_data[cls._grouping_attribute]
+                group_attribute = feature.feature_type.attributes_data[cls.grouping_attribute]
 
-                if group_attribute == cls._acceptor_key:
+                if group_attribute == cls.acceptor_key:
                     acceptor_tup = (feature_key, feature)
                     members_features[i]['acceptors'].append(acceptor_tup)
 
-                elif group_attribute == cls._donor_key:
+                elif group_attribute == cls.donor_key:
                     # get the donor-H pairs of atoms for this donor
                     donor_atom = feature.atoms[0]
                     donor_H_pairs = [(feature, atom) for atom in
@@ -116,7 +126,7 @@ class HydrogenBondType(InteractionType):
         v1 = donor_atom.coords - h_atom.coords
         v2 = acceptor_atom.coords - h_atom.coords
         try:
-            angle = np.degrees(np.arccos(np.dot(v1,v2)/(la.norm(v1) * la.norm(v2))))
+            angle = np.degrees(np.arccos(np.dot(v1, v2)/(la.norm(v1) * la.norm(v2))))
         except RuntimeWarning:
             print("v1: {0} \n"
                   "v2: {1}".format(v1, v2))
@@ -148,23 +158,20 @@ class HydrogenBondType(InteractionType):
         else:
             return False
 
-    @classmethod
-    def record(cls):
+    @property
+    def record(self):
         record_fields = ['interaction_class', 'interaction_type',
                          'association_type', 'assoc_member_pair_idxs',
                          'donor_feature_type', 'acceptor_feature_type'] + \
-                         list(cls.attributes_data.keys())
+                         list(self.attributes_data.keys())
         HydrogenBondTypeRecord = namedtuple('HydrogenBondTypeRecord', record_fields)
-        record_attr = {'interaction_class' : cls.name}
-        record_attr['interaction_type'] = cls.interaction_type
-        record_attr['association_type'] = cls.association_type
-        record_attr['assoc_member_pair_idxs'] = cls.assoc_member_pair_idxs
-        record_attr['donor_feature_type'] = cls.feature_types[0]
-        record_attr['acceptor_feature_type'] = cls.feature_types[1]
+        record_attr = {'interaction_class' : self.name}
+        record_attr['interaction_type'] = self.interaction_type
+        record_attr['association_type'] = self.association_type
+        record_attr['assoc_member_pair_idxs'] = self.assoc_member_pair_idxs
+        record_attr['donor_feature_type'] = self.feature_types[0]
+        record_attr['acceptor_feature_type'] = self.feature_types[1]
 
-        return HydrogenBondTypeRecord(**record_attr)
-
-    @classmethod
     def pdb_serial_output(self, inxs, path, delim=","):
         """Output the pdb serial numbers (index in pdb) of the donor and
         acceptor in each HBond to a file like:
@@ -254,7 +261,8 @@ class HydrogenBondInx(Interaction):
         record_fields = ['interaction_class',
                          'donor_coords', 'acceptor_coords',
                          'distance', 'angle',
-                         'H_atom_type', 'H_atom_idx', 'H_atom_coords']
+                         'H_atom_type', 'H_atom_idx', 'H_atom_coords'] + \
+                         list(self.attributes_data.keys())
         HydrogenBondInxRecord = namedtuple('HydrogenBondInxRecord', record_fields)
         record_attr = {'interaction_class' : self.interaction_class.name}
         record_attr['donor_coords'] = self.donor.atoms[0].coords
@@ -281,22 +289,21 @@ class HydrogenBondInx(Interaction):
                   "          pdb_residue_index = {acceptor_resnum}\n"
                   "distance: {distance}\n"
                   "angle: {angle}\n").format(
-                      self_str = str(self),
-                      donor_el = self.donor.atom_type.element,
-                      donor_coords = tuple(self.donor.coords),
-                      donor_mol_name = self.donor.molecule.molecule_type.name,
-                      donor_serial = self.donor.atom_type.pdb_serial_number,
-                      donor_resname = self.donor.atom_type.pdb_residue_name,
-                      donor_resnum = self.donor.atom_type.pdb_residue_number,
-                      acceptor_el = self.acceptor.atom_type.element,
-                      acceptor_coords = tuple(self.acceptor.coords),
-                      acceptor_mol_name = self.acceptor.molecule.molecule_type.name,
-                      acceptor_serial = self.acceptor.atom_type.pdb_serial_number,
-                      acceptor_resname = self.acceptor.atom_type.pdb_residue_name,
-                      acceptor_resnum = self.acceptor.atom_type.pdb_residue_number,
-                      distance = self.distance,
-                      angle = self.angle,
-                 )
+                      self_str=str(self),
+                      donor_el=self.donor.atom_type.element,
+                      donor_coords=tuple(self.donor.coords),
+                      donor_mol_name=self.donor.molecule.molecule_type.name,
+                      donor_serial=self.donor.atom_type.pdb_serial_number,
+                      donor_resname=self.donor.atom_type.pdb_residue_name,
+                      donor_resnum=self.donor.atom_type.pdb_residue_number,
+                      acceptor_el=self.acceptor.atom_type.element,
+                      acceptor_coords=tuple(self.acceptor.coords),
+                      acceptor_mol_name=self.acceptor.molecule.molecule_type.name,
+                      acceptor_serial=self.acceptor.atom_type.pdb_serial_number,
+                      acceptor_resname=self.acceptor.atom_type.pdb_residue_name,
+                      acceptor_resnum=self.acceptor.atom_type.pdb_residue_number,
+                      distance=self.distance,
+                      angle=self.angle,)
 
         print(string)
 

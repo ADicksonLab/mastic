@@ -68,94 +68,8 @@ class SystemType(object):
 
     """
     attributes = mastsysconfig.SYSTEM_ATTRIBUTES
-    def __init__(self):
-        pass
 
-    @classmethod
-    def to_system(cls, members_coords):
-        """Substantiate a System using input coordinates in the order of the
-        members in the system.
-
-        """
-        # give the members coordinates
-        members = []
-        for member_idx, member_coords in enumerate(members_coords):
-            # create each member using the coordinates
-            member_type = cls.member_types[member_idx]
-            if issubclass(member_type, AtomType):
-                members.append(member_type.to_atom(member_coords))
-            elif issubclass(member_type, MoleculeType):
-                members.append(member_type.to_molecule(member_coords))
-
-        system = System(members, system_type=cls)
-
-        return system
-
-    @classmethod
-    def molecule_types(cls):
-        """The MoleculeTypes of all Molecule system members."""
-        return [member_type for member_type in cls.member_types if
-                issubclass(member_type, MoleculeType)]
-
-    @classmethod
-    def molecule_type_records(cls):
-        return [molecule_type.record() for molecule_type in cls.molecule_types()]
-
-    @classmethod
-    def molecule_type_df(cls):
-        import pandas as pd
-        return pd.DataFrame(cls.molecule_type_records())
-
-    @classmethod
-    def atom_types(cls):
-        """The AtomTypes of all Atom system members."""
-        return [member_type for member_type in cls.member_types if
-                issubclass(member_type, AtomType)]
-
-    @classmethod
-    def atom_type_records(cls):
-        return [atom_type.record() for atom_type in cls.atom_types()]
-
-    @classmethod
-    def atom_type_df(cls):
-        import pandas as pd
-        return pd.DataFrame(cls.atom_type_records())
-
-    @classmethod
-    def make_member_association_type(self, member_idxs, association_type=None):
-        """Match an AssociationType to members of the SystemType"""
-        raise NotImplementedError
-
-    @classmethod
-    def association_types(cls):
-        return cls._association_types
-
-    @classmethod
-    def add_association_type(cls, association_type):
-        # check to make sure that it's selection types are in this
-        # SystemType
-        assert issubclass(association_type, AssociationType), \
-            "association_type must be a subclass of mast.interactions.Association,"\
-            " not {}".format(association_type)
-
-        # check that it is an AssociationType of this SystemType
-        assert association_type.system_type is cls, \
-            "The SystemType of the association_type must be {0}, not {1}".format(
-                cls, association_type.system_type)
-
-        cls._association_types.append(association_type)
-
-    @classmethod
-    def association_type_records(cls):
-        return [assoc_type.record() for assoc_type in cls.association_types()]
-
-    @classmethod
-    def association_type_df(cls):
-        import pandas as pd
-        return pd.DataFrame(cls.association_type_records())
-
-    @staticmethod
-    def factory(system_type_name, member_types=None,
+    def __init__(self, system_type_name, member_types=None,
                 **system_attrs):
         """Static method for generating system types dynamically given a type
         name (which will be the class name) and a domain specific dictionary
@@ -167,10 +81,10 @@ class SystemType(object):
 
         assert member_types, "molecule_types must be provided"
         for member_type in member_types:
-            assert (issubclass(member_type, MoleculeType) or
-                    issubclass(member_type, AtomType)), \
+            assert (isinstance(member_type, MoleculeType) or
+                    isinstance(member_type, AtomType)), \
                     "molecule_types must contain only MoleculeType or"\
-                    " AtomType subclasses, not {}".format(
+                    " AtomType instancees, not {}".format(
                         type(member_type))
 
         # keep track of which attributes the input did not provide
@@ -196,23 +110,104 @@ class SystemType(object):
             # add it regardless
             attributes[attr] = value
 
-        system_type = type(system_type_name, (SystemType,), attributes)
-        system_type.name = system_type_name
-        system_type.attributes_data = attributes
-        system_type.member_types = member_types
-        system_type.member_type_library = set(member_types)
-        system_type._association_types = []
+        self.name = system_type_name
+        self.attributes_data = attributes
+        self.__dict__.update(attributes)
+        self.member_types = member_types
+        self.member_type_library = set(member_types)
+        self._association_types = []
 
-        return system_type
+    def to_system(self, members_coords):
+        """Substantiate a System using input coordinates in the order of the
+        members in the system.
 
-    @classmethod
-    def record(cls):
+        """
+        # give the members coordinates
+        members = []
+        for member_idx, member_coords in enumerate(members_coords):
+            # create each member using the coordinates
+            member_type = self.member_types[member_idx]
+            if isinstance(member_type, AtomType):
+                members.append(member_type.to_atom(member_coords))
+            elif isinstance(member_type, MoleculeType):
+                members.append(member_type.to_molecule(member_coords))
+
+        system = System(members, system_type=self)
+
+        return system
+
+    @property
+    def molecule_types(self):
+        """The MoleculeTypes of all Molecule system members."""
+        return [member_type for member_type in self.member_types if
+                isinstance(member_type, MoleculeType)]
+
+    @property
+    def molecule_type_records(self):
+        return [molecule_type.record for molecule_type in self.molecule_types]
+
+    @property
+    def molecule_type_df(self):
+        import pandas as pd
+        return pd.DataFrame(self.molecule_type_records)
+
+    @property
+    def atom_types(self):
+        """The AtomTypes of all Atom system members."""
+        return [member_type for member_type in self.member_types if
+                isinstance(member_type, AtomType)]
+
+    @property
+    def atom_type_records(self):
+        return [atom_type.record for atom_type in self.atom_types]
+
+    @property
+    def atom_type_df(self):
+        import pandas as pd
+        return pd.DataFrame(self.atom_type_records)
+
+    
+    def make_member_association_type(self, member_idxs, association_type=None):
+        """Match an AssociationType to members of the SystemType"""
+        raise NotImplementedError
+
+    @property
+    def association_types(self):
+        return self._association_types
+
+    
+    def add_association_type(self, association_type):
+        # check to make sure that it's selection types are in this
+        # SystemType
+        assert isinstance(association_type, AssociationType), \
+            "association_type must be a instance of mast.interactions.Association,"\
+            " not {}".format(association_type)
+
+        # check that it is an AssociationType of this SystemType
+        assert association_type.system_type is self, \
+            "The SystemType of the association_type must be {0}, not {1}".format(
+                self, association_type.system_type)
+
+        self._association_types.append(association_type)
+
+    @property
+    def association_type_records(self):
+        return [assoc_type.record for assoc_type in self.association_types]
+
+    @property
+    def association_type_df(self):
+        import pandas as pd
+        return pd.DataFrame(self.association_type_records)
+
+
+    @property
+    def record(self):
         # define the Record named tuple
-        record_fields = ['SystemType'] + list(cls.attributes_data.keys())
+        record_fields = ['SystemType'] + list(self.attributes_data.keys())
         SystemTypeRecord = col.namedtuple('SystemTypeRecord', record_fields)
         # build the values for it for this Type
-        record_attr = {'SystemType' : cls.name}
-        record_attr.update(cls.attributes_data)
+        record_attr = {'SystemType' : self.name}
+        record_attr.update(self.attributes_data)
         # make and return
         return SystemTypeRecord(**record_attr)
 
@@ -266,16 +261,19 @@ the same coordinate system.
             "molecule system members cannot be overlapping"
 
         if system_type:
-            assert issubclass(system_type, SystemType), \
-                "system_type must be a subclass of SystemType, not {}".format(
+            assert isinstance(system_type, SystemType), \
+                "system_type must be a instance of SystemType, not {}".format(
                     type(system_type))
 
         super().__init__(selection_list=members, flags=['system'])
         self._system_type = system_type
         # substantiate the Associations in this System
         self._associations = []
-        for association_type in self._system_type.association_types():
-            self._associations.append(association_type.to_association(self))
+        for i, association_type in enumerate(self._system_type.association_types):
+            association_class_name = "Association{}".format(i)
+            self._associations.append(
+                association_type.to_association(self,
+                                                association_name=association_class_name))
 
     def __repr__(self):
         return str(self.__class__)
@@ -293,12 +291,12 @@ the same coordinate system.
     @property
     def atom_types(self):
         """The AtomTypes of every Atom system member."""
-        return self.system_type.atom_types()
+        return self.system_type.atom_types
 
     @property
     def molecule_types(self):
         """The MoleculeTypes of every Molecule system member"""
-        return self.system_type.molecule_types()
+        return self.system_type.molecule_types
 
     @property
     def atoms(self):
@@ -405,26 +403,9 @@ class AssociationType(object):
     """
     attributes = mastsysconfig.ASSOCIATION_ATTRIBUTES
 
-    def __init__(self):
-        pass
-
-    @classmethod
-    def to_association(cls, system):
-        """Substantiate the association by providing the System to make
-        selections on.
-
-        """
-        assert system.system_type is cls.system_type, \
-            "The system_type of system must be {0}, not {1}".format(
-                cls.system_type, system.system_type)
-
-        return Association(system=system, association_type=cls)
-
-    @staticmethod
-    def factory(association_type_name,
+    def __init__(self, association_type_name,
                 system_type=None,
                 selection_map=None, selection_types=None,
-                association_name=None,
                 **association_attrs):
         """Static method for generating association types dynamically given a type
         name (which will be the class name) and a domain specific dictionary
@@ -442,8 +423,8 @@ class AssociationType(object):
 
         # check that system_type is given and correct
         assert system_type, "system_type must be given"
-        assert issubclass(system_type, SystemType), \
-            "system_type must be a subclass of SystemType, not {}}".format(
+        assert isinstance(system_type, SystemType), \
+            "system_type must be a instance of SystemType, not {}}".format(
                 system_type)
 
         # check that there are the same number of selection_map
@@ -492,39 +473,45 @@ class AssociationType(object):
             # add it to the attributes
             attributes[attr] = value
 
-        association_type = type(association_type_name, (AssociationType,), attributes)
-        association_type.name = association_type_name
-        if association_name:
-            association_type.association_name = association_name
-        elif association_type_name.endswith('Type'):
-            association_type.association_name = association_type.name.split('Type')[0]
-        else:
-            association_type.association_name = association_type.name
-
-        association_type.attributes_data = attributes
+        self.name = association_type_name
+        self.attributes_data = attributes
+        self.__dict__.update(attributes)
         # add core attributes
-        association_type.system_type = system_type
-        association_type.selection_map = selection_map
-        association_type.selection_types = selection_types
-
-        return association_type
+        self.system_type = system_type
+        self.selection_map = selection_map
+        self.selection_types = selection_types
 
 
-    @classmethod
-    def record(cls):
+    def to_association(self, system, association_name=None):
+        """Substantiate the association by providing the System to make
+        selections on.
+
+        """
+        assert system.system_type is self.system_type, \
+            "The system_type of system must be {0}, not {1}".format(
+                self.system_type, system.system_type)
+
+        return Association(system=system, association_type=self,
+                           association_name=association_name)
+
+
+
+    @property
+    def record(self):
         # define the Record named tuple
-        record_fields = ['AssociationType'] + list(cls.attributes_data.keys())
+        record_fields = ['AssociationType'] + list(self.attributes_data.keys())
         AssociationTypeRecord = col.namedtuple('AssociationTypeRecord', record_fields)
         # build the values for it for this Type
-        record_attr = {'AssociationType' : cls.name}
-        record_attr.update(cls.attributes_data)
+        record_attr = {'AssociationType' : self.name}
+        record_attr.update(self.attributes_data)
         # make and return
         return AssociationTypeRecord(**record_attr)
 
 
 
 class Association(SelectionsList):
-    def __init__(self, system=None, association_type=None):
+
+    def __init__(self, system=None, association_type=None, association_name=None):
         # TODO check to make sure that all the atoms are in the same system
         # print(system, id(system))
         # print([bool(member in system) for member in members])
@@ -536,8 +523,8 @@ class Association(SelectionsList):
 
 
         # check validity of association_type
-        assert issubclass(association_type, AssociationType), \
-            "association_type must be a subclass of AssociationType, not {}".format(
+        assert isinstance(association_type, AssociationType), \
+            "association_type must be a instance of AssociationType, not {}".format(
                 association_type)
 
         # check validity of the system
@@ -577,6 +564,7 @@ class Association(SelectionsList):
 
         # create the SelectionsList
         super().__init__(selection_list=selections)
+        self.name = association_name
         self._association_type = association_type
         self._system = system
         self._interactions = None
@@ -616,7 +604,7 @@ class Association(SelectionsList):
 
     def profile_interactions(self, interaction_types,
                              intramember_interactions=False):
-        """Accepts any number of InteractionType subclasses and identifies
+        """Accepts any number of InteractionType instancees and identifies
         Interactions between the members of the association using the
         InteractionType.find_hits function.
 
@@ -659,7 +647,7 @@ class Association(SelectionsList):
                 member_feature_key_pairs[member_idx_pairs[idx]] = feature_key_pairs
 
 
-            # make interaction classes with interaction_type.factory
+            # make interaction classes with interaction_type constructor
             for member_pair_idx, item in enumerate(member_feature_key_pairs.items()):
                 # member_pair_idx is the pair of members
                 # get the member and feature idx pairs (member_a_idx, member_b_idx)
@@ -670,7 +658,7 @@ class Association(SelectionsList):
                 member_b = self.members[member_pair_idxs[1]]
                 # get the unique feature pairs
                 unique_feature_pair_idxs = set(feature_pairs_idxs)
-                # make a subclass of interaction_type for all of these
+                # make an instance of interaction_type for all of these
                 for inx_class_idx, inx_pair_idxs in enumerate(unique_feature_pair_idxs):
                     # inx_class_idx is the index of the unique pair of
                     # features (or the interaction class)
@@ -685,16 +673,16 @@ class Association(SelectionsList):
                     # make a name for the interaction class
                     inx_class_name = "{0}_{1}_{2}InxType".format(
                         interaction_type.interaction_name,
-                        self.association_type.association_name,
+                        self.name,
                         inx_class_idx)
                     # TODO empty for now but could add stuff in the future
                     inx_class_attrs = {}
                     # make the interaction class
-                    inx_class = interaction_type.factory(inx_class_name,
-                                                         feature_types=feat_types,
-                                                         association_type=self,
-                                                         assoc_member_pair_idxs=member_pair_idxs,
-                                                         **inx_class_attrs)
+                    inx_class = interaction_type(inx_class_name,
+                                                 feature_types=feat_types,
+                                                 association_type=self,
+                                                 assoc_member_pair_idxs=member_pair_idxs,
+                                                 **inx_class_attrs)
 
                     # associate the inx hits for this inx class
 

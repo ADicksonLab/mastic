@@ -198,7 +198,7 @@ class RDKitMoleculeWrapper(object):
     def make_atom_type(self, atom_idx, atom_type_name):
         """Converts a single atom to a mast.AtomType."""
         atom_data = self.atom_data(atom_idx)
-        return mastmol.AtomType.factory(atom_type_name, **atom_data)
+        return mastmol.AtomType(atom_type_name, **atom_data)
 
     def make_atom_types(self):
         """Converts all atoms in the molecule to mast.AtomTypes."""
@@ -206,14 +206,14 @@ class RDKitMoleculeWrapper(object):
         atom_types = []
         for atom_data in atoms_data:
             atom_type_name = "{1}Atom{0}Type".format(atom_data['name'], self.mol_name)
-            atom_type = mastmol.AtomType.factory(atom_type_name, **atom_data)
+            atom_type = mastmol.AtomType(atom_type_name, **atom_data)
             atom_types.append(atom_type)
         return atom_types
 
     def make_bond_type(self, bond_idx, bond_type_name, bond_atom_types):
         """Converts a single bond to a mast.BondType."""
         bond_data = self.bond_data(bond_idx)
-        return mastmol.BondType.factory(bond_type_name,
+        return mastmol.BondType(bond_type_name,
                                         atom_types=bond_atom_types,
                                         **bond_data)
 
@@ -228,7 +228,7 @@ class RDKitMoleculeWrapper(object):
             bond_type_name = "{1}Bond{0}Type".format(bond_data['name'], self.mol_name)
             bond_atom_types = (atom_types[bond_data['rdkit_atom_idxs'][0]],
                           atom_types[bond_data['rdkit_atom_idxs'][1]])
-            bond_type = mastmol.BondType.factory(bond_type_name,
+            bond_type = mastmol.BondType(bond_type_name,
                                                  atom_types=bond_atom_types,
                                                  **bond_data)
             bond_types.append(bond_type)
@@ -253,7 +253,7 @@ class RDKitMoleculeWrapper(object):
         molecule_data.update({"name" : self.mol_name})
 
         molecule_type_name = "{}Type".format(self.mol_name)
-        molecule_type = mastmol.MoleculeType.factory(molecule_type_name,
+        molecule_type = mastmol.MoleculeType(molecule_type_name,
                                              atom_types=atom_types,
                                              bond_types=bond_types, bond_map=bond_map,
                                              **molecule_data)
@@ -267,10 +267,10 @@ class RDKitMoleculeWrapper(object):
                 feature_attrs['rdkit_position'] = feat_dict['position']
 
                 feature_type_name = "{0}Feature{1}Type".format(self.mol_name, idx)
-                feature_type = mastfeat.FeatureType.factory(feature_type_name,
-                                                            molecule_type=molecule_type,
-                                                            atom_idxs=atom_idxs,
-                                                            **feature_attrs)
+                feature_type = mastfeat.FeatureType(feature_type_name,
+                                                    molecule_type=molecule_type,
+                                                    atom_idxs=atom_idxs,
+                                                    **feature_attrs)
                 molecule_type.add_feature_type(idx, feature_type)
 
         return molecule_type
