@@ -313,6 +313,10 @@ class MoleculeType(object):
         return list(self._bond_type_library)
 
     @property
+    def feature_type_library(self):
+        return set(self.feature_types.values())
+
+    @property
     def feature_types(self):
         """The chemical features of this MoleculeType."""
         return self._feature_types
@@ -327,7 +331,6 @@ class MoleculeType(object):
                 feature_type.molecule_type)
         self._feature_types[key] = feature_type
 
-    
     def to_molecule(self, coords):
         """Substantiate this MoleculeType with the given coordinates for each
         atom.

@@ -23,10 +23,6 @@ from rdkit import Chem
 BEN_rdkit = Chem.MolFromPDBBlock(mastdata.BEN_3ptb, removeHs=False, sanitize=True)
 trypsin_rdkit = Chem.MolFromPDBBlock(mastdata.trypsin_3ptb, removeHs=False, sanitize=True)
 
-# with hydrogens added files
-BEN_Hs_rdkit = Chem.MolFromPDBBlock(mastdata.BEN_Hs_3ptb, removeHs=False, sanitize=True)
-trypsin_Hs_rdkit = Chem.MolFromPDBBlock(mastdata.trypsin_Hs_3ptb, removeHs=False, sanitize=True)
-
 BEN_rdkit_wrapper = RDKitMoleculeWrapper(BEN_rdkit, mol_name="BEN")
 trypsin_rdkit_wrapper = RDKitMoleculeWrapper(trypsin_rdkit, mol_name="Trypsin")
 
@@ -34,8 +30,8 @@ BEN_coords = BEN_rdkit_wrapper.get_conformer_coords(0)
 trypsin_coords = trypsin_rdkit_wrapper.get_conformer_coords(0)
 member_coords = [BEN_coords, trypsin_coords]
 
-BEN_Molecule = mastdata.BEN_Molecule
-Trypsin_Molecule = mastdata.Trypsin_Molecule
+BEN_Molecule = BEN_rdkit_wrapper.make_molecule_type(find_features=True)
+# Trypsin_Molecule = 
 
 BEN_mol = BEN_Molecule.to_molecule(BEN_coords)
 trypsin_mol = Trypsin_Molecule.to_molecule(trypsin_coords)

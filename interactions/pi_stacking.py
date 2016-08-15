@@ -1,7 +1,9 @@
-"""The pi_stacking module defines the PiStackingType and
+"""The PiStacking module defines the PiStackingType and
 PiStackingInx for explicit hydrogens.
 
 """
+
+
 import itertools as it
 from collections import namedtuple
 
@@ -17,17 +19,22 @@ class PiStackingType(InteractionType):
 
     """
 
-    def __init__(self):
-        pass
-
     attributes = {}
     interaction_name = "PiStacking"
-    feature_families = mastinxconfig.PISTACKING_FEATURES
-    aromatic_key = 'Donor'
+    feature_keywords = mastinxconfig.PISTACKING_FEATURES
     grouping_attribute = 'rdkit_family'
 
-    def __repr__(self):
-        return str(self.__class__)
+    def __init__(self, pi_stacking_type_name,
+                 feature_types=None,
+                 association_type=None,
+                 assoc_member_pair_idxs=None,
+                 **pi_stacking_attrs):
+
+        super().__init__(pi_stacking_type_name,
+                         feature_types=feature_types,
+                         association_type=association_type,
+                         assoc_member_pair_idxs=assoc_member_pair_idxs,
+                         **pi_stacking_attrs)
 
     @classmethod
     def find_hits(cls, member_a, member_b):
@@ -37,17 +44,17 @@ class PiStackingType(InteractionType):
 
         # for each member collect the grouped features
         # initialize list of members
-        members_features = [[] for member in [member_a, member_b]]
+        members_features = [{'donors':[], 'acceptors':[]} for member in [member_a, member_b]]
         for i, member in enumerate([member_a, member_b]):
             for feature_key, feature in member.features.items():
                 # get groupby attribute to use as a key
-                group_attribute = feature.feature_type.attributes_data[cls._grouping_attribute]
+                group_attribute = feature.feature_type.attributes_data[cls.grouping_attribute]
 
-                if group_attribute == cls._acceptor_key:
+                if group_attribute == cls.acceptor_key:
                     acceptor_tup = (feature_key, feature)
                     members_features[i]['acceptors'].append(acceptor_tup)
 
-                elif group_attribute == cls._donor_key:
+                elif group_attribute == cls.donor_key:
                     # get the donor-H pairs of atoms for this donor
                     donor_atom = feature.atoms[0]
                     donor_H_pairs = [(feature, atom) for atom in
@@ -74,17 +81,17 @@ class PiStackingType(InteractionType):
             h_atom = donor_tup[1][1]
             acceptor_feature_key = acceptor_tup[0]
             acceptor_feature = acceptor_tup[1]
-            # try to make a HydrogenBondInx object, which calls check,
+            # try to make a PiStackingInx object, which calls check,
             #
             # OPTIMIZATION: otherwise we have to call check first then
-            # the HydrogenBondInx constructor will re-call check to
+            # the PiStackingInx constructor will re-call check to
             # get the angle and distance. If we allow passing and not
             # checking the angle and distance in the constructor then
             # it would be faster, however I am not going to allow that
             # in this 'safe' InteractionType, an unsafe optimized
             # version can be made separately if desired.
             try:
-                hbond = HydrogenBondInx(donor=donor_feature, H=h_atom,
+                hbond = PiStackingInx(donor=donor_feature, H=h_atom,
                                         acceptor=acceptor_feature)
             # else continue to the next pairing
             except InteractionError:
@@ -112,7 +119,7 @@ class PiStackingType(InteractionType):
         v1 = donor_atom.coords - h_atom.coords
         v2 = acceptor_atom.coords - h_atom.coords
         try:
-            angle = np.degrees(np.arccos(np.dot(v1,v2)/(la.norm(v1) * la.norm(v2))))
+            angle = np.degrees(np.arccos(np.dot(v1, v2)/(la.norm(v1) * la.norm(v2))))
         except RuntimeWarning:
             print("v1: {0} \n"
                   "v2: {1}".format(v1, v2))
@@ -144,23 +151,22 @@ class PiStackingType(InteractionType):
         else:
             return False
 
-    @classmethod
-    def record(cls):
+    @property
+    def record(self):
         record_fields = ['interaction_class', 'interaction_type',
                          'association_type', 'assoc_member_pair_idxs',
                          'donor_feature_type', 'acceptor_feature_type'] + \
-                         list(cls.attributes_data.keys())
-        HydrogenBondTypeRecord = namedtuple('HydrogenBondTypeRecord', record_fields)
-        record_attr = {'interaction_class' : cls.name}
-        record_attr['interaction_type'] = cls.interaction_type
-        record_attr['association_type'] = cls.association_type
-        record_attr['assoc_member_pair_idxs'] = cls.assoc_member_pair_idxs
-        record_attr['donor_feature_type'] = cls.feature_types[0]
-        record_attr['acceptor_feature_type'] = cls.feature_types[1]
+                         list(self.attributes_data.keys())
+        PiStackingTypeRecord = namedtuple('PiStackingTypeRecord', record_fields)
+        record_attr = {'interaction_class' : self.name}
+        record_attr['interaction_type'] = self.interaction_name
+        record_attr['association_type'] = self.association_type.name
+        record_attr['assoc_member_pair_idxs'] = self.assoc_member_pair_idxs
+        record_attr['donor_feature_type'] = self.feature_types[0]
+        record_attr['acceptor_feature_type'] = self.feature_types[1]
 
-        return HydrogenBondTypeRecord(**record_attr)
+        return PiStackingTypeRecord(**record_attr)
 
-    @classmethod
     def pdb_serial_output(self, inxs, path, delim=","):
         """Output the pdb serial numbers (index in pdb) of the donor and
         acceptor in each HBond to a file like:
@@ -178,8 +184,8 @@ class PiStackingType(InteractionType):
                                               inx.acceptor.atom_type.pdb_serial_number))
 
 
-class HydrogenBondInx(Interaction):
-    """Substantiates HydrogenBondType by selecting donor and acceptor
+class PiStackingInx(Interaction):
+    """Substantiates PiStackingType by selecting donor and acceptor
     features, as well as the involved Hydrogen atom.
 
     """
@@ -188,7 +194,7 @@ class HydrogenBondInx(Interaction):
 
         donor_atom = donor.atoms[0]
         acceptor_atom = acceptor.atoms[0]
-        okay, distance, angle = HydrogenBondType.check(donor_atom, H, acceptor_atom)
+        okay, distance, angle = PiStackingType.check(donor_atom, H, acceptor_atom)
         if not okay:
             if angle is None:
                 raise InteractionError(
@@ -209,7 +215,7 @@ class HydrogenBondInx(Interaction):
         # success, finish creating interaction
         atom_system = donor.system
         super().__init__(features=[donor, acceptor],
-                         interaction_type=HydrogenBondType,
+                         interaction_type=PiStackingType,
                          system=atom_system)
         self._donor = donor
         self._H = H
@@ -250,51 +256,17 @@ class HydrogenBondInx(Interaction):
         record_fields = ['interaction_class',
                          'donor_coords', 'acceptor_coords',
                          'distance', 'angle',
-                         'H_atom_type', 'H_atom_idx', 'H_atom_coords']
-        HydrogenBondInxRecord = namedtuple('HydrogenBondInxRecord', record_fields)
+                         'H_coords']
+
+        PiStackingInxRecord = namedtuple('PiStackingInxRecord', record_fields)
         record_attr = {'interaction_class' : self.interaction_class.name}
         record_attr['donor_coords'] = self.donor.atoms[0].coords
         record_attr['acceptor_coords'] = self.acceptor.atoms[0].coords
         record_attr['distance'] = self.distance
         record_attr['angle'] = self.angle
-        record_attr['H_atom_type'] = self.H.atom_type
-        record_attr['H_atom_coords'] = self.H.coords
+        record_attr['H_coords'] = self.H.coords
 
-        return HydrogenBondInxRecord(**record_attr)
-
-    def pp(self):
-
-        string = ("{self_str}\n"
-                  "donor: {donor_el}\n"
-                  "       coords = {donor_coords}\n"
-                  "       pdb_serial = {donor_serial}\n"
-                  "       pdb_residue_name = {donor_resname}\n"
-                  "       pdb_residue_index = {donor_resnum}\n"
-                  "acceptor: {acceptor_el}\n"
-                  "          coords = {acceptor_coords}\n"
-                  "          pdb_serial = {acceptor_serial}\n"
-                  "          pdb_residue_name = {acceptor_resname}\n"
-                  "          pdb_residue_index = {acceptor_resnum}\n"
-                  "distance: {distance}\n"
-                  "angle: {angle}\n").format(
-                      self_str = str(self),
-                      donor_el = self.donor.atom_type.element,
-                      donor_coords = tuple(self.donor.coords),
-                      donor_mol_name = self.donor.molecule.molecule_type.name,
-                      donor_serial = self.donor.atom_type.pdb_serial_number,
-                      donor_resname = self.donor.atom_type.pdb_residue_name,
-                      donor_resnum = self.donor.atom_type.pdb_residue_number,
-                      acceptor_el = self.acceptor.atom_type.element,
-                      acceptor_coords = tuple(self.acceptor.coords),
-                      acceptor_mol_name = self.acceptor.molecule.molecule_type.name,
-                      acceptor_serial = self.acceptor.atom_type.pdb_serial_number,
-                      acceptor_resname = self.acceptor.atom_type.pdb_residue_name,
-                      acceptor_resnum = self.acceptor.atom_type.pdb_residue_number,
-                      distance = self.distance,
-                      angle = self.angle,
-                 )
-
-        print(string)
+        return PiStackingInxRecord(**record_attr)
 
     def pickle(self, path):
         import sys

@@ -5,8 +5,9 @@ INTERACTION_ATTRIBUTES = ['name']
 HBOND_FEATURES = {'rdkit_family' : ['Donor', 'Acceptor'],
                   'rdkit_type' : []}
 
-PISTACK_FEATURE_FAMILIES = ['Aromatic']
-PISTACK_FEATURE_TYPES = []
+PISTACKING_FEATURES = {'rdkit_family' : ['Aromatic'],
+                       'rdkit_type' : ['RH6_6']}
+
 
 HYDROPH_FEATURE_FAMILIES = ['Hydrophobe', 'LumpedHydrophobe']
 HYDROPH_FEATURE_TYPES = []

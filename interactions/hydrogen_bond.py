@@ -40,9 +40,6 @@ class HydrogenBondType(InteractionType):
         self.acceptor = feature_types[1]
 
 
-    def __repr__(self):
-        return str(self.__class__)
-
     @classmethod
     def find_hits(cls, member_a, member_b):
 

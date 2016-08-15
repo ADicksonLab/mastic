@@ -87,6 +87,28 @@ class NoHHydrogenBondType(InteractionType):
         if cls.check_distance(distance) is False:
             return (False, distance, None)
 
+        num_Hs = len([atom for atom in donor_atom.adjacent_atoms if atom.element == 'H'])
+        total_bond_degree = len(donor_atom.adjacent_atoms)
+        num_non_Hs = total_bond_degree - num_Hs
+
+        # depending on what kind of donor it is assign the virtual H atom accordingly
+        H_coords = None
+
+        # primary amine
+        if donor_atom.element == 'N' and num_non_Hs == 1 and num_Hs == 2:
+            pass
+        # secondary amine
+        elif donor_atom.element == 'N' and num_non_Hs == 2 and num_Hs == 1:
+            pass
+        # charged primary amine
+        elif donor_atom.element == 'N' and num_non_Hs == 1 and num_Hs == 3:
+            pass
+        # hydroxyl group
+        elif donor_atom.element == 'O' and num_non_Hs == 1 and num_Hs == 1:
+            pass
+        # water
+        elif donor_atom.element == 'O' and num_non_Hs == 0 and num_Hs == 2:
+            pass
 
 class NoHHydrogenBondInx(Interaction):
     """Substantiates NoHHydrogenBondType by selecting donor and acceptor

@@ -14,34 +14,53 @@ from mast.interfaces.rdkit import RDKitMoleculeWrapper
 
 import mast.config.interactions as mastinxconfig
 
+import mast.tests.data as mastdata
+
 from rdkit import Chem
 
-trypsin_dir = osp.expanduser("~/Dropbox/lab/trypsin")
-trypsin_pdb_path = osp.join(trypsin_dir, "trypsin_Hs.pdb")
-trypsin_pkl_path = osp.join(trypsin_dir, "trypsin+features_mastmol.pkl")
-ben_pdb_path = osp.join(trypsin_dir, "BEN_Hs.pdb")
-ben_pkl_path = osp.join(trypsin_dir, "BEN+features_mastmol.pkl")
+# without Hs straight from pdb
+BEN_rdkit = Chem.MolFromPDBBlock(mastdata.BEN_3ptb, removeHs=False, sanitize=True)
+trypsin_rdkit = Chem.MolFromPDBBlock(mastdata.trypsin_3ptb, removeHs=False, sanitize=True)
 
-BEN_rdkit = Chem.MolFromPDBFile(ben_pdb_path, removeHs=False, sanitize=False)
-trypsin_rdkit = Chem.MolFromPDBFile(trypsin_pdb_path, removeHs=False, sanitize=False)
+# with hydrogens added files
+BEN_Hs_rdkit = Chem.MolFromPDBBlock(mastdata.BEN_Hs_3ptb, removeHs=False, sanitize=True)
+trypsin_Hs_rdkit = Chem.MolFromPDBBlock(mastdata.trypsin_Hs_3ptb, removeHs=False, sanitize=True)
 
+# the MoleculeType pickle paths
+trypsin_pkl_path = mastdata.trypsin_mastmol_path
+ben_pkl_path = mastdata.BEN_mastmol_path
+
+trypsin_Hs_pkl_path = mastdata.trypsin_Hs_mastmol_path
+ben_Hs_pkl_path = mastdata.BEN_Hs_mastmol_path
+
+# make wrappers
 BEN_rdkit_wrapper = RDKitMoleculeWrapper(BEN_rdkit, mol_name="BEN")
 trypsin_rdkit_wrapper = RDKitMoleculeWrapper(trypsin_rdkit, mol_name="Trypsin")
 
+BEN_Hs_rdkit_wrapper = RDKitMoleculeWrapper(BEN_Hs_rdkit, mol_name="BEN")
+trypsin_Hs_rdkit_wrapper = RDKitMoleculeWrapper(trypsin_Hs_rdkit, mol_name="Trypsin")
+
 print("making molecule type for trypsin")
 Trypsin_Molecule = trypsin_rdkit_wrapper.make_molecule_type(find_features=True)
+Trypsin_Hs_Molecule = trypsin_Hs_rdkit_wrapper.make_molecule_type(find_features=True)
 print("making molecule type for benzamidine")
 BEN_Molecule = BEN_rdkit_wrapper.make_molecule_type(find_features=True)
+BEN_Hs_Molecule = BEN_Hs_rdkit_wrapper.make_molecule_type(find_features=True)
 
 print("pickling the molecules for later use")
 import pickle
 
 with open(trypsin_pkl_path, 'wb') as pkl_wf:
     pickle.dump(Trypsin_Molecule, pkl_wf)
-
 with open(ben_pkl_path, 'wb') as pkl_wf:
     pickle.dump(BEN_Molecule, pkl_wf)
 
+with open(ben_Hs_pkl_path, 'wb') as pkl_wf:
+    pickle.dump(BEN_Hs_Molecule, pkl_wf)
+with open(trypsin_Hs_pkl_path, 'wb') as pkl_wf:
+    pickle.dump(Trypsin_Hs_Molecule, pkl_wf)
+
+# making substantiated molecules
 BEN_coords = BEN_rdkit_wrapper.get_conformer_coords(0)
 trypsin_coords = trypsin_rdkit_wrapper.get_conformer_coords(0)
 member_coords = [BEN_coords, trypsin_coords]
