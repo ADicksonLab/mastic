@@ -1,6 +1,7 @@
 from io import StringIO
 import sys
 import os.path as osp
+import pickle
 
 # get the path to this module directory
 data_dir = osp.dirname(sys.modules[__name__].__file__)
@@ -30,3 +31,15 @@ with open(Top7_path, 'r') as rf:
 chignolin_path = osp.join(data_dir, chignolin_file_name)
 with open(chignolin_path, 'r') as rf:
     chignolin_5awl = rf.read()
+
+
+# precomputed molecules with features already detected
+
+# from rdkit feature detection
+trypsin_mastmol_path = osp.join(data_dir, "trypsin+features_mastmol.pkl")
+with open(trypsin_mastmol_path, 'rb') as pkl_rf:
+    Trypsin_Molecule = pickle.load(pkl_rf)
+
+BEN_mastmol_path = osp.join(data_dir, "BEN+features_mastmol.pkl")
+with open(BEN_mastmol_path, 'rb') as pkl_rf:
+    BEN_Molecule = pickle.load(pkl_rf)

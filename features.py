@@ -129,10 +129,10 @@ class FeatureType(object):
         FeatureTypeRecord = col.namedtuple('FeatureTypeRecord', record_fields)
         # build the values for it for this Type
         record_attr = {'FeatureType' : self.name}
-        record_attr['MoleculeType'] = self.molecule_type().name
-        record_attr['AtomTypes'] = self.atom_types()
+        record_attr['MoleculeType'] = self.molecule_type.name
+        record_attr['AtomTypes'] = self.atom_types
         record_attr['atom_idxs'] = self.atom_idxs
-        record_attr['BondTypes'] = self.bond_types()
+        record_attr['BondTypes'] = self.bond_types
         record_attr['bond_idxs'] = self.bond_idxs
         record_attr.update(self.attributes_data)
 
@@ -192,5 +192,5 @@ class Feature(mastsel.SelectionsDict):
 
     @property
     def record(self):
-        # would be too much to have all the coordinates
-        return self.feature_type.record()
+        # TODO better info if needed
+        return self.feature_type.record

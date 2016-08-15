@@ -446,9 +446,6 @@ class Atom(Point):
         self._atom_type = atom_type
 
 
-    def __repr__(self):
-        return str(self.__class__)
-
     @property
     def atom_type(self):
         """The AtomType subclass used to substantiate this Atom."""

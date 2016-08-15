@@ -275,9 +275,6 @@ the same coordinate system.
                 association_type.to_association(self,
                                                 association_name=association_class_name))
 
-    def __repr__(self):
-        return str(self.__class__)
-
     @property
     def system_type(self):
         """The SystemType that substantiated this System."""

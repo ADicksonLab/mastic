@@ -33,7 +33,7 @@ class HydrogenBondType(InteractionType):
         super().__init__(hydrogen_bond_type_name,
                          feature_types=feature_types,
                          association_type=association_type,
-                         assoc_member_pair_idxs=None,
+                         assoc_member_pair_idxs=assoc_member_pair_idxs,
                          **hydrogen_bond_attrs)
 
         self.donor = feature_types[0]
@@ -166,11 +166,13 @@ class HydrogenBondType(InteractionType):
                          list(self.attributes_data.keys())
         HydrogenBondTypeRecord = namedtuple('HydrogenBondTypeRecord', record_fields)
         record_attr = {'interaction_class' : self.name}
-        record_attr['interaction_type'] = self.interaction_type
-        record_attr['association_type'] = self.association_type
+        record_attr['interaction_type'] = self.interaction_name
+        record_attr['association_type'] = self.association_type.name
         record_attr['assoc_member_pair_idxs'] = self.assoc_member_pair_idxs
         record_attr['donor_feature_type'] = self.feature_types[0]
         record_attr['acceptor_feature_type'] = self.feature_types[1]
+
+        return HydrogenBondTypeRecord(**record_attr)
 
     def pdb_serial_output(self, inxs, path, delim=","):
         """Output the pdb serial numbers (index in pdb) of the donor and
@@ -261,16 +263,15 @@ class HydrogenBondInx(Interaction):
         record_fields = ['interaction_class',
                          'donor_coords', 'acceptor_coords',
                          'distance', 'angle',
-                         'H_atom_type', 'H_atom_idx', 'H_atom_coords'] + \
-                         list(self.attributes_data.keys())
+                         'H_coords']
+
         HydrogenBondInxRecord = namedtuple('HydrogenBondInxRecord', record_fields)
         record_attr = {'interaction_class' : self.interaction_class.name}
         record_attr['donor_coords'] = self.donor.atoms[0].coords
         record_attr['acceptor_coords'] = self.acceptor.atoms[0].coords
         record_attr['distance'] = self.distance
         record_attr['angle'] = self.angle
-        record_attr['H_atom_type'] = self.H.atom_type
-        record_attr['H_atom_coords'] = self.H.coords
+        record_attr['H_coords'] = self.H.coords
 
         return HydrogenBondInxRecord(**record_attr)
 
