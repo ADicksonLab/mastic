@@ -42,6 +42,7 @@ trypsin_Hs_rdkit_wrapper = RDKitMoleculeWrapper(trypsin_Hs_rdkit, mol_name="Tryp
 
 print("making molecule type for trypsin")
 Trypsin_Molecule = trypsin_rdkit_wrapper.make_molecule_type(find_features=True)
+
 Trypsin_Hs_Molecule = trypsin_Hs_rdkit_wrapper.make_molecule_type(find_features=True)
 print("making molecule type for benzamidine")
 BEN_Molecule = BEN_rdkit_wrapper.make_molecule_type(find_features=True)
