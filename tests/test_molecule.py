@@ -22,20 +22,20 @@ class TestAtomType(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_factory(self):
-        MockAtomType = mastmol.AtomType.factory("MockAtomType", **self.mock_attrs)
-        self.assertIsInstance(MockAtomType, type)
+    def test_constructor(self):
+        MockAtomType = mastmol.AtomType("MockAtomType", **self.mock_attrs)
+        self.assertIsInstance(MockAtomType, mastmol.AtomType)
 
 class TestBondType(unittest.TestCase):
     def setUp(self):
         self.mock_atom1_attrs = {}
         self.mock_atom1_attrs[mastmolconfig.ATOM_ATTRIBUTES[0]] = "mock_attribute"
         self.mock_atom1_attrs['undefined_attribute'] = "undefined_mock_attribute"
-        self.Mock1AtomType = mastmol.AtomType.factory("Mock1AtomType", **self.mock_atom1_attrs)
+        self.Mock1AtomType = mastmol.AtomType("Mock1AtomType", **self.mock_atom1_attrs)
         self.mock_atom2_attrs = {}
         self.mock_atom2_attrs[mastmolconfig.ATOM_ATTRIBUTES[0]] = "mock_attribute_2"
         self.mock_atom2_attrs['undefined_attribute'] = "undefined_mock_attribute"
-        self.Mock2AtomType = mastmol.AtomType.factory("Mock2AtomType", **self.mock_atom2_attrs)
+        self.Mock2AtomType = mastmol.AtomType("Mock2AtomType", **self.mock_atom2_attrs)
 
         self.atom_types = (self.Mock1AtomType, self.Mock2AtomType)
         self.mock_bond_attrs = {}
@@ -45,12 +45,12 @@ class TestBondType(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_factory(self):
-        MockBondType = mastmol.BondType.factory("MockBondType",
+    def test_constructor(self):
+        MockBondType = mastmol.BondType("MockBondType",
                                                 atom_types=self.atom_types,
                                                 **self.mock_bond_attrs)
 
-        self.assertIsInstance(MockBondType, type)
+        self.assertIsInstance(MockBondType, mastmol.BondType)
 
         # test the non-domain specific attributes work
         self.assertEqual(MockBondType.atom_types, (self.Mock1AtomType, self.Mock2AtomType))
@@ -60,17 +60,17 @@ class TestFakeMoleculeType(unittest.TestCase):
         self.mock_atom1_attrs = {}
         self.mock_atom1_attrs[mastmolconfig.ATOM_ATTRIBUTES[0]] = "mock_attribute"
         self.mock_atom1_attrs['undefined_attribute'] = "undefined_mock_attribute"
-        self.Mock1AtomType = mastmol.AtomType.factory("Mock1AtomType", **self.mock_atom1_attrs)
+        self.Mock1AtomType = mastmol.AtomType("Mock1AtomType", **self.mock_atom1_attrs)
         self.mock_atom2_attrs = {}
         self.mock_atom2_attrs[mastmolconfig.ATOM_ATTRIBUTES[0]] = "mock_attribute_2"
         self.mock_atom2_attrs['undefined_attribute'] = "undefined_mock_attribute"
-        self.Mock2AtomType = mastmol.AtomType.factory("Mock2AtomType", **self.mock_atom2_attrs)
+        self.Mock2AtomType = mastmol.AtomType("Mock2AtomType", **self.mock_atom2_attrs)
 
         self.atom_types = (self.Mock1AtomType, self.Mock2AtomType)
         self.mock_bond_attrs = {}
         self.mock_bond_attrs[mastmolconfig.BOND_ATTRIBUTES[0]] = "mock_attribute"
         self.mock_bond_attrs['undefined_attribute'] = "undefined_mock_attribute"
-        self.MockBondType = mastmol.BondType.factory("MockBondType",
+        self.MockBondType = mastmol.BondType("MockBondType",
                                                 atom_types=self.atom_types,
                                                 **self.mock_bond_attrs)
 
@@ -83,22 +83,22 @@ class TestFakeMoleculeType(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_factory(self):
-        MockMoleculeType = mastmol.MoleculeType.factory("MockMoleculeType",
+    def test_constructor(self):
+        MockMoleculeType = mastmol.MoleculeType("MockMoleculeType",
                                                         atom_types=self.atom_types,
                                                         bond_types=self.bond_types,
                                                         bond_map=self.bond_map,
                                                         **self.mock_attrs)
-        self.assertIsInstance(MockMoleculeType, type)
+        self.assertIsInstance(MockMoleculeType, mastmol.MoleculeType)
 
         # test that the non-domain specific attributes and functions
         # work
         self.assertEqual(MockMoleculeType.atom_types, self.atom_types)
         self.assertEqual(MockMoleculeType.atom_type_library,
-                          set(MockMoleculeType.atom_types))
+                          list(set(MockMoleculeType.atom_types)))
         self.assertEqual(MockMoleculeType.bond_types, self.bond_types)
         self.assertEqual(MockMoleculeType.bond_type_library,
-                          set(MockMoleculeType.bond_types))
+                          list(set(MockMoleculeType.bond_types)))
         self.assertEqual(MockMoleculeType.bond_map, self.bond_map)
         # make sure we get the correct AtomTypes from the bond map
         begin_atom_type = MockMoleculeType.atom_types[MockMoleculeType.bond_map[0][0]]
@@ -106,11 +106,8 @@ class TestFakeMoleculeType(unittest.TestCase):
         self.assertEqual(begin_atom_type, self.Mock1AtomType)
         self.assertEqual(end_atom_type, self.Mock2AtomType)
         # we didn't set these so make sure they are empty
-        self.assertFalse(MockMoleculeType.features)
-        self.assertFalse(MockMoleculeType.feature_families())
-        self.assertFalse(MockMoleculeType.feature_families_map())
-        self.assertFalse(MockMoleculeType.feature_types())
-        self.assertFalse(MockMoleculeType.feature_types_map())
+        self.assertFalse(MockMoleculeType.feature_types)
+
 
         # test the domain specific stuff is the same as in the mock
         # config files
@@ -125,7 +122,7 @@ class testAtom(unittest.TestCase):
         self.mock_attrs = {}
         self.mock_attrs[mastmolconfig.ATOM_ATTRIBUTES[0]] = "mock_attribute"
         self.mock_attrs['undefined_attribute'] = "undefined_mock_attribute"
-        self.MockAtomType = mastmol.AtomType.factory("MockAtomType", **self.mock_attrs)
+        self.MockAtomType = mastmol.AtomType("MockAtomType", **self.mock_attrs)
         self.coords = np.array((0.0, 0.0, 0.0))
 
     def tearDown(self):
@@ -149,18 +146,18 @@ class testBond(unittest.TestCase):
         self.mock_atom1_attrs = {}
         self.mock_atom1_attrs[mastmolconfig.ATOM_ATTRIBUTES[0]] = "mock_attribute"
         self.mock_atom1_attrs['undefined_attribute'] = "undefined_mock_attribute"
-        self.Mock1AtomType = mastmol.AtomType.factory("Mock1AtomType", **self.mock_atom1_attrs)
+        self.Mock1AtomType = mastmol.AtomType("Mock1AtomType", **self.mock_atom1_attrs)
         self.mock_atom2_attrs = {}
         self.mock_atom2_attrs[mastmolconfig.ATOM_ATTRIBUTES[0]] = "mock_attribute_2"
         self.mock_atom2_attrs['undefined_attribute'] = "undefined_mock_attribute"
-        self.Mock2AtomType = mastmol.AtomType.factory("Mock2AtomType", **self.mock_atom2_attrs)
+        self.Mock2AtomType = mastmol.AtomType("Mock2AtomType", **self.mock_atom2_attrs)
 
         self.atom_types = (self.Mock1AtomType, self.Mock2AtomType)
         self.mock_bond_attrs = {}
         self.mock_bond_attrs[mastmolconfig.BOND_ATTRIBUTES[0]] = "mock_attribute"
         self.mock_bond_attrs['undefined_attribute'] = "undefined_mock_attribute"
 
-        self.MockBondType = mastmol.BondType.factory("MockBondType",
+        self.MockBondType = mastmol.BondType("MockBondType",
                                                      atom_types=self.atom_types,
                                                      **self.mock_bond_attrs)
 
@@ -201,20 +198,20 @@ class testMolecule(unittest.TestCase):
         self.mock_atom1_attrs = {}
         self.mock_atom1_attrs[mastmolconfig.ATOM_ATTRIBUTES[0]] = "mock_attribute"
         self.mock_atom1_attrs['undefined_attribute'] = "undefined_mock_attribute"
-        self.Mock1AtomType = mastmol.AtomType.factory("Mock1AtomType", **self.mock_atom1_attrs)
+        self.Mock1AtomType = mastmol.AtomType("Mock1AtomType", **self.mock_atom1_attrs)
         self.mock_atom2_attrs = {}
         self.mock_atom2_attrs[mastmolconfig.ATOM_ATTRIBUTES[0]] = "mock_attribute_2"
         self.mock_atom2_attrs['undefined_attribute'] = "undefined_mock_attribute"
-        self.Mock2AtomType = mastmol.AtomType.factory("Mock2AtomType", **self.mock_atom2_attrs)
+        self.Mock2AtomType = mastmol.AtomType("Mock2AtomType", **self.mock_atom2_attrs)
 
         self.atom_types = (self.Mock1AtomType, self.Mock2AtomType)
         self.mock_bond_attrs = {}
         self.mock_bond_attrs[mastmolconfig.BOND_ATTRIBUTES[0]] = "mock_attribute"
         self.mock_bond_attrs['undefined_attribute'] = "undefined_mock_attribute"
 
-        self.MockBondType = mastmol.BondType.factory("MockBondType",
-                                                     atom_types=self.atom_types,
-                                                     **self.mock_bond_attrs)
+        self.MockBondType = mastmol.BondType("MockBondType",
+                                             atom_types=self.atom_types,
+                                             **self.mock_bond_attrs)
 
         self.bond_types = [self.MockBondType]
         self.mock_attrs = {}
@@ -222,11 +219,11 @@ class testMolecule(unittest.TestCase):
         self.mock_attrs[mastmolconfig.MOLECULE_ATTRIBUTES[0]] = "mock_attribute"
         self.mock_attrs['undefined_attribute'] = "undefined_mock_attribute"
 
-        self.MockMoleculeType = mastmol.MoleculeType.factory("MockMoleculeType",
-                                                        atom_types=self.atom_types,
-                                                        bond_types=self.bond_types,
-                                                        bond_map=self.bond_map,
-                                                        **self.mock_attrs)
+        self.MockMoleculeType = mastmol.MoleculeType("MockMoleculeType",
+                                                     atom_types=self.atom_types,
+                                                     bond_types=self.bond_types,
+                                                     bond_map=self.bond_map,
+                                                     **self.mock_attrs)
 
         self.coords = np.array((np.array((0.0, 0.0, 0.0)), np.array((0.0, 0.0, 1.0))))
         self.atoms = (self.Mock1AtomType.to_atom(self.coords[0]),
