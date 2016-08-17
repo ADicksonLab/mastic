@@ -701,11 +701,11 @@ class Molecule(SelectionsDict):
     Go through the steps to make a MoleculeType
     >>> carbon_attributes = {'element':'C', 'bond_degree':3}
     >>> oxygen_attributes = {'element':'O', 'bond_degree':3}
-    >>> COCarbonAtomType = AtomType.factory("COCarbonAtomType", **carbon_attributes)
-    >>> COOxygenAtomType = AtomType.factory("COOxygenAtomType", **oxygen_attributes)
+    >>> COCarbonAtomType = AtomType("COCarbonAtomType", **carbon_attributes)
+    >>> COOxygenAtomType = AtomType("COOxygenAtomType", **oxygen_attributes)
     >>> CO_atoms = (COCarbonAtomType, COOxygenAtomType)
     >>> CO_attributes = {"bond_order":3}
-    >>> COBondType = BondType.factory("COBondType", atom_types=CO_atoms, **CO_attributes)
+    >>> COBondType = BondType("COBondType", atom_types=CO_atoms, **CO_attributes)
     >>> atom_types = [COCarbonAtomType, COOxygenAtomType]
     >>> bond_types = [COBondType]
     >>> bond_map = {0 : (0, 1)}
