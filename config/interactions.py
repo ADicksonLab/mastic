@@ -6,7 +6,7 @@ HBOND_FEATURES = {'rdkit_family' : ['Donor', 'Acceptor'],
                   'rdkit_type' : []}
 
 PISTACKING_FEATURES = {'rdkit_family' : ['Aromatic'],
-                       'rdkit_type' : ['RH6_6']}
+                       'rdkit_type' : ['Arom6', 'Arom5']}
 
 
 HYDROPH_FEATURE_FAMILIES = ['Hydrophobe', 'LumpedHydrophobe']

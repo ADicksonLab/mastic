@@ -22,6 +22,7 @@ class PiStackingType(InteractionType):
     attributes = {}
     interaction_name = "PiStacking"
     feature_keywords = mastinxconfig.PISTACKING_FEATURES
+    aromatic_keys = mastinxconfig.PISTACKING_FEATURES['rdkit_family']
     grouping_attribute = 'rdkit_family'
 
     def __init__(self, pi_stacking_type_name,
@@ -43,44 +44,30 @@ class PiStackingType(InteractionType):
         # super().find_hits(members_features)
 
         # for each member collect the grouped features
-        # initialize list of members
-        members_features = [{'donors':[], 'acceptors':[]} for member in [member_a, member_b]]
+        # initialize list of members (A, B)
+        members_features = ([], [])
         for i, member in enumerate([member_a, member_b]):
             for feature_key, feature in member.features.items():
                 # get groupby attribute to use as a key
                 group_attribute = feature.feature_type.attributes_data[cls.grouping_attribute]
 
-                if group_attribute == cls.acceptor_key:
-                    acceptor_tup = (feature_key, feature)
-                    members_features[i]['acceptors'].append(acceptor_tup)
+                if group_attribute in cls.aromatic_keys:
+                    aromatic_tup = (feature_key, feature)
+                    members_features[i].append(aromatic_tup)
 
-                elif group_attribute == cls.donor_key:
-                    # get the donor-H pairs of atoms for this donor
-                    donor_atom = feature.atoms[0]
-                    donor_H_pairs = [(feature, atom) for atom in
-                                     donor_atom.adjacent_atoms if
-                                     atom.atom_type.element == 'H']
-                    donor_H_pairs_tup = [(feature_key, donor_H_pair) for
-                                         donor_H_pair in donor_H_pairs]
-                    members_features[i]['donors'].extend(donor_H_pairs_tup)
-
-        donor_acceptor_pairs = []
-        # pair the donors from the first with acceptors of the second
-        donor_acceptor_pairs.extend(it.product(members_features[0]['donors'],
-                                               members_features[1]['acceptors']))
-        # pair the acceptors from the first with the donors of the second
-        donor_acceptor_pairs.extend(it.product(members_features[1]['donors'],
-                                               members_features[0]['acceptors']))
+        # pair the aromatic features
+        aromatic_pairs = []
+        pi_stack_pairs = it.product(members_features[0],
+                                    members_features[1])
 
         # scan the pairs for hits
         hit_pair_keys = []
-        hbonds = []
-        for donor_tup, acceptor_tup in donor_acceptor_pairs:
-            donor_feature_key = donor_tup[0]
-            donor_feature = donor_tup[1][0]
-            h_atom = donor_tup[1][1]
-            acceptor_feature_key = acceptor_tup[0]
-            acceptor_feature = acceptor_tup[1]
+        pistacks = []
+        for arom_a_tup, arom_b_tup in pi_stack_pairs:
+            arom_a_feature_key = atom_a_tup[0]
+            arom_a_feature = donor_tup[1]
+            arom_b_feature_key = arom_b_tup[0]
+            arom_b_feature = arom_b_tup[1]
             # try to make a PiStackingInx object, which calls check,
             #
             # OPTIMIZATION: otherwise we have to call check first then
@@ -91,42 +78,117 @@ class PiStackingType(InteractionType):
             # in this 'safe' InteractionType, an unsafe optimized
             # version can be made separately if desired.
             try:
-                hbond = PiStackingInx(donor=donor_feature, H=h_atom,
-                                        acceptor=acceptor_feature)
+                pistack = PiStackingInx(feature1=arom_a_feature,
+                                        feature2=arom_b_feature)
             # else continue to the next pairing
             except InteractionError:
                 continue
             # if it succeeds add it to the list of H-Bonds
-            hbonds.append(hbond)
+            pistacks.append(pistack)
             # and the feature keys to the feature key pairs
-            hit_pair_keys.append((donor_feature_key, acceptor_feature_key))
+            hit_pair_keys.append((arom_a_feature_key, arom_b_feature_key))
 
-        return hit_pair_keys, hbonds
+        return hit_pair_keys, pistacks
 
     @classmethod
-    def check(cls, donor_atom, h_atom, acceptor_atom):
-        """Checks if the 3 atoms qualify as a hydrogen bond. Returns a tuple
-        (bool, float, float) where the first element is whether or not it
-        qualified, the second and third are the distance and angle
-        respectively. Angle may be None if distance failed to qualify.
+    def check(cls, arom_a_atoms, arom_b_atoms):
 
-        """
         from scipy.spatial.distance import cdist
-        distance = cdist(np.array([donor_atom.coords]), np.array([acceptor_atom.coords]))[0,0]
-        if cls.check_distance(distance) is False:
-            return (False, distance, None)
 
-        v1 = donor_atom.coords - h_atom.coords
-        v2 = acceptor_atom.coords - h_atom.coords
+        arom_a_coords = np.array([atom.coords for atom in arom_a_atoms])
+        arom_b_coords = np.array([atom.coords for atom in arom_b_atoms])
+        arom_coords = [arom_a_coords, arom_b_coords]
+
+        # 1) calculate the distance between centroids
+        centroid_a = atom_a_coords.mean(axis=1)
+        centroid_b = atom_b_coords.mean(axis=1)
+        centroids = [centroid_a, centroid_b]
+        centroid_distance = cdist(centroid_a, centroid_b)[0,0]
+        # if this passes then move on
+        if cls.check_centroid_distance(distance) is False:
+            return (False, centroid_distance, None)
+
+        # 2) determine whether it is parallel or perpendicular stacking
+
+        # 2.1) calculate the normal vectors of the rings by using
+        # vectors from the centroid to 2 different points on the ring
+        arom_vectors = []
+        arom_norms = []
+        for i, arom_atoms in enumerate(arom_coords):
+            # choose the atoms
+            a0 = arom_atoms[0]
+            if len(arom_atoms) in [6,5]:
+                a1 = 3
+            else:
+                raise InteractionError("aromatic rings without 5 or 6 atoms not supported")
+
+            a0c = a0.coords - centroid[i]
+            arom_vectors.append(a0c)
+            a1c = a1.coords - centroid
+            norm = a0c.cross(a1c)
+            arom_norms.append(norm)
+
+        # 2.2) calculate the angle between the normal vectors
         try:
-            angle = np.degrees(np.arccos(np.dot(v1, v2)/(la.norm(v1) * la.norm(v2))))
+            ring_normal_angle = np.degrees(np.arccos(
+                np.dot(arom_norms[0], arom_norms[1])/(la.norm(
+                    arom_norms[0]) * la.norm(arom_norms[1]))))
         except RuntimeWarning:
             print("v1: {0} \n"
-                  "v2: {1}".format(v1, v2))
-        if cls.check_angle(angle) is False:
-            return (False, distance, angle)
+                  "v2: {1}".format(arom_norms[0], arom_norms[1]))
 
-        return (True, distance, angle)
+        # 2.3) check the ring normal angles, we expect a string if it
+        # passed or False if it failed
+        result = cls.check_ring_normal_angle(ring_normal_angle)
+        if result is False:
+            return (False, distance, ring_normal_angle, )
+
+        # 3) Depending on the type of pi-stacking make further checks
+        # see Bahrach 2014 Computational Organic Chemistry for details
+        # 3.p) The stacking is parallel
+        elif result == 'parallel':
+            # There are 3 different parallel possibilities for 6 member rings:
+            #  - parallel stacked, yaw parallel
+            #     77s from Bahrach
+            #  - parallel stacked, yaw perpendicular
+            #     77s' from Bahrach
+            #  - parallel displaced, yaw parallel
+            #     77pd from Bahrach
+
+            # 3.p.1) calculate the angle betwee yaw vectors for each 6
+            # member ring
+
+            # calculate the projected vector from arom_b to arom_a plane
+            arom_b_proj_vector = arom_vectors[0] * (arom_vectors[1].dot(arom_vectors[0]))
+            # calculate the yaw angle
+            yaw_angle = np.degrees(np.arccos(
+                np.dot(arom_vectors[0], arom_b_proj_vector)/(la.norm(
+                    arom_vectors[0]) * la.norm(arom_b_proj_vector))))
+
+            yaw_result = cls.check_yaw(yaw_angle)
+            if yaw_result is False:
+                return (False, distance, ring_normal_angle, yaw_angle, )
+            # 3.p.2) for either parallel or perpendicular yaw
+            elif yaw_result == 'parallel-stacked':
+                pass
+            elif yaw_result == 'parallel-displaced':
+                pass
+            elif yaw_result == 'perpendicular':
+                pass
+
+        # 3.t) The stacking is perpendicular (T-stacking)
+        elif result == 'perpendicular':
+            # There are 2 different perpendicular possibilities
+            #  - rafter (the plane of the bisecting ring bisects across atoms)
+            #     77t from Bahrach
+            #  - perlin (the plane of the bisecting ring bisects across bonds)
+            #     77t' from Bahrach
+            pass
+
+        else:
+            raise InteractionError("unknown result from check_ring_normal_angle")
+
+        return (True, distance, ring_normal_angle)
 
     @classmethod
     def check_distance(cls, distance):
@@ -190,11 +252,9 @@ class PiStackingInx(Interaction):
 
     """
 
-    def __init__(self, donor=None, H=None, acceptor=None):
+    def __init__(self, feature1=None, feature2=None):
 
-        donor_atom = donor.atoms[0]
-        acceptor_atom = acceptor.atoms[0]
-        okay, distance, angle = PiStackingType.check(donor_atom, H, acceptor_atom)
+        okay, distance, angle = PiStackingType.check(feature1.atoms, feature2.atoms)
         if not okay:
             if angle is None:
                 raise InteractionError(
