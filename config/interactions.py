@@ -37,20 +37,28 @@ HBOND_DON_ANGLE_MIN = 100 # /AA
 
 
 # Max. distance for parallel or offset pistacking (McGaughey, 1998)
-PISTACK_DIST_MAX = 7.5 # /AA
-# Max. Deviation from parallel or perpendicular orientation (in degrees)
-PISTACK_ANG_DEV = 30 # /degrees
-# Maximum offset of the two rings (corresponds to the radius of benzene + 0.5 A)
+PISTACK_CENTROID_DIST_MAX = 7.5 # /AA
+# Max. Deviation from parallel or perpendicular orientation
+PISTACK_ANGLE_DEVIATION = 30 # /degrees
+# Maximum offset of the two rings (corresponds to the radius of
+# benzene + 0.5 A)
 PISTACK_OFFSET_MAX = 2.0 # /AA
 
-# Some distance thresholds were extended (max. 1.0A) if too restrictive too account for low-quality structures
-# Distance cutoff for detection of hydrophobic contacts
+# Maximum distance of the atom of the bisecting ring in a T-stack to
+# the centroid of the other ring
+PISTACK_T_DIST = 5.0 #/AA
+
+# Some distance thresholds were extended (max. 1.0A) if too
+# restrictive too account for low-quality structures Distance cutoff
+# for detection of hydrophobic contacts
 HYDROPH_DIST_MAX = 4.0 # /AA
 
-# Max. distance between charged atom and aromatic ring center (Gallivan and Dougherty, 1999)
+# Max. distance between charged atom and aromatic ring center
+# (Gallivan and Dougherty, 1999)
 PICATION_DIST_MAX = 6.0 # /AA
 
-# Max. distance between centers of charge for salt bridges (Barlow and Thornton, 1983) + 1.5
+# Max. distance between centers of charge for salt bridges (Barlow and
+# Thornton, 1983) + 1.5
 SALTBRIDGE_DIST_MAX = 5.5 # /AA
 
 # Max. distance between oxy. and halogen (Halogen bonds in biological molecules., Auffinger)+0.5
