@@ -43,9 +43,7 @@ PISTACK_ANGLE_DEVIATION = 30 # /degrees
 # Maximum offset of the two rings (corresponds to the radius of
 # benzene + 0.5 A)
 PISTACK_OFFSET_MAX = 2.0 # /AA
-
-# Maximum distance of the atom of the bisecting ring in a T-stack to
-# the centroid of the other ring
+# Maximum distance the closest atom must be in a T-stack
 PISTACK_T_DIST = 5.0 #/AA
 
 # Some distance thresholds were extended (max. 1.0A) if too

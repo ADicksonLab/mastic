@@ -24,19 +24,16 @@ axes = np.array([[1.0, 0.0, 0.0],
 origin = np.array([0.0, 0.0, 0.0])
 hex_theta = (1.0/3.0)*math.pi
 hex_rot_matrices = [rotation_matrix(axes[2], hex_theta*(i+1.0)) for i in range(6)]
-unit_point = np.array([1.0, 1.0, 0.0])
 
-unit_hexagon = np.array([np.dot(hex_rot_matrix, unit_point) for hex_rot_matrix in hex_rot_matrices])
+benzene_bond_length = 1.39
 
-def hexagon3d(centroid=[0.0,0.0,0.0], x_theta=0.0, y_theta=0.0, z_theta=0.0, radius=1.0):
+def hexagon3d(centroid=[0.0,0.0,0.0], x_theta=0.0, y_theta=0.0, z_theta=0.0, radius=benzene_bond_length):
     # read in centroid
     centroid = np.asarray(centroid)
     # make the first point that will be rotated
-    point = origin + np.array([radius, radius, 0.0])
+    point = origin + np.array([radius, 0.0, 0.0])
     # make the points of the hexagon
     hexagon = np.array([np.dot(rot_mat, point) for rot_mat in hex_rot_matrices])
-    # translate centroid position
-    hexagon = hexagon + centroid
     # rotations
     x_mat = rotation_matrix(axes[0], x_theta)
     hexagon = [np.dot(x_mat, hex_point) for hex_point in hexagon]
@@ -44,7 +41,8 @@ def hexagon3d(centroid=[0.0,0.0,0.0], x_theta=0.0, y_theta=0.0, z_theta=0.0, rad
     hexagon = [np.dot(y_mat, hex_point) for hex_point in hexagon]
     z_mat = rotation_matrix(axes[2], z_theta)
     hexagon = [np.dot(z_mat, hex_point) for hex_point in hexagon]
-
+    # translate centroid position
+    hexagon = hexagon + centroid
     return hexagon
 
 def pdb_row(i, x, y, z, el='C', color=0.0):

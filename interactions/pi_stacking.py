@@ -143,50 +143,36 @@ class PiStackingType(InteractionType):
         if ring_normal_result is False:
             return (False, distance, ring_normal_angle, )
 
-        # 3) Depending on the type of pi-stacking make further checks
-        # see Bahrach 2014 Computational Organic Chemistry for details
+        # 3) Project the closest carbon onto the other ring to see if
+        # it is oriented correctly. A different atom will be use for each
 
-        # 3.p) The stacking is parallel
+        # 3.1) Get the atom to be projected for each condition.
+        # 3.1.p) The stacking is parallel
+        ref_arom_idx = None
+        proj_arom_idx = None
+        proj_atom_idx = None
+        # there is an extra parameter that needs checked for the T
+        T_distance = None
         elif result == 'parallel':
-            # There are 3 different parallel possibilities for 6 member rings:
-            #  - parallel stacked, yaw parallel
-            #     77s from Bahrach
-            #  - parallel stacked, yaw perpendicular
-            #     77s' from Bahrach
-            #  - parallel displaced, yaw parallel
-            #     77pd from Bahrach
+            # our choice doesn't matter here so arbitrarily choose
+            # reference ring
+            ref_arom_idx = 0
+            proj_arom_idx = 1
+            # we need to find which atom is closest to the centroid of
+            # the reference
+            proj_arom_coords = arom_coords[proj_arom_idx]
+            ref_centroid = centroids[ref_arom_idx]
+            proj_arom_ds = cdist(proj_arom_coords, [ref_centroid])
+            proj_atom_idx = arom_a_ds.argmin()
 
-            # 3.p.1) calculate the angle betwee yaw vectors for each 6
-            # member ring
-
-            # calculate the projected vector from arom_b to arom_a plane
-            arom_b_proj_vector = arom_vectors[0] * (arom_vectors[1].dot(arom_vectors[0]))
-            # calculate the yaw angle
-            yaw_angle = np.degrees(np.arccos(
-                np.dot(arom_vectors[0], arom_b_proj_vector)/(la.norm(
-                    arom_vectors[0]) * la.norm(arom_b_proj_vector))))
-
-            return (True, distance, ring_normal_angle, yaw_angle, )
-            # yaw_result = cls.check_yaw(yaw_angle)
-            # if yaw_result is False:
-            #     return (False, distance, ring_normal_angle, yaw_angle, )
-            # else:
-            #     return (True, distance, ring_normal_angle, yaw_angle, )
-            # 3.p.2) for either parallel or perpendicular yaw
-            # elif yaw_result == 'parallel-stacked':
-            #     pass
-            # elif yaw_result == 'parallel-displaced':
-            #     pass
-            # elif yaw_result == 'perpendicular':
-            #     pass
-
-        # 3.t) The stacking is perpendicular (T-stacking)
+        # 3.1.t) The stacking is perpendicular (T-stacking)
         elif result == 'perpendicular':
-            # 3.t.1) find which ring bisects the other by getting the
+            # 3.1.t.1) find which ring bisects the other by getting the
             # distances from each atom of the rings to the centroid
             # the other ring
             arom_a_ds = cdist(arom_a_coords, [centroid_b])
             arom_b_ds = cdist(arom_b_coords, [centroid_a])
+            arom_ds = [arom_a_ds, arom_b_ds]
             # take the minimum from each comparison
             arom_a_min_d = min(arom_a_ds)
             arom_b_min_d = min(arom_b_ds)
@@ -198,24 +184,33 @@ class PiStackingType(InteractionType):
             T_distance_result = cls.check_T_distance(T_distance)
             if T_distance_result is False:
                 return (False, distance, ring_normal_angle, T_distance, )
-            if T_distance_result is True:
-                return (True, distance, ring_normal_angle, T_distance, )
-            # TODO further refinement
+            elif T_distance_result is True:
+                # set the appropriate reference etc.
+                ref_arom_idx = mins.argmin()
+                proj_arom_idx = mins.argmax()
+                proj_atom_idx = arom_ds[mins.argmin()].argmin()
             else:
-                bisecting_idx = mins.argmin()
-                # There are 2 different perpendicular possibilities
-                #  - rafter (the plane of the bisecting ring bisects across atoms)
-                #     77t from Bahrach
-                #  - perlin (the plane of the bisecting ring bisects across bonds)
-                #     77t' from Bahrach
-
-                # to detect this we project the line from the closest
-                # atom to an adjacent atom onto the bisected ring and
-                # calculate the yaw angle
-                # TODO
+                raise InteractionError("unknown result from check_T_distance")
 
         else:
             raise InteractionError("unknown result from check_ring_normal_angle")
+
+
+        # 3.2) project the point to the reference ring plane
+        proj_point = arom_vectors[ref_arom_idx] * \
+                     (arom_coords[proj_arom_idx][proj_atom_idx].dot(
+                         arom_vectors[ref_arom_idx]))
+        proj_centroid_distance = cdist([proj_point], [centroids[ref_arom_idx]])
+        offset_result = cls.check_offset_distance(proj_centroid_distance)
+        if offset_result is False:
+            return (False, distance, ring_normal_angle,
+                    T_distance, proj_centroid_distance,)
+        elif offset_result is True:
+            return (True, distance, ring_normal_angle,
+                    T_distance, proj_centroid_distance,)
+        else:
+            raise InteractionError("unknown result from check_projection_centroid_distance")
+
 
     @classmethod
     def check_centroid_distance(cls, distance):
@@ -257,13 +252,12 @@ class PiStackingType(InteractionType):
             return False
 
     @classmethod
-    def check_yaw(cls, angle):
+    def check_offset_distance(cls, distance):
         """For a float distance checks if it is less than the configuration
-        file HBOND_DON_ANGLE_MIN value.
+        file HBOND_DIST_MAX value.
 
         """
-
-        if angle > mastinxconfig.HBOND_DON_ANGLE_MIN:
+        if distance < mastinxconfig.PISTACK_OFFSET_MAX:
             return True
         else:
             return False
@@ -390,3 +384,50 @@ class PiStackingInx(Interaction):
         with open(path, 'wb') as wf:
             pickle.dump(self, wf)
 
+
+
+#### parallel yaw calculations
+            # # There are 3 different parallel possibilities for 6 member rings:
+            # #  - parallel stacked, yaw parallel
+            # #     77s from Bahrach
+            # #  - parallel stacked, yaw perpendicular
+            # #     77s' from Bahrach
+            # #  - parallel displaced, yaw parallel
+            # #     77pd from Bahrach
+
+            # # 3.p.1) calculate the angle betwee yaw vectors for each 6
+            # # member ring
+
+            # # calculate the projected vector from arom_b to arom_a plane
+            # arom_b_proj_vector = arom_vectors[0] * (arom_vectors[1].dot(arom_vectors[0]))
+            # # calculate the yaw angle
+            # yaw_angle = np.degrees(np.arccos(
+            #     np.dot(arom_vectors[0], arom_b_proj_vector)/(la.norm(
+            #         arom_vectors[0]) * la.norm(arom_b_proj_vector))))
+
+            # return (True, distance, ring_normal_angle, yaw_angle, )
+            # # yaw_result = cls.check_yaw(yaw_angle)
+            # # if yaw_result is False:
+            # #     return (False, distance, ring_normal_angle, yaw_angle, )
+            # # else:
+            # #     return (True, distance, ring_normal_angle, yaw_angle, )
+            # # 3.p.2) for either parallel or perpendicular yaw
+            # # elif yaw_result == 'parallel-stacked':
+            # #     pass
+            # # elif yaw_result == 'parallel-displaced':
+            # #     pass
+            # # elif yaw_result == 'perpendicular':
+            # #     pass
+
+
+    # @classmethod
+    # def check_yaw(cls, angle):
+    #     """For a float distance checks if it is less than the configuration
+    #     file HBOND_DON_ANGLE_MIN value.
+
+    #     """
+
+    #     if angle > mastinxconfig.HBOND_DON_ANGLE_MIN:
+    #         return True
+    #     else:
+    #         return False
