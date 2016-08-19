@@ -95,6 +95,13 @@ class PiStackingType(InteractionType):
 
         from scipy.spatial.distance import cdist
 
+        # parameter initialization for return
+        centroid_distance = None
+        ring_normal_angle = None
+        T_distance = None
+        proj_centroid_distance = None
+
+        # coordinates for atoms of aromatic rings (heavy atoms only)
         arom_a_coords = np.array([atom.coords for atom in arom_a_atoms])
         arom_b_coords = np.array([atom.coords for atom in arom_b_atoms])
         arom_coords = [arom_a_coords, arom_b_coords]
@@ -106,7 +113,8 @@ class PiStackingType(InteractionType):
         centroid_distance = cdist(centroid_a, centroid_b)[0,0]
         # if this passes then move on
         if cls.check_centroid_distance(distance) is False:
-            return (False, centroid_distance, None)
+            return (False, centroid_distance, ring_normal_angle,
+                    T_distance, proj_centroid_distance,)
 
         # 2) determine whether it is parallel or perpendicular stacking
 
@@ -141,7 +149,8 @@ class PiStackingType(InteractionType):
         # passed or False if it failed
         ring_normal_result = cls.check_ring_normal_angle(ring_normal_angle)
         if ring_normal_result is False:
-            return (False, distance, ring_normal_angle, )
+            return (False, centroid_distance ring_normal_angle,
+                    T_distance, proj_centroid_distance,)
 
         # 3) Project the closest carbon onto the other ring to see if
         # it is oriented correctly. A different atom will be use for each
@@ -183,7 +192,8 @@ class PiStackingType(InteractionType):
             # of (0 or 1) based on input, or return a False tuple
             T_distance_result = cls.check_T_distance(T_distance)
             if T_distance_result is False:
-                return (False, distance, ring_normal_angle, T_distance, )
+                return (False, centroid_distance ring_normal_angle,
+                        T_distance, proj_centroid_distance,)
             elif T_distance_result is True:
                 # set the appropriate reference etc.
                 ref_arom_idx = mins.argmin()
@@ -203,10 +213,10 @@ class PiStackingType(InteractionType):
         proj_centroid_distance = cdist([proj_point], [centroids[ref_arom_idx]])
         offset_result = cls.check_offset_distance(proj_centroid_distance)
         if offset_result is False:
-            return (False, distance, ring_normal_angle,
+            return (False, centroid_distance ring_normal_angle,
                     T_distance, proj_centroid_distance,)
         elif offset_result is True:
-            return (True, distance, ring_normal_angle,
+            return (True, centroid_distance ring_normal_angle,
                     T_distance, proj_centroid_distance,)
         else:
             raise InteractionError("unknown result from check_projection_centroid_distance")
@@ -266,34 +276,17 @@ class PiStackingType(InteractionType):
     def record(self):
         record_fields = ['interaction_class', 'interaction_type',
                          'association_type', 'assoc_member_pair_idxs',
-                         'donor_feature_type', 'acceptor_feature_type'] + \
+                         'arom_a_feature_type', 'arom_b_feature_type'] + \
                          list(self.attributes_data.keys())
         PiStackingTypeRecord = namedtuple('PiStackingTypeRecord', record_fields)
         record_attr = {'interaction_class' : self.name}
         record_attr['interaction_type'] = self.interaction_name
         record_attr['association_type'] = self.association_type.name
         record_attr['assoc_member_pair_idxs'] = self.assoc_member_pair_idxs
-        record_attr['donor_feature_type'] = self.feature_types[0]
-        record_attr['acceptor_feature_type'] = self.feature_types[1]
+        record_attr['arom_a_feature_type'] = self.feature_types[0]
+        record_attr['arom_b_feature_type'] = self.feature_types[1]
 
         return PiStackingTypeRecord(**record_attr)
-
-    def pdb_serial_output(self, inxs, path, delim=","):
-        """Output the pdb serial numbers (index in pdb) of the donor and
-        acceptor in each HBond to a file like:
-
-        donor_1, acceptor_1
-        donor_2, acceptor_2
-        ...
-
-        """
-
-        with open(path, 'w') as wf:
-            for inx in inxs:
-                wf.write("{0}{1}{2}\n".format(inx.donor.atom_type.pdb_serial_number,
-                                              delim,
-                                              inx.acceptor.atom_type.pdb_serial_number))
-
 
 class PiStackingInx(Interaction):
     """Substantiates PiStackingType by selecting donor and acceptor
@@ -303,62 +296,42 @@ class PiStackingInx(Interaction):
 
     def __init__(self, feature1=None, feature2=None):
 
-        okay, distance, angle = PiStackingType.check(feature1.atoms, feature2.atoms)
-        if not okay:
-            if angle is None:
-                raise InteractionError(
-                    """donor: {0}
-                    H: {1}
-                    acceptor: {2}
-                    distance = {3} FAILED
-                    angle = not calculated""".format(donor_atom, H, acceptor_atom, distance))
+        okay, centroid_distance, ring_normal_angle, \
+            T_distance, offset_distance = \
+                PiStackingType.check(feature1.atoms, feature2.atoms)
 
-            else:
-                raise InteractionError(
-                    """donor: {0}
-                    H: {1}
-                    acceptor: {2}
-                    distance = {3}
-                    angle = {4} FAILED""".format(donor_atom, H, acceptor_atom, distance, angle))
+        if not okay:
+            raise InteractionError
 
         # success, finish creating interaction
-        atom_system = donor.system
-        super().__init__(features=[donor, acceptor],
+        super().__init__(features=[feature1, feature2],
                          interaction_type=PiStackingType,
                          system=atom_system)
-        self._donor = donor
-        self._H = H
-        self._acceptor = acceptor
-        self._distance = distance
-        self._angle = angle
+        self._arom_a = feature1
+        self._arom_b = feature2
+        self._centroid_distance = centroid_distance
+        self._ring_normal_angle = ring_normal_angle
+        self._T_distance = T_distance
+        self._offset_distance = offset_distance
 
     @property
-    def donor(self):
-        """The donor Feature in the hydrogen bond."""
-        return self._donor
-
+    def arom_a(self):
+        return self._arom_a
     @property
-    def H(self):
-        """The donated hydrogen Atom in the hydrogen bond."""
-        return self._H
-
+    def arom_b(self):
+        return self._arom_b
     @property
-    def acceptor(self):
-        """The acceptor Feature in the hydrogen bond."""
-        return self._acceptor
-
+    def centroid_distance(self):
+        return self._centroid_distance
     @property
-    def distance(self):
-        """The distance between the donor atom and the acceptor atom."""
-        return self._distance
-
+    def ring_normal_angle(self):
+        return self._ring_normal_angle
     @property
-    def angle(self):
-        """The angle (in degrees) between the donor atom, hydrogen atom, and
-        acceptor atom with the hydrogen atom as the vertex.
-
-        """
-        return self._angle
+    def T_distance(self):
+        return self._T_distance
+    @property
+    def offset_distance(self):
+        return self._offset_distance
 
     @property
     def record(self):
