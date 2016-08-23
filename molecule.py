@@ -941,13 +941,47 @@ class Molecule(SelectionsDict):
 
     def atoms_within_distance(self, distance, metric='euclidean'):
         from scipy.spatial.distance import cdist
+        all_other_close_atoms = []
 
-        close_atoms_tup = []
-        for atom in self.atoms:
-            close_atoms_tup.extend(atom.atoms_within_distance(distance, metric=metric))
+        # free atoms
+        if self.system.atoms:
+            # get the atoms that are not this one
+            other_atoms = [atom for atom in self.system.atoms if
+                             atom is not self]
+            # calculate distances between them
+            dists = cdist(self.atom_coords, [atom.coords for atom in
+                                             other_atoms], metric=metric)
+            # 1) get a boolean array of the distances that meet the
+            # criteria (dists < distance)
+            # 2) get the indices of those (nonzero)
+            # 3) we only need the indices from axis 1, which was the
+            # other atoms list, which we only want the uniqe ones of.
+            other_atom_idxs = set((dists < distance).nonzero()[1])
+            close_other_atoms = [atom for i, atom in
+                                 enumerate(other_atoms) if i in other_atom_idxs]
+            all_other_close_atoms.extend(close_other_atoms)
 
-        # atom, distance
-        return close_atoms_tup
+        # molecules
+        if self.system.molecules:
+            other_molecules = [molecule for molecule in self.system.molecules if
+                             molecule is not self]
+
+            for molecule in other_molecules:
+                dists = cdist(self.atom_coords, molecule.atom_coords,
+                              metric=metric)
+                # 1) get a boolean array of the distances that meet the
+                # criteria (dists < distance)
+                # 2) get the indices of those (nonzero)
+                # 3) we only need the indices from axis 1, which was the
+                # other molecule atoms list, which we only want the uniqe ones of.
+                mol_atoms_close_idxs = set((dists < distance).nonzero()[1])
+                mol_atoms_close = [atom for i, atom in
+                                   enumerate(molecule.atoms) if i in
+                                   mol_atoms_close_idxs]
+
+                all_other_close_atoms.extend(mol_atoms_close)
+
+        return all_other_close_atoms
 
     def molecules_within_distance(self, distance, distances=False, selection='any'):
         pass
