@@ -544,6 +544,13 @@ class Atom(Point):
         # make and return
         return AtomRecord(**record_attr)
 
+    def distance(self, other):
+        if issubclass(type(other), Point):
+            assert self.system is other.system, \
+                "the two entities must be in the same system"
+
+        return super().distance(other)
+
 class Bond(IndexedSelection):
     """The coordinate substantiation of a BondType.
 
@@ -886,6 +893,35 @@ class Molecule(SelectionsDict):
                 except StopIteration:
                     flag = False
         return False
+
+    def distance_to(self, other):
+        from scipy.spatial.distance import cdist
+
+        assert self.system is other.system, \
+            "entities must be in the same system"
+
+        if isinstance(other, Atom):
+            return cdist(self.atom_coords, [other])[0][0]
+        elif isinstance(other, Molecule):
+            return cdist(self.atom_coords, other.atom_coords)
+
+    def within_distance(self, distance, select='atoms', distances=False):
+        from scipy.spatial.distance import cdist
+
+        if select == 'atoms':
+            for member in self.system.members:
+                if issubclass(type(member), Point):
+                    dist = self.distance_to(member)
+                    if dist <= distance:
+                        if distances:
+                            return (member, dist)
+                        else:
+                            return member
+                elif issubclass(type(member), Molecule):
+                    if distances:
+                        pass
+        else:
+            raise RuntimeError("Not implemented yet")
 
     def make_features(self):
         """Using the features attribute make IndexedSelections of those

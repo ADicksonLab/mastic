@@ -38,7 +38,6 @@ def overlaps(members):
                 flag = False
     return False
 
-
 class SystemType(object):
     """Class for generating specific system type classes with the factory
     method.

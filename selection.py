@@ -636,6 +636,15 @@ class Point(CoordArraySelection):
             "Other must be a subclass of Point, not {}".format(type(other))
         return np.all(np.isclose(self.coords, other.coords))
 
+    def distance_to(self, other, distance_metric='euclidean'):
+        from scipy.spatial.distance import cdist
+        # if it is another point get the coords
+        if issubclass(type(other), Point):
+            return cdist([self.coords], [other.coords])[0][0]
+        # assume it is something that can be put into cdist
+        else:
+            return cdist([self.coords], [other])[0][0]
+
 class SelectionsDict(SelectionMember, col.UserDict):
     """ A dictionary of collections of SelectionMembers.
 e.g. {'strings' : [StringSelection, StringSelection] 'ints' :
