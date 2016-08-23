@@ -939,8 +939,17 @@ class Molecule(SelectionsDict):
         elif isinstance(other, Molecule):
             return cdist(self.atom_coords, other.atom_coords)
 
-    def atoms_within_distance(self, distance, metric='euclidean'):
+    def atoms_within_distance(self, distance, atom_idxs=None, metric='euclidean'):
         from scipy.spatial.distance import cdist
+        # if atom_idxs were given we only want to use these from the
+        # molecule
+        if atom_idxs:
+            ref_atom_coords = [atom.coords for i, atom in
+                               enumerate(self.atoms) if i in atom_idxs]
+        # otherwise use the whole molecule
+        else:
+            ref_atom_coords = self.atom_coords
+
         all_other_close_atoms = []
 
         # free atoms
@@ -949,7 +958,7 @@ class Molecule(SelectionsDict):
             other_atoms = [atom for atom in self.system.atoms if
                              atom is not self]
             # calculate distances between them
-            dists = cdist(self.atom_coords, [atom.coords for atom in
+            dists = cdist(ref_atom_coords, [atom.coords for atom in
                                              other_atoms], metric=metric)
             # 1) get a boolean array of the distances that meet the
             # criteria (dists < distance)
@@ -967,7 +976,7 @@ class Molecule(SelectionsDict):
                              molecule is not self]
 
             for molecule in other_molecules:
-                dists = cdist(self.atom_coords, molecule.atom_coords,
+                dists = cdist(ref_atom_coords, molecule.atom_coords,
                               metric=metric)
                 # 1) get a boolean array of the distances that meet the
                 # criteria (dists < distance)
