@@ -16,8 +16,6 @@ import mast.config.interactions as mastinxconfig
 
 import mast.tests.data as mastdata
 
-from rdkit import Chem
-
 # without Hs straight from pdb
 BEN_rdkit = Chem.MolFromPDBBlock(mastdata.BEN_3ptb, removeHs=False, sanitize=True)
 trypsin_rdkit = Chem.MolFromPDBBlock(mastdata.trypsin_3ptb, removeHs=False, sanitize=True)

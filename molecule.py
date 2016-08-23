@@ -55,7 +55,7 @@ class AtomType(object):
         self.attributes_data = attributes
         self.__dict__.update(attributes)
 
-    def to_atom(self, coords):
+    def to_atom(self, coords, flags=None):
         """Substantiate this AtomType with coordinates"""
         assert len(coords) == 3, \
             "coords must be length 3, not {}".format(len(coords))
@@ -63,7 +63,7 @@ class AtomType(object):
                     for i in coords]), \
             "coords must be 3 floats, not {}".format(coords)
         coords = np.array(coords)
-        atom = Atom(coords, atom_type=self)
+        atom = Atom(coords, atom_type=self, flags=flags)
 
         return atom
 
@@ -149,8 +149,6 @@ class BondType(object):
         self.__dict__.update(attributes)
         self.atom_types = atom_types
 
-
-    
     def to_bond(self, atom1_coords, atom2_coords):
         """Substantiate this Bond with given coordinates for each atom type."""
         # test the inputs
@@ -162,8 +160,8 @@ class BondType(object):
                 "coords must be 3 numbers, not {}".format(coords)
 
         atoms = []
-        atoms.append(self.atom_types[0].to_atom(atom1_coords))
-        atoms.append(self.atom_types[1].to_atom(atom2_coords))
+        atoms.append(self.atom_types[0].to_atom(atom1_coords, flags='bond'))
+        atoms.append(self.atom_types[1].to_atom(atom2_coords, flags='bond'))
 
         bond = Bond(atoms, (0,1), bond_type=self)
         return bond
@@ -398,6 +396,11 @@ class MoleculeType(object):
         # make and return
         return MoleculeTypeRecord(**record_attr)
 
+
+    def atom_types_by_attr(self, attr_field, attr_value):
+        return [atom_type for atom_type in self.atom_types if
+                atom_type.attributes_data[attr_field] == attr_value]
+
 class Atom(Point):
     """The coordinate substantiation of an AtomType.
 
@@ -425,7 +428,7 @@ class Atom(Point):
     <class 'mast.molecule.Atom'>
     """
 
-    def __init__(self, coords=None, atom_array=None, array_idx=None, atom_type=None):
+    def __init__(self, coords=None, atom_array=None, array_idx=None, atom_type=None, flags=None):
 
         if coords is None:
             coords = np.array([np.nan, np.nan, np.nan])
@@ -445,7 +448,8 @@ class Atom(Point):
                     atom_array.shape[-1])
 
 
-        super().__init__(coords=coords, coord_array=atom_array, array_idx=array_idx)
+        super().__init__(coords=coords, coord_array=atom_array,
+                         array_idx=array_idx, flags=flags)
         self._atom_type = atom_type
 
 
@@ -486,14 +490,23 @@ class Atom(Point):
         if not self.isin_system:
             return None
         else:
+            # the atom may be alone in the system or in a molecule
+            # if it is alone the system should select it directly
             # to get the selection in the registry that contains this
             # SelectionMember search through them all and take the
             # first one that is a System type
-            system = next((sel for key, sel in self.registry
-                           if isinstance(sel, System)),
-                          None)
-            assert system
-            return system
+            if self.isin_molecule:
+                system = next((sel for key, sel in self.molecule.registry
+                               if isinstance(sel, System)),
+                              None)
+                assert system
+                return system
+            else:
+                system = next((sel for key, sel in self.registry
+                               if isinstance(sel, System)),
+                              None)
+                assert system
+                return system
 
     @property
     def isin_bond(self):
@@ -550,6 +563,23 @@ class Atom(Point):
                 "the two entities must be in the same system"
 
         return super().distance(other)
+
+    def atoms_within_distance(self, distance, metric='euclidean'):
+        """Return atoms in this atom's system that are within a distance."""
+        from scipy.spatial.distance import cdist
+
+        dists = cdist([self.coords], [atom.coords for atom in
+                                      self.system.all_atoms], metric=metric)[0]
+        close_bool_arr = (dists < distance) & (dists > 0.0)
+        close_idxs = close_bool_arr.nonzero()[0]
+        atoms = [atom for i, atom in enumerate(self.system.all_atoms)
+                 if i in close_idxs]
+        close_dists = dists[close_bool_arr]
+
+        return (atoms, close_dists)
+
+    def molecule_within_distance(self, distance, metric='euclidean'):
+        pass
 
 class Bond(IndexedSelection):
     """The coordinate substantiation of a BondType.
@@ -866,6 +896,10 @@ class Molecule(SelectionsDict):
         """The chemical features of this Molecule's MoleculeType subclass."""
         return self.molecule_type.feature_types
 
+    def atoms_by_attr(self, attr_field, attr_value):
+        return [atom for atom in self.atoms if
+                atom.atom_type.attributes_data[attr_field] == attr_value]
+
     def overlaps(self, other):
         """Check whether this molecule overlaps with another.
         Checks whether any two atoms in each molecule have the same coordinates.
@@ -905,23 +939,18 @@ class Molecule(SelectionsDict):
         elif isinstance(other, Molecule):
             return cdist(self.atom_coords, other.atom_coords)
 
-    def within_distance(self, distance, select='atoms', distances=False):
+    def atoms_within_distance(self, distance, metric='euclidean'):
         from scipy.spatial.distance import cdist
 
-        if select == 'atoms':
-            for member in self.system.members:
-                if issubclass(type(member), Point):
-                    dist = self.distance_to(member)
-                    if dist <= distance:
-                        if distances:
-                            return (member, dist)
-                        else:
-                            return member
-                elif issubclass(type(member), Molecule):
-                    if distances:
-                        pass
-        else:
-            raise RuntimeError("Not implemented yet")
+        close_atoms_tup = []
+        for atom in self.atoms:
+            close_atoms_tup.extend(atom.atoms_within_distance(distance, metric=metric))
+
+        # atom, distance
+        return close_atoms_tup
+
+    def molecules_within_distance(self, distance, distances=False, selection='any'):
+        pass
 
     def make_features(self):
         """Using the features attribute make IndexedSelections of those

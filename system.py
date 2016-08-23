@@ -306,6 +306,15 @@ the same coordinate system.
         molecules = [member for  member in self if issubclass(type(member), Molecule)]
         return molecules
 
+    @property
+    def all_atoms(self):
+        """All atoms in the system including those in molecules."""
+        all_atoms = self.atoms
+        for molecule in self.molecules:
+            all_atoms.extend(molecule.atoms)
+
+        return all_atoms
+
     # YAGNI?
     def molecules_sel(self):
         """Returns a selection on the system of just the Molecule system

@@ -580,7 +580,7 @@ class Point(CoordArraySelection):
 
     """
 
-    def __init__(self, coords=None, coord_array=None, array_idx=None):
+    def __init__(self, coords=None, coord_array=None, array_idx=None, flags=None):
 
         # if not given a CoordArray just make our own using coords kwarg
         if not coord_array:
@@ -591,7 +591,7 @@ class Point(CoordArraySelection):
             self._coord_array = CoordArray(np.array([coords]))
 
             # use the CoordArraySelection constructor
-            super().__init__(self._coord_array, 0)
+            super().__init__(self._coord_array, 0, flags=flags)
 
         # use coord_array
         else:
@@ -612,7 +612,7 @@ class Point(CoordArraySelection):
                 point_idx = coord_array.add_coord(coords)
 
             # use the CoordArraySelection constructor
-            super().__init__(coord_array, point_idx)
+            super().__init__(coord_array, point_idx, flags=flags)
 
     @property
     def coords(self):
@@ -681,6 +681,23 @@ e.g. {'strings' : [StringSelection, StringSelection] 'ints' :
     def __repr__(self):
         return str(self.__class__)
 
+    def register_selection(self, key, selection, flags=None):
+        """extends SelectionMember.register_selection by propogating selection
+        registry to it's members.
+
+        """
+        super().register_selection(key, selection, flags=flags)
+        for key, value in self.data.items():
+            # if there are multiple
+            try:
+                for member in value:
+
+                    if issubclass(type(member), SelectionMember):
+                        member.register_selection(key, self, flags=flags)
+            # if there is only one
+            except TypeError:
+                if issubclass(type(value), SelectionMember):
+                    value.register_selection(key, self, flags=flags)
 
 class SelectionsList(SelectionMember, col.UserList):
     def __init__(self, selection_list=None, flags=None):
@@ -703,6 +720,11 @@ class SelectionsList(SelectionMember, col.UserList):
 
     def __repr__(self):
         return str(self.__class__)
+
+    def register_selection(self, key, selection, flags=None):
+        for idx, member in enumerate(self.data):
+            if issubclass(type(member), SelectionMember):
+                member.register_selection(idx, self, flags=flags)
 
 if __name__ == "__main__":
     pass
