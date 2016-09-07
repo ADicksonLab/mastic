@@ -1085,5 +1085,10 @@ class Molecule(SelectionsDict):
     def record(self):
         pass
 
+class MoleculeAtomSelection(Selection):
+    def __init__(self, molecule, sel, flags=None):
+        assert isinstance(molecule, Molecule), "The container must be a Molecule"
+        super().__init__(molecule.atoms, sel=sel, flags=flags)
+
 if __name__ == "__main__":
     pass

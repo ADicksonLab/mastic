@@ -6,7 +6,7 @@ import operator as op
 
 from mast.selection import SelectionsList, IndexedSelection
 from mast.molecule import Atom, Bond, Molecule, AtomType, BondType, MoleculeType
-
+import mast.selection as mastsel
 
 
 import mast.config.system as mastsysconfig
@@ -559,6 +559,7 @@ class Association(SelectionsList):
             # the member, instead just save the whole member
             if association_type.selection_types[i] is None:
                 selection = member
+
             # otherwise we will make a selection with the type
             elif issubclass(association_type.selection_types[i], mastsel.GenericSelection):
                 selection = association_type.selection_types[i](member, sel_ids)
