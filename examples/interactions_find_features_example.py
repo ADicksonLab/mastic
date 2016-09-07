@@ -31,6 +31,8 @@ ben_pkl_path = mastdata.BEN_mastmol_path
 trypsin_Hs_pkl_path = mastdata.trypsin_Hs_mastmol_path
 ben_Hs_pkl_path = mastdata.BEN_Hs_mastmol_path
 
+
+
 # make wrappers
 BEN_rdkit_wrapper = RDKitMoleculeWrapper(BEN_rdkit, mol_name="BEN")
 trypsin_rdkit_wrapper = RDKitMoleculeWrapper(trypsin_rdkit, mol_name="Trypsin")
@@ -89,6 +91,7 @@ Trypsin_Benzamidine_Association = \
 
 # add it to the SystemType
 Trypsin_Benzamidine_System.add_association_type(Trypsin_Benzamidine_Association)
+
 
 # now when we make the system the selections are put into an
 # Association that can be profiled

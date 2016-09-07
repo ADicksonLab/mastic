@@ -939,7 +939,8 @@ class Molecule(SelectionsDict):
         elif isinstance(other, Molecule):
             return cdist(self.atom_coords, other.atom_coords)
 
-    def atoms_within_distance(self, distance, atom_idxs=None, metric='euclidean'):
+    def atoms_within_distance(self, distance, atom_idxs=None,
+                              sys_member_idxs=None, metric='euclidean'):
         from scipy.spatial.distance import cdist
         # if atom_idxs were given we only want to use these from the
         # molecule
@@ -954,9 +955,15 @@ class Molecule(SelectionsDict):
 
         # free atoms
         if self.system.atoms:
-            # get the atoms that are not this one
-            other_atoms = [atom for atom in self.system.atoms if
-                             atom is not self]
+            # get the atoms that are not this one or are specified by
+            # sys_member_idx
+            if sys_member_idx:
+                other_atoms = [atom for atom in self.system.atoms if
+                               self.system.members.index(atom) in
+                               sys_member_idxs]
+            else:
+                other_atoms = [atom for atom in self.system.atoms if
+                               atom is not self]
             # calculate distances between them
             dists = cdist(ref_atom_coords, [atom.coords for atom in
                                              other_atoms], metric=metric)
@@ -972,8 +979,12 @@ class Molecule(SelectionsDict):
 
         # molecules
         if self.system.molecules:
-            other_molecules = [molecule for molecule in self.system.molecules if
-                             molecule is not self]
+            if sys_member_idxs:
+                other_molecules = [molecule for molecule in self.system.molecules if
+                                   self.system.members.index(molecule) in sys_member_idxs]
+            else:
+                other_molecules = [molecule for molecule in self.system.molecules if
+                                   molecule is not self]
 
             for molecule in other_molecules:
                 dists = cdist(ref_atom_coords, molecule.atom_coords,
@@ -983,7 +994,7 @@ class Molecule(SelectionsDict):
                 # 2) get the indices of those (nonzero)
                 # 3) we only need the indices from axis 1, which was the
                 # other molecule atoms list, which we only want the uniqe ones of.
-                mol_atoms_close_idxs = set((dists < distance).nonzero()[1])
+                mol_atoms_close_idxs = set(((dists < distance) & (dists > 0.0)).nonzero()[1])
                 mol_atoms_close = [atom for i, atom in
                                    enumerate(molecule.atoms) if i in
                                    mol_atoms_close_idxs]

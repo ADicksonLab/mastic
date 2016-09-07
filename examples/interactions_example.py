@@ -1,5 +1,7 @@
 import pandas as pd
 
+import pickle
+
 from rdkit import Chem
 from rdkit.Chem import AllChem
 import os.path as osp
@@ -62,6 +64,7 @@ Trypsin_Benzamidine_Association = \
 
 # add it to the SystemType
 Trypsin_Benzamidine_System.add_association_type(Trypsin_Benzamidine_Association)
+
 
 # now when we make the system the selections are put into an
 # Association that can be profiled
