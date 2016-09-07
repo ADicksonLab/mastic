@@ -552,7 +552,7 @@ class Association(SelectionsList):
 
         # make selections on the system
         selections = []
-        for i, selmap in enumerate(association_type.selection_map.items()):
+        for i, selmap in enumerate(association_type.selection_map):
             member_idx, sel_ids = (selmap[0], selmap[1])
             member = system[member_idx]
             # if the selection_type is None do not make a selection of
