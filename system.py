@@ -437,7 +437,7 @@ class AssociationType(object):
         assert len(selection_map) == len(selection_types)
 
         # check that the selection_map is correct
-        for i, selmap in enumerate(selection_map.items()):
+        for i, selmap in enumerate(selection_map):
             member_idx, sel_ids = (selmap[0], selmap[1])
             # validate it indexes a system member
             assert member_idx < len(system_type.member_types), \
