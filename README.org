@@ -1,8 +1,8 @@
 https://zenodo.org/badge/latestdoi/18884/salotz/mast
 
-MAST is currently in beta.
+Mastic is currently in beta.
 * Installation
-Currently there is no package available for mast, but you can clone
+Currently there is no package available for mastic, but you can clone
 one of the releases and manually install it. 
 
 Dependencies:
@@ -13,13 +13,14 @@ optional:
 - pandas - for output of data to DataFrames and other file formats
 
 * Rationale
-The original impetus that led to writing MAST was a need to have a general and flexible framework for interacting with macromolecules (particular biomolecules) in order to implement complex selections and queries for profiling of intermolecular interactions on large sets of data.
+The original impetus that led to writing MASTIC was a need to have a general and flexible framework for interacting with macromolecules (particular biomolecules) in order to implement complex selections and queries for profiling of intermolecular interactions on large sets of data.
 
 While there are a few other high-quality projects that provide APIs for macromolecules the goals and fundamental designs of these libraries did not meet my needs.
 Primarily, the underlying representations are biased towards protein structures and other polymers due to the historical development of force fields for proteins.
 As such amino acid "residues" are usually part of the fundamental datastructures even in modern libraries.
 Design decisions like this and others are essentially isomorphic to the way textbooks write about these molecules.
-My experience was that while this is convenient for simple systems more complicated systems with many proteins, small molecules, etc. quickly become difficult to query and manipulate.
+My experience was that while this is convenient for simple systems more complicated systems with many proteins, small molecules, etc. quickly become difficult to query and manipulate. 
+Hence, Mastic was conceived in order to deliver a proper separation of molecular data from domain specific uses.
 
 * Goals
 ** Overarching Goals

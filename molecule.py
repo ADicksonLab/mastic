@@ -1085,10 +1085,25 @@ class Molecule(SelectionsDict):
     def record(self):
         pass
 
-class MoleculeAtomSelection(Selection):
+class MoleculeAtomSelection(IndexedSelection):
     def __init__(self, molecule, sel, flags=None):
+        # make sure the input is a molecule
         assert isinstance(molecule, Molecule), "The container must be a Molecule"
+        # make a selection of the atoms
         super().__init__(molecule.atoms, sel=sel, flags=flags)
+        # we need access to the molecule attributes
+        # atoms
+        self.atoms = self.data
+        # bonds
+        self.bonds = []
+        for bond in molecule.bonds:
+            if all([(atom in self) for atom in bond.atoms]):
+                self.bonds.append(bond)
+        # features completely represented by the remaining atoms
+        self.features = {}
+        for feature_id, feature in molecule.features.items():
+            if all([(atom in self) for atom in feature.atoms]):
+                self.features[feature_id] = feature
 
 if __name__ == "__main__":
     pass
