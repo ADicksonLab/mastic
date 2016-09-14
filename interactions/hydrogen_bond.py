@@ -69,17 +69,26 @@ class HydrogenBondType(InteractionType):
                     members_features[i]['donors'].extend(donor_H_pairs_tup)
 
         donor_acceptor_pairs = []
-        # pair the donors from the first with acceptors of the second
-        donor_acceptor_pairs.extend(it.product(members_features[0]['donors'],
-                                               members_features[1]['acceptors']))
-        # pair the acceptors from the first with the donors of the second
-        donor_acceptor_pairs.extend(it.product(members_features[1]['donors'],
-                                               members_features[0]['acceptors']))
+        # pair the donors from the first with acceptors of the second,
+        # keeping track of which member it is in
+        pairs = list(it.product(members_features[0]['donors'],
+                           members_features[1]['acceptors']))
+        # make tuples of (member order, donor-acceptors) ((0,1), (donor, acceptor))
+        donor_acceptor_pairs.extend(zip([(0,1) for i in range(len(pairs))], pairs))
+
+        # pair the acceptors from the first with the donors of the
+        # second, keeping track of which memebr it is in
+        pairs = list(it.product(members_features[1]['donors'],
+                           members_features[0]['acceptors']))
+        # make tuples of (member order, donor-acceptors) ((1,0), donor, acceptor)
+        donor_acceptor_pairs.extend(zip([(1,0) for i in range(len(pairs))], pairs))
 
         # scan the pairs for hits
         hit_pair_keys = []
         hbonds = []
-        for donor_tup, acceptor_tup in donor_acceptor_pairs:
+        for member_order, donor_acceptor_tup in donor_acceptor_pairs:
+            donor_tup = donor_acceptor_tup[0]
+            acceptor_tup = donor_acceptor_tup[1]
             donor_feature_key = donor_tup[0]
             donor_feature = donor_tup[1][0]
             h_atom = donor_tup[1][1]
@@ -103,7 +112,7 @@ class HydrogenBondType(InteractionType):
             # if it succeeds add it to the list of H-Bonds
             hbonds.append(hbond)
             # and the feature keys to the feature key pairs
-            hit_pair_keys.append((donor_feature_key, acceptor_feature_key))
+            hit_pair_keys.append((member_order, (donor_feature_key, acceptor_feature_key,),))
 
         return hit_pair_keys, hbonds
 

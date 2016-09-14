@@ -658,14 +658,24 @@ class Association(SelectionsList):
                 # member_pair_idx is the pair of members
                 # get the member and feature idx pairs (member_a_idx, member_b_idx)
                 member_pair_idxs = item[0]
-                # the list of feature pair idxs (idx_feature_a, idx_feature_b)
-                feature_pairs_idxs = item[1]
-                member_a = self.members[member_pair_idxs[0]]
-                member_b = self.members[member_pair_idxs[1]]
+                members = (self.members[member_pair_idxs[0]], self.members[member_pair_idxs[1]])
+
+                # the (member_order, feature_pair) s
+                member_feature_pairs = item[1]
+
                 # get the unique feature pairs
-                unique_feature_pair_idxs = set(feature_pairs_idxs)
+                unique_feature_pairs = set(member_feature_pairs)
+
                 # make an instance of interaction_type for all of these
-                for inx_class_idx, inx_pair_idxs in enumerate(unique_feature_pair_idxs):
+                for inx_class_idx, member_features_tup in enumerate(unique_feature_pairs):
+                    member_order = member_features_tup[0]
+                    # get the correct member by using the member order
+                    # specified from find_hits (either 0 or 1 for the
+                    # two members focused on here)
+                    member_a = members[member_order[0]]
+                    member_b = members[member_order[1]]
+                    # feature pair indices for a and b
+                    inx_pair_idxs = member_features_tup[1]
                     # inx_class_idx is the index of the unique pair of
                     # features (or the interaction class)
                     # inx_pair_idxs is a tuple of the feature idxs
@@ -692,6 +702,7 @@ class Association(SelectionsList):
 
                     # associate the inx hits for this inx class
 
+                    feature_pairs_idxs = [pair[1] for pair in member_feature_pairs]
                     # get the indices of the hits that are the same
                     # features of this pair
                     class_inxs_idxs = [idx for idx, pair in

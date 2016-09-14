@@ -986,7 +986,10 @@ class Molecule(SelectionsDict):
                 other_molecules = [molecule for molecule in self.system.molecules if
                                    molecule is not self]
 
+            # for each molecule to test distances between
             for molecule in other_molecules:
+                # calculate the distances to all of the atoms in that
+                # molecule from all of the atoms in this molecule
                 dists = cdist(ref_atom_coords, molecule.atom_coords,
                               metric=metric)
                 # 1) get a boolean array of the distances that meet the
@@ -994,10 +997,9 @@ class Molecule(SelectionsDict):
                 # 2) get the indices of those (nonzero)
                 # 3) we only need the indices from axis 1, which was the
                 # other molecule atoms list, which we only want the uniqe ones of.
-                mol_atoms_close_idxs = set(((dists < distance) & (dists > 0.0)).nonzero()[1])
-                mol_atoms_close = [atom for i, atom in
-                                   enumerate(molecule.atoms) if i in
-                                   mol_atoms_close_idxs]
+                mol_atoms_close_idxs = np.unique(((dists < distance) & (dists > 0.0)).nonzero()[1])
+                # put the actual atoms corresponding to the indices in a list
+                mol_atoms_close = [molecule.atoms[i] for i in list(mol_atoms_close_idxs)]
 
                 all_other_close_atoms.extend(mol_atoms_close)
 
@@ -1093,7 +1095,7 @@ class MoleculeAtomSelection(IndexedSelection):
         super().__init__(molecule.atoms, sel=sel, flags=flags)
         # we need access to the molecule attributes
         # atoms
-        self.atoms = self.data
+        self.atoms = list(self.data.values())
         # bonds
         self.bonds = []
         for bond in molecule.bonds:
@@ -1102,7 +1104,7 @@ class MoleculeAtomSelection(IndexedSelection):
         # features completely represented by the remaining atoms
         self.features = {}
         for feature_id, feature in molecule.features.items():
-            if all([(atom in self) for atom in feature.atoms]):
+            if all([(atom in self.atoms) for atom in feature.atoms]):
                 self.features[feature_id] = feature
 
 if __name__ == "__main__":
