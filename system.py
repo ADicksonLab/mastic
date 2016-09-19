@@ -609,7 +609,9 @@ class Association(SelectionsList):
         pass
 
     def profile_interactions(self, interaction_types,
-                             intramember_interactions=False):
+                             profile_string=None,
+                             intramember_interactions=False,
+                             **find_hits_kwargs):
         """Accepts any number of InteractionType instancees and identifies
         Interactions between the members of the association using the
         InteractionType.find_hits function.
@@ -648,7 +650,8 @@ class Association(SelectionsList):
                 member_a = member_pair[0]
                 member_b = member_pair[1]
                 feature_key_pairs, pair_hits = interaction_type.find_hits(member_a,
-                                                       member_b)
+                                                                          member_b,
+                                                                          **find_hits_kwargs)
                 member_inx_hits[member_idx_pairs[idx]] = pair_hits
                 member_feature_key_pairs[member_idx_pairs[idx]] = feature_key_pairs
 
@@ -687,10 +690,18 @@ class Association(SelectionsList):
                     feat_b_type = member_b.features[inx_pair_idxs[1]].feature_type
                     feat_types = [feat_a_type, feat_b_type]
                     # make a name for the interaction class
-                    inx_class_name = "{0}_{1}_{2}InxType".format(
-                        interaction_type.interaction_name,
-                        self.name,
-                        inx_class_idx)
+                    if profile_string:
+                        inx_class_name = "{0}_{1}_{2}_{3}InxType".format(
+                            profile_string,
+                            interaction_type.interaction_name,
+                            self.name,
+                            inx_class_idx)
+                    else:
+                        inx_class_name = "{0}_{1}_{2}InxType".format(
+                            interaction_type.interaction_name,
+                            self.name,
+                            inx_class_idx)
+
                     # TODO empty for now but could add stuff in the future
                     inx_class_attrs = {}
                     # make the interaction class

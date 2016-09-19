@@ -41,7 +41,9 @@ class HydrogenBondType(InteractionType):
 
 
     @classmethod
-    def find_hits(cls, member_a, member_b):
+    def find_hits(cls, member_a, member_b,
+                  distance_cutoff=mastinxconfig.HBOND_DIST_MAX,
+                  angle_cutoff=mastinxconfig.HBOND_DON_ANGLE_MIN):
 
         # check that the keys ar okay in parent class
         # super().find_hits(members_features)
@@ -105,7 +107,9 @@ class HydrogenBondType(InteractionType):
             # version can be made separately if desired.
             try:
                 hbond = HydrogenBondInx(donor=donor_feature, H=h_atom,
-                                        acceptor=acceptor_feature)
+                                        acceptor=acceptor_feature,
+                                        distance_cutoff=distance_cutoff,
+                                        angle_cutoff=angle_cutoff)
             # else continue to the next pairing
             except InteractionError:
                 continue
@@ -117,7 +121,9 @@ class HydrogenBondType(InteractionType):
         return hit_pair_keys, hbonds
 
     @classmethod
-    def check(cls, donor_atom, h_atom, acceptor_atom):
+    def check(cls, donor_atom, h_atom, acceptor_atom,
+              distance_cutoff=mastinxconfig.HBOND_DIST_MAX,
+              angle_cutoff=mastinxconfig.HBOND_DON_ANGLE_MIN):
         """Checks if the 3 atoms qualify as a hydrogen bond. Returns a tuple
         (bool, float, float) where the first element is whether or not it
         qualified, the second and third are the distance and angle
@@ -126,7 +132,7 @@ class HydrogenBondType(InteractionType):
         """
         from scipy.spatial.distance import cdist
         distance = cdist(np.array([donor_atom.coords]), np.array([acceptor_atom.coords]))[0,0]
-        if cls.check_distance(distance) is False:
+        if cls.check_distance(distance, cutoff=distance_cutoff) is False:
             return (False, distance, None)
 
         v1 = donor_atom.coords - h_atom.coords
@@ -136,30 +142,30 @@ class HydrogenBondType(InteractionType):
         except RuntimeWarning:
             print("v1: {0} \n"
                   "v2: {1}".format(v1, v2))
-        if cls.check_angle(angle) is False:
+        if cls.check_angle(angle, cutoff=angle_cutoff) is False:
             return (False, distance, angle)
 
         return (True, distance, angle)
 
     @classmethod
-    def check_distance(cls, distance):
+    def check_distance(cls, distance, cutoff=mastinxconfig.HBOND_DIST_MAX):
         """For a float distance checks if it is less than the configuration
         file HBOND_DIST_MAX value.
 
         """
-        if distance < mastinxconfig.HBOND_DIST_MAX:
+        if distance < cutoff:
             return True
         else:
             return False
 
     @classmethod
-    def check_angle(cls, angle):
+    def check_angle(cls, angle, cutoff=mastinxconfig.HBOND_DON_ANGLE_MIN):
         """For a float distance checks if it is less than the configuration
         file HBOND_DON_ANGLE_MIN value.
 
         """
 
-        if angle > mastinxconfig.HBOND_DON_ANGLE_MIN:
+        if angle > cutoff:
             return True
         else:
             return False
@@ -175,8 +181,8 @@ class HydrogenBondType(InteractionType):
         record_attr['interaction_type'] = self.interaction_name
         record_attr['association_type'] = self.association_type.name
         record_attr['assoc_member_pair_idxs'] = self.assoc_member_pair_idxs
-        record_attr['donor_feature_type'] = self.feature_types[0]
-        record_attr['acceptor_feature_type'] = self.feature_types[1]
+        record_attr['donor_feature_type'] = self.feature_types[0].name
+        record_attr['acceptor_feature_type'] = self.feature_types[1].name
 
         return HydrogenBondTypeRecord(**record_attr)
 
@@ -203,11 +209,15 @@ class HydrogenBondInx(Interaction):
 
     """
 
-    def __init__(self, donor=None, H=None, acceptor=None):
+    def __init__(self, donor=None, H=None, acceptor=None,
+                 distance_cutoff=mastinxconfig.HBOND_DIST_MAX,
+                 angle_cutoff=mastinxconfig.HBOND_DON_ANGLE_MIN):
 
         donor_atom = donor.atoms[0]
         acceptor_atom = acceptor.atoms[0]
-        okay, distance, angle = HydrogenBondType.check(donor_atom, H, acceptor_atom)
+        okay, distance, angle = HydrogenBondType.check(donor_atom, H, acceptor_atom,
+                                                       distance_cutoff=distance_cutoff,
+                                                       angle_cutoff=angle_cutoff)
         if not okay:
             if angle is None:
                 raise InteractionError(

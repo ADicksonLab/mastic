@@ -8,7 +8,6 @@ from mast.selection import CoordArray, CoordArraySelection, \
     Point, IndexedSelection, SelectionsDict, SelectionsList, \
     Selection
 
-
 import mast.config.molecule as mastmolconfig
 
 __all__ = ['AtomType', 'BondType', 'MoleculeType',]
