@@ -11,6 +11,18 @@ import numpy.linalg as la
 import mast.config.interactions as mastinxconfig
 from mast.interactions.interactions import InteractionType, Interaction, InteractionError
 
+def is_donor(feature):
+    if feature.attributes_data['rdkit_family'] == 'Donor':
+        return True
+    else:
+        return False
+
+def is_acceptor(feature):
+    if feature.attributes_data['rdkit_family'] == 'Acceptor':
+        return True
+    else:
+        return False
+
 class HydrogenBondType(InteractionType):
     """Defines an InteractionType class for hydrogen bonds between members
     with explicit hydrogens.

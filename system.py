@@ -611,6 +611,7 @@ class Association(SelectionsList):
     def profile_interactions(self, interaction_types,
                              profile_string=None,
                              intramember_interactions=False,
+                             interaction_classes=None,
                              **find_hits_kwargs):
         """Accepts any number of InteractionType instancees and identifies
         Interactions between the members of the association using the
@@ -691,13 +692,13 @@ class Association(SelectionsList):
                     feat_types = [feat_a_type, feat_b_type]
                     # make a name for the interaction class
                     if profile_string:
-                        inx_class_name = "{0}_{1}_{2}_{3}InxType".format(
+                        inx_class_name = "{0}_{1}_{2}_{3}_InxType".format(
                             profile_string,
                             interaction_type.interaction_name,
                             self.name,
                             inx_class_idx)
                     else:
-                        inx_class_name = "{0}_{1}_{2}InxType".format(
+                        inx_class_name = "{0}_{1}_{2}_InxType".format(
                             interaction_type.interaction_name,
                             self.name,
                             inx_class_idx)
