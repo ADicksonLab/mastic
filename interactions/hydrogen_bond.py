@@ -54,6 +54,7 @@ class HydrogenBondType(InteractionType):
 
     @classmethod
     def find_hits(cls, member_a, member_b,
+                  interaction_classes=None,
                   distance_cutoff=mastinxconfig.HBOND_DIST_MAX,
                   angle_cutoff=mastinxconfig.HBOND_DON_ANGLE_MIN):
 
@@ -108,6 +109,19 @@ class HydrogenBondType(InteractionType):
             h_atom = donor_tup[1][1]
             acceptor_feature_key = acceptor_tup[0]
             acceptor_feature = acceptor_tup[1]
+            # get the corresponding interaction class if given
+            interaction_class = None
+            if interaction_classes:
+                feature_pairs = [(inx_class.donor, inx_class.acceptor) for
+                                 inx_class in interaction_classes]
+                # get the matching interaction class, throws error if
+                # not in the interaction_classes
+
+                interaction_class = [interaction_classes[i] for i, feature_pair in
+                                              enumerate(feature_pairs) if
+                                     (donor_feature.feature_type, acceptor_feature.feature_type)
+                                     == feature_pair][0]
+
             # try to make a HydrogenBondInx object, which calls check,
             #
             # OPTIMIZATION: otherwise we have to call check first then
@@ -121,7 +135,8 @@ class HydrogenBondType(InteractionType):
                 hbond = HydrogenBondInx(donor=donor_feature, H=h_atom,
                                         acceptor=acceptor_feature,
                                         distance_cutoff=distance_cutoff,
-                                        angle_cutoff=angle_cutoff)
+                                        angle_cutoff=angle_cutoff,
+                                        interaction_class=interaction_class)
             # else continue to the next pairing
             except InteractionError:
                 continue
@@ -223,7 +238,8 @@ class HydrogenBondInx(Interaction):
 
     def __init__(self, donor=None, H=None, acceptor=None,
                  distance_cutoff=mastinxconfig.HBOND_DIST_MAX,
-                 angle_cutoff=mastinxconfig.HBOND_DON_ANGLE_MIN):
+                 angle_cutoff=mastinxconfig.HBOND_DON_ANGLE_MIN,
+                 interaction_class=None):
 
         donor_atom = donor.atoms[0]
         acceptor_atom = acceptor.atoms[0]
@@ -257,6 +273,7 @@ class HydrogenBondInx(Interaction):
         self._acceptor = acceptor
         self._distance = distance
         self._angle = angle
+        self._interaction_class = interaction_class
 
     @property
     def donor(self):
@@ -285,6 +302,15 @@ class HydrogenBondInx(Interaction):
 
         """
         return self._angle
+
+    @property
+    def interaction_class(self):
+        return self._interaction_class
+
+    @interaction_class.setter
+    def interaction_class(self, inx_class):
+        # TODO type checking
+        self._interaction_class = inx_class
 
     @property
     def record(self):

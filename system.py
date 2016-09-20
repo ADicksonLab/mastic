@@ -650,88 +650,92 @@ class Association(SelectionsList):
             for idx, member_pair in enumerate(member_pairs):
                 member_a = member_pair[0]
                 member_b = member_pair[1]
-                feature_key_pairs, pair_hits = interaction_type.find_hits(member_a,
-                                                                          member_b,
-                                                                          **find_hits_kwargs)
+                feature_key_pairs, pair_hits = interaction_type.find_hits(
+                    member_a,
+                    member_b,
+                    interaction_classes=interaction_classes,
+                    **find_hits_kwargs)
+
                 member_inx_hits[member_idx_pairs[idx]] = pair_hits
                 member_feature_key_pairs[member_idx_pairs[idx]] = feature_key_pairs
 
-
+            # if the interaction classes were not given we make our own
+            if not interaction_classes:
             # make interaction classes with interaction_type constructor
-            for member_pair_idx, item in enumerate(member_feature_key_pairs.items()):
-                # member_pair_idx is the pair of members
-                # get the member and feature idx pairs (member_a_idx, member_b_idx)
-                member_pair_idxs = item[0]
-                members = (self.members[member_pair_idxs[0]], self.members[member_pair_idxs[1]])
+                for member_pair_idx, item in enumerate(member_feature_key_pairs.items()):
+                    # member_pair_idx is the pair of members
+                    # get the member and feature idx pairs (member_a_idx, member_b_idx)
+                    member_pair_idxs = item[0]
+                    members = (self.members[member_pair_idxs[0]], self.members[member_pair_idxs[1]])
 
-                # the (member_order, feature_pair) s
-                member_feature_pairs = item[1]
+                    # the (member_order, feature_pair) s
+                    member_feature_pairs = item[1]
 
-                # get the unique feature pairs
-                unique_feature_pairs = set(member_feature_pairs)
+                    # get the unique feature pairs
+                    unique_feature_pairs = set(member_feature_pairs)
 
-                # make an instance of interaction_type for all of these
-                for inx_class_idx, member_features_tup in enumerate(unique_feature_pairs):
-                    member_order = member_features_tup[0]
-                    # get the correct member by using the member order
-                    # specified from find_hits (either 0 or 1 for the
-                    # two members focused on here)
-                    member_a = members[member_order[0]]
-                    member_b = members[member_order[1]]
-                    # feature pair indices for a and b
-                    inx_pair_idxs = member_features_tup[1]
-                    # inx_class_idx is the index of the unique pair of
-                    # features (or the interaction class)
-                    # inx_pair_idxs is a tuple of the feature idxs
-                    # that make up the interaction class, for each
-                    # member respectively
+                    # make an instance of interaction_type for all of these
+                    for inx_class_idx, member_features_tup in enumerate(unique_feature_pairs):
+                        member_order = member_features_tup[0]
+                        # get the correct member by using the member order
+                        # specified from find_hits (either 0 or 1 for the
+                        # two members focused on here)
+                        member_a = members[member_order[0]]
+                        member_b = members[member_order[1]]
+                        # feature pair indices for a and b
+                        inx_pair_idxs = member_features_tup[1]
+                        # inx_class_idx is the index of the unique pair of
+                        # features (or the interaction class)
+                        # inx_pair_idxs is a tuple of the feature idxs
+                        # that make up the interaction class, for each
+                        # member respectively
 
-                    # collect the actual objects
-                    feat_a_type = member_a.features[inx_pair_idxs[0]].feature_type
-                    feat_b_type = member_b.features[inx_pair_idxs[1]].feature_type
-                    feat_types = [feat_a_type, feat_b_type]
-                    # make a name for the interaction class
-                    if profile_string:
-                        inx_class_name = "{0}_{1}_{2}_{3}_InxType".format(
-                            profile_string,
-                            interaction_type.interaction_name,
-                            self.name,
-                            inx_class_idx)
-                    else:
-                        inx_class_name = "{0}_{1}_{2}_InxType".format(
-                            interaction_type.interaction_name,
-                            self.name,
-                            inx_class_idx)
+                        # collect the actual objects
+                        feat_a_type = member_a.features[inx_pair_idxs[0]].feature_type
+                        feat_b_type = member_b.features[inx_pair_idxs[1]].feature_type
+                        feat_types = [feat_a_type, feat_b_type]
+                        # make a name for the interaction class
+                        if profile_string:
+                            inx_class_name = "{0}_{1}_{2}_{3}_InxType".format(
+                                profile_string,
+                                interaction_type.interaction_name,
+                                self.name,
+                                inx_class_idx)
+                        else:
+                            inx_class_name = "{0}_{1}_{2}_InxType".format(
+                                interaction_type.interaction_name,
+                                self.name,
+                                inx_class_idx)
 
-                    # TODO empty for now but could add stuff in the future
-                    inx_class_attrs = {}
-                    # make the interaction class
-                    inx_class = interaction_type(inx_class_name,
-                                                 feature_types=feat_types,
-                                                 association_type=self,
-                                                 assoc_member_pair_idxs=member_pair_idxs,
-                                                 **inx_class_attrs)
+                        # TODO empty for now but could add stuff in the future
+                        inx_class_attrs = {}
+                        # make the interaction class
+                        inx_class = interaction_type(inx_class_name,
+                                                     feature_types=feat_types,
+                                                     association_type=self,
+                                                     assoc_member_pair_idxs=member_pair_idxs,
+                                                     **inx_class_attrs)
 
-                    # associate the inx hits for this inx class
+                        # associate the inx hits for this inx class
 
-                    feature_pairs_idxs = [pair[1] for pair in member_feature_pairs]
-                    # get the indices of the hits that are the same
-                    # features of this pair
-                    class_inxs_idxs = [idx for idx, pair in
-                                       enumerate(feature_pairs_idxs)
-                                       if pair == inx_pair_idxs]
+                        feature_pairs_idxs = [pair[1] for pair in member_feature_pairs]
+                        # get the indices of the hits that are the same
+                        # features of this pair
+                        class_inxs_idxs = [idx for idx, pair in
+                                           enumerate(feature_pairs_idxs)
+                                           if pair == inx_pair_idxs]
 
-                    # then get the actual interaction hits (not just
-                    # indices) for this member_pair
-                    member_inxs = member_inx_hits[member_pair_idxs]
-                    # then filter these inxs for those that match the
-                    # feature paired indices
-                    class_inxs = [inx for i, inx in
-                                  enumerate(member_inxs) if i in class_inxs_idxs]
-                    # set the interaction_class attribute in each of
-                    # these to inx_class
-                    for class_inx in class_inxs:
-                        class_inx.interaction_class = inx_class
+                        # then get the actual interaction hits (not just
+                        # indices) for this member_pair
+                        member_inxs = member_inx_hits[member_pair_idxs]
+                        # then filter these inxs for those that match the
+                        # feature paired indices
+                        class_inxs = [inx for i, inx in
+                                      enumerate(member_inxs) if i in class_inxs_idxs]
+                        # set the interaction_class attribute in each of
+                        # these to inx_class
+                        for class_inx in class_inxs:
+                            class_inx.interaction_class = inx_class
 
             # flatten the member_inx_hits dict
             all_inx_hits = reduce(op.add, [inxs for inxs in member_inx_hits.values()])
