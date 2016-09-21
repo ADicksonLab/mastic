@@ -114,13 +114,14 @@ class HydrogenBondType(InteractionType):
             if interaction_classes:
                 feature_pairs = [(inx_class.donor, inx_class.acceptor) for
                                  inx_class in interaction_classes]
-                # get the matching interaction class, throws error if
-                # not in the interaction_classes
-
-                interaction_class = [interaction_classes[i] for i, feature_pair in
+                # get the matching interaction class, throws error if no match
+                try:
+                    interaction_class = [interaction_classes[i] for i, feature_pair in
                                               enumerate(feature_pairs) if
                                      (donor_feature.feature_type, acceptor_feature.feature_type)
-                                     == feature_pair][0]
+                                                         == feature_pair][0]
+                except IndexError:
+                    print("No matching interaction class given")
 
             # try to make a HydrogenBondInx object, which calls check,
             #

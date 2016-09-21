@@ -1088,23 +1088,43 @@ class Molecule(SelectionsDict):
 
 class MoleculeAtomSelection(IndexedSelection):
     def __init__(self, molecule, sel, flags=None):
-        # make sure the input is a molecule
-        assert isinstance(molecule, Molecule), "The container must be a Molecule"
-        # make a selection of the atoms
-        super().__init__(molecule.atoms, sel=sel, flags=flags)
-        # we need access to the molecule attributes
-        # atoms
-        self.atoms = list(self.data.values())
-        # bonds
-        self.bonds = []
-        for bond in molecule.bonds:
-            if all([(atom in self) for atom in bond.atoms]):
-                self.bonds.append(bond)
-        # features completely represented by the remaining atoms
-        self.features = {}
-        for feature_id, feature in molecule.features.items():
-            if all([(atom in self.atoms) for atom in feature.atoms]):
-                self.features[feature_id] = feature
+
+        # if it is a molecule make a selection of the atoms
+        if isinstance(molecule, Molecule):
+            super().__init__(molecule.atoms, sel=sel, flags=flags)
+            # we need access to the molecule attributes
+            # atoms
+            self.atoms = list(self.data.values())
+            # bonds
+            self.bonds = []
+            for bond in molecule.bonds:
+                if all([(atom in self) for atom in bond.atoms]):
+                    self.bonds.append(bond)
+            # features completely represented by the remaining atoms
+            self.features = {}
+            for feature_id, feature in molecule.features.items():
+                if all([(atom in self.atoms) for atom in feature.atoms]):
+                    self.features[feature_id] = feature
+
+        elif isinstance(molecule, MoleculeType):
+            super().__init__(molecule.atom_types, sel=sel, flags=flags)
+            # we need access to the molecule attributes
+            # atoms
+            self.atoms = list(self.data.values())
+            # bonds
+            self.bonds = []
+            for bond in molecule.bond_types:
+                if all([(atom in self) for atom in bond.atom_types]):
+                    self.bonds.append(bond)
+            # features completely represented by the remaining atoms
+            self.features = {}
+            for feature_id, feature in molecule.feature_types.items():
+                if all([(atom in self.atoms) for atom in feature.atom_types]):
+                    self.features[feature_id] = feature
+
+        else:
+            assert False, "molecule must be either a Molecule or MoleculeType"
+
 
 if __name__ == "__main__":
     pass

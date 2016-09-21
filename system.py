@@ -499,15 +499,43 @@ class AssociationType(object):
         return Association(system=system, association_type=self,
                            association_name=association_name)
 
+    @property
+    def member_idxs(self):
+        return [tup[0] for tup in self.selection_map]
 
+    @property
+    def member_selection_idxs(self):
+        return [tup[1] for tup in self.selection_map]
+
+    @property
+    def member_types(self):
+        return [self.system_type.member_types[i] for i in self.member_idxs]
+
+    @property
+    def member_type_selections(self):
+        selections = []
+        for i, member_type in enumerate(self.member_types):
+            if self.selection_types[i] is None:
+                selections.append(member_type)
+            else:
+                selection = self.selection_types[i](member_type,
+                                                    self.member_selection_idxs[i])
+                selections.append(selection)
+        return selections
 
     @property
     def record(self):
         # define the Record named tuple
-        record_fields = ['AssociationType'] + list(self.attributes_data.keys())
+        record_fields = ['AssociationType', 'SystemType', 'member_types',
+                         'member_idxs', 'member_selection_idxs', ] \
+                         + list(self.attributes_data.keys())
         AssociationTypeRecord = col.namedtuple('AssociationTypeRecord', record_fields)
         # build the values for it for this Type
-        record_attr = {'AssociationType' : self.name}
+        record_attr = {'AssociationType' : self.name,
+                       'SystemType' : self.system_type,
+                       'member_types' : self.member_types,
+                       'member_idxs' : self.member_idxs,
+                       'member_selection_idxs' : self.member_selection_idxs}
         record_attr.update(self.attributes_data)
         # make and return
         return AssociationTypeRecord(**record_attr)
