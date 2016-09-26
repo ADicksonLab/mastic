@@ -165,6 +165,65 @@ class SystemType(object):
         import pandas as pd
         return pd.DataFrame(self.atom_type_records)
 
+    def association_polynomial(self, member_idxs=None,
+                               interaction_degree=1,
+                               return_idxs=False, commutative=True):
+
+        # if returning the actual members get the members requested
+        if return_idxs:
+            if member_idxs is None:
+                member_idxs = range(len(self.member_types))
+        else:
+            if member_idxs is None:
+                members = self.member_types
+            else:
+                members = [member for i, member in enumerate(self.member_types)
+                           if i in member_idxs]
+
+        # get the terms of the degree specified
+        if return_idxs:
+            if commutative:
+                degree_terms = list(it.combinations_with_replacement(member_idxs, interaction_degree))
+            else:
+                degree_terms = list(it.product(member_idxs, repeat=interaction_degree))
+        # otherwise make a list of the actual member objects
+        else:
+            if commutative:
+                degree_terms = tuple(it.combinations_with_replacement(members, interaction_degree))
+            else:
+                degree_terms = list(it.product(members, repeat=interaction_degree))
+
+        return degree_terms
+
+        # This chunk was used for getting all the terms up to the
+        # given degree, may be still useful, but was mostly an
+        # exercise for working out this logic/needs
+
+        # # now construct the association polynomial
+        # assoc_poly = {}
+        # # for each degree from 1 to the degree of the polynomial take
+        # # the combination with replacement for each individual term
+        # for degree in range(1, interaction_degree+1):
+        #     # if we just want the idx combinations just combine them
+        #     if return_idxs:
+        #         if commutative:
+        #             degree_terms = list(it.combinations_with_replacement(member_idxs, degree))
+        #         else:
+        #             degree_terms = list(it.product(member_idxs, repeat=degree))
+        #     # otherwise make a list of the actual member objects
+        #     else:
+        #         if commutative:
+        #             degree_terms = tuple(it.combinations_with_replacement(members, degree))
+        #         else:
+        #             degree_terms = list(it.product(members, repeat=degree))
+
+        #     assoc_poly[degree] = degree_terms
+
+        # return assoc_poly
+
+    def interaction_space(association_polynomial, interaction_type):
+        pass
+
     
     def make_member_association_type(self, member_idxs, association_type=None):
         """Match an AssociationType to members of the SystemType"""
@@ -174,7 +233,6 @@ class SystemType(object):
     def association_types(self):
         return self._association_types
 
-    
     def add_association_type(self, association_type):
         # check to make sure that it's selection types are in this
         # SystemType
