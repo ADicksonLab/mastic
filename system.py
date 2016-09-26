@@ -221,10 +221,27 @@ class SystemType(object):
 
         # return assoc_poly
 
-    def interaction_space(association_polynomial, interaction_type):
-        pass
+    def unit_association(self, member_idxs):
+        unit_association_name = self.name + "-" + ":".join(str(i) for i in member_idxs)
+        assoc_type = AssociationType(unit_association_name,
+                                     system_type=self,
+                                     selection_map=[(i, None) for i in member_idxs],
+                                     selection_types=[None for i in member_idxs])
+        return assoc_type
 
-    
+    def interaction_space(self, assoc_terms, interaction_type):
+        unit_assocs = []
+        inx_classes = {}
+        for assoc_term in assoc_terms:
+            assoc_type = self.unit_association(assoc_term)
+            unit_assocs.append(assoc_type)
+
+            assoc_inx_classes = interaction_type.interaction_classes(assoc_type)
+            inx_classes[assoc_term] = assoc_inx_classes
+            # inx_classes.extend(assoc_inx_classes)
+
+        return inx_classes
+
     def make_member_association_type(self, member_idxs, association_type=None):
         """Match an AssociationType to members of the SystemType"""
         raise NotImplementedError
@@ -498,10 +515,10 @@ class AssociationType(object):
         for i, selmap in enumerate(selection_map):
             member_idx, sel_ids = (selmap[0], selmap[1])
             # validate it indexes a system member
-            assert member_idx < len(system_type.member_types), \
-                "member index {0} in selection_map out of"\
-                " range of {2}, length {1}".format(
-                    member_idx, len(system_type.member_types), system_type)
+            # assert member_idx < len(system_type.member_types), \
+            #     "member index {0} in selection_map out of"\
+            #     " range of {2}, length {1}".format(
+            #         member_idx, len(system_type.member_types), system_type)
             # validate the sel_ids for the member
             member = system_type.member_types[member_idx]
 

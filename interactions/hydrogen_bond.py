@@ -3,7 +3,7 @@ HydrogenBondInx for explicit hydrogens.
 
 """
 import itertools as it
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 
 import numpy as np
 import numpy.linalg as la
@@ -11,17 +11,6 @@ import numpy.linalg as la
 import mast.config.interactions as mastinxconfig
 from mast.interactions.interactions import InteractionType, Interaction, InteractionError
 
-def is_donor(feature):
-    if feature.attributes_data['rdkit_family'] == 'Donor':
-        return True
-    else:
-        return False
-
-def is_acceptor(feature):
-    if feature.attributes_data['rdkit_family'] == 'Acceptor':
-        return True
-    else:
-        return False
 
 class HydrogenBondType(InteractionType):
     """Defines an InteractionType class for hydrogen bonds between members
@@ -34,7 +23,10 @@ class HydrogenBondType(InteractionType):
     feature_keywords = mastinxconfig.HBOND_FEATURES
     donor_key = 'Donor'
     acceptor_key = 'Acceptor'
+    feature_order = [donor_key, acceptor_key]
     grouping_attribute = 'rdkit_family'
+    # order is the number of features that participate in an interaction
+    degree = 2
 
     def __init__(self, hydrogen_bond_type_name,
                  feature_types=None,
@@ -51,6 +43,48 @@ class HydrogenBondType(InteractionType):
         self.donor = feature_types[0]
         self.acceptor = feature_types[1]
 
+
+    @classmethod
+    def interaction_classes(cls, association_type):
+
+        # for each member collect the features relevant to this
+        # interaction type, in the feature_order
+        # so this will be member_a donors and member_b acceptors
+        members_features = [[], []]
+        for member_idx, member_type in enumerate(association_type.member_types):
+            for feature_type in member_type.feature_types.values():
+                # if the feature has one of the features in this interaction
+                attr = cls.feature_inx_attribute(feature_type)
+                if attr == cls.feature_order[member_idx]:
+                    # and add it to the appropriate list
+                    members_features[member_idx].append(feature_type)
+
+        # for each of these combinations take the product of
+        # compatible features
+        feature_pairs = it.product(*members_features)
+
+        # now that we have the pairs we will make interaction classes
+        # for each of them
+        inx_classes = []
+        for inx_class_idx, feature_pair in enumerate(feature_pairs):
+            # the name of the inx class
+            inx_class_name = "{0}_{1}_InxClass".format(
+                association_type.name,
+                cls.interaction_name)
+
+            # stub
+            inx_class_attributes = {}
+
+            # create the interaction class
+            inx_class = cls(inx_class_name,
+                            feature_types=feature_pair,
+                            association_type=association_type,
+                            assoc_member_pair_idxs=association_type.member_idxs,
+                            **inx_class_attributes)
+
+            inx_classes.append(inx_class)
+
+        return inx_classes
 
     @classmethod
     def find_hits(cls, member_a, member_b,
@@ -197,6 +231,29 @@ class HydrogenBondType(InteractionType):
             return True
         else:
             return False
+
+    @classmethod
+    def is_donor(cls, feature):
+        if feature.attributes_data[cls.grouping_attribute] == cls.donor_key:
+            return True
+        else:
+            return False
+
+    @classmethod
+    def is_acceptor(cls, feature):
+        if feature.attributes_data[cls.grouping_attribute] == cls.acceptor_key:
+            return True
+        else:
+            return False
+
+    @classmethod
+    def feature_inx_attribute(cls, feature):
+        feature_attribute = None
+        for feature_key in cls.feature_keywords[cls.grouping_attribute]:
+            if feature.attributes_data[cls.grouping_attribute] == feature_key:
+                feature_attribute = feature_key
+
+        return feature_attribute
 
     @property
     def record(self):
