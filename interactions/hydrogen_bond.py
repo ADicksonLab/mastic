@@ -68,9 +68,10 @@ class HydrogenBondType(InteractionType):
         inx_classes = []
         for inx_class_idx, feature_pair in enumerate(feature_pairs):
             # the name of the inx class
-            inx_class_name = "{0}_{1}_InxClass".format(
+            inx_class_name = "{0}_{1}_{2}_InxClass".format(
                 association_type.name,
-                cls.interaction_name)
+                cls.interaction_name,
+                inx_class_idx)
 
             # stub
             inx_class_attributes = {}

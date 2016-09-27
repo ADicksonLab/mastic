@@ -116,6 +116,17 @@ class SystemType(object):
         self.member_type_library = set(member_types)
         self._association_types = []
 
+    def __eq__(self, other):
+        if not isinstance(other, SystemType):
+            return False
+        elif self.name != other.name:
+            return False
+        else:
+            return True
+
+    def __hash__(self):
+        return self.name
+
     def to_system(self, members_coords):
         """Substantiate a System using input coordinates in the order of the
         members in the system.
@@ -561,6 +572,16 @@ class AssociationType(object):
         self.selection_map = selection_map
         self.selection_types = selection_types
 
+    def __eq__(self, other):
+        if not isinstance(other, AssociationType):
+            return False
+        elif self.name != other.name:
+            return False
+        else:
+            return True
+
+    def __hash__(self):
+        return self.name
 
     def to_association(self, system, association_name=None):
         """Substantiate the association by providing the System to make
@@ -576,7 +597,7 @@ class AssociationType(object):
 
     @property
     def member_idxs(self):
-        return [tup[0] for tup in self.selection_map]
+        return tuple([tup[0] for tup in self.selection_map])
 
     @property
     def member_selection_idxs(self):

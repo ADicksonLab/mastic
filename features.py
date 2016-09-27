@@ -93,6 +93,17 @@ class FeatureType(object):
 
         # feature_type.angle_idxs = angle_idxs
 
+    def __eq__(self, other):
+        if not isinstance(other, FeatureType):
+            return False
+        elif self.name != other.name:
+            return False
+        else:
+            return True
+
+    def __hash__(self):
+        return self.name
+
 
     def to_feature(self, molecule):
         """Substantiate a Feature by specifying a substantiated Molecule from

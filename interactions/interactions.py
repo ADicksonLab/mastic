@@ -71,6 +71,18 @@ class InteractionType(object):
         self.association_type = association_type
         self.assoc_member_pair_idxs = assoc_member_pair_idxs
 
+    def __eq__(self, other):
+        if not isinstance(other, type(self)):
+            return False
+        elif self.name != other.name:
+            return False
+        else:
+            return True
+
+    def __hash__(self):
+        return self.name
+
+
     @property
     def feature_types(self):
         return self._feature_types

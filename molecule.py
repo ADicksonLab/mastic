@@ -54,6 +54,18 @@ class AtomType(object):
         self.attributes_data = attributes
         self.__dict__.update(attributes)
 
+    def __eq__(self, other):
+        if not isinstance(other, AtomType):
+            return False
+        elif self.name != other.name:
+            return False
+        else:
+            return True
+
+
+    def __hash__(self):
+        return self.name
+
     def to_atom(self, coords, flags=None):
         """Substantiate this AtomType with coordinates"""
         assert len(coords) == 3, \
@@ -147,6 +159,18 @@ class BondType(object):
         self.attributes_data = attributes
         self.__dict__.update(attributes)
         self.atom_types = atom_types
+
+    def __eq__(self, other):
+        if not isinstance(other, BondType):
+            return False
+        elif self.name != other.name:
+            return False
+        else:
+            return True
+
+    def __hash__(self):
+        return self.name
+
 
     def to_bond(self, atom1_coords, atom2_coords):
         """Substantiate this Bond with given coordinates for each atom type."""
@@ -294,20 +318,30 @@ class MoleculeType(object):
         self.bond_map = bond_map
         # self.angle_types = angle_types
         # self.angle_map = angle_map
-        self._atom_type_library = set(atom_types)
-        self._bond_type_library = set(bond_types)
-        # self.angle_type_library = set(angle_types)
+
         self._feature_types = {}
+
+    def __eq__(self, other):
+        if not isinstance(other, MoleculeType):
+            return False
+        elif self.name != other.name:
+            return False
+        else:
+            return True
+
+    def __hash__(self):
+        return self.name
+
 
     @property
     def atom_type_library(self):
         """The unique AtomTypes in this MoleculeType."""
-        return list(self._atom_type_library)
+        return list(set(self.atom_type))
 
     @property
     def bond_type_library(self):
         """The unique BondTypes in this MoleculeType."""
-        return list(self._bond_type_library)
+        return list(set(self.atom_types))
 
     @property
     def feature_type_library(self):
