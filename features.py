@@ -102,7 +102,7 @@ class FeatureType(object):
             return True
 
     def __hash__(self):
-        return self.name
+        return self.name.__hash__()
 
 
     def to_feature(self, molecule):

@@ -64,7 +64,7 @@ class AtomType(object):
 
 
     def __hash__(self):
-        return self.name
+        return self.name.__hash__()
 
     def to_atom(self, coords, flags=None):
         """Substantiate this AtomType with coordinates"""
@@ -169,7 +169,7 @@ class BondType(object):
             return True
 
     def __hash__(self):
-        return self.name
+        return self.name.__hash__()
 
 
     def to_bond(self, atom1_coords, atom2_coords):
@@ -330,7 +330,7 @@ class MoleculeType(object):
             return True
 
     def __hash__(self):
-        return self.name
+        return self.name.__hash__()
 
 
     @property

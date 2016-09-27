@@ -125,7 +125,7 @@ class SystemType(object):
             return True
 
     def __hash__(self):
-        return self.name
+        return self.name.__hash__()
 
     def to_system(self, members_coords):
         """Substantiate a System using input coordinates in the order of the
@@ -581,7 +581,7 @@ class AssociationType(object):
             return True
 
     def __hash__(self):
-        return self.name
+        return self.name.__hash__()
 
     def to_association(self, system, association_name=None):
         """Substantiate the association by providing the System to make

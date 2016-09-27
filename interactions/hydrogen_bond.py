@@ -144,19 +144,6 @@ class HydrogenBondType(InteractionType):
             h_atom = donor_tup[1][1]
             acceptor_feature_key = acceptor_tup[0]
             acceptor_feature = acceptor_tup[1]
-            # get the corresponding interaction class if given
-            interaction_class = None
-            if interaction_classes:
-                feature_pairs = [(inx_class.donor, inx_class.acceptor) for
-                                 inx_class in interaction_classes]
-                # get the matching interaction class, throws error if no match
-                try:
-                    interaction_class = [interaction_classes[i] for i, feature_pair in
-                                              enumerate(feature_pairs) if
-                                     (donor_feature.feature_type, acceptor_feature.feature_type)
-                                                         == feature_pair][0]
-                except IndexError:
-                    print("No matching interaction class given")
 
             # try to make a HydrogenBondInx object, which calls check,
             #
@@ -172,10 +159,32 @@ class HydrogenBondType(InteractionType):
                                         acceptor=acceptor_feature,
                                         distance_cutoff=distance_cutoff,
                                         angle_cutoff=angle_cutoff,
-                                        interaction_class=interaction_class)
+                                        interaction_class=None)
             # else continue to the next pairing
             except InteractionError:
                 continue
+
+            # classify the hbond if given classes
+            interaction_class = None
+            if interaction_classes:
+                feature_pairs = [(inx_class.donor, inx_class.acceptor) for
+                                 inx_class in interaction_classes]
+                # get the matching interaction class, throws error if no match
+
+                try:
+                    interaction_classes_it = iter(interaction_classes)
+                    found = False
+                    while not found:
+                        inx_class = next(interaction_classes_it)
+                        feature_pair = (inx_class.donor, inx_class.acceptor)
+                        if feature_pair == \
+                           (donor_feature.feature_type, acceptor_feature.feature_type):
+                            hbond.interaction_class = inx_class
+                            found = True
+
+                except StopIteration:
+                    print("No matching interaction class given")
+
             # if it succeeds add it to the list of H-Bonds
             hbonds.append(hbond)
             # and the feature keys to the feature key pairs

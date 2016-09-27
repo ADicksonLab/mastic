@@ -80,7 +80,7 @@ class InteractionType(object):
             return True
 
     def __hash__(self):
-        return self.name
+        return self.name.__hash__()
 
 
     @property
