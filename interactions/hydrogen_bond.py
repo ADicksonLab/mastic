@@ -18,7 +18,6 @@ class HydrogenBondType(InteractionType):
 
     """
 
-    attributes = {}
     interaction_name = "HydrogenBond"
     feature_keywords = mastinxconfig.HBOND_FEATURES
     donor_key = 'Donor'
@@ -42,50 +41,6 @@ class HydrogenBondType(InteractionType):
 
         self.donor = feature_types[0]
         self.acceptor = feature_types[1]
-
-
-    @classmethod
-    def interaction_classes(cls, association_type):
-
-        # for each member collect the features relevant to this
-        # interaction type, in the feature_order
-        # so this will be member_a donors and member_b acceptors
-        members_features = [[], []]
-        for member_idx, member_type in enumerate(association_type.member_types):
-            for feature_type in member_type.feature_types.values():
-                # if the feature has one of the features in this interaction
-                attr = cls.feature_inx_attribute(feature_type)
-                if attr == cls.feature_order[member_idx]:
-                    # and add it to the appropriate list
-                    members_features[member_idx].append(feature_type)
-
-        # for each of these combinations take the product of
-        # compatible features
-        feature_pairs = it.product(*members_features)
-
-        # now that we have the pairs we will make interaction classes
-        # for each of them
-        inx_classes = []
-        for inx_class_idx, feature_pair in enumerate(feature_pairs):
-            # the name of the inx class
-            inx_class_name = "{0}_{1}_{2}_InxClass".format(
-                association_type.name,
-                cls.interaction_name,
-                inx_class_idx)
-
-            # stub
-            inx_class_attributes = {}
-
-            # create the interaction class
-            inx_class = cls(inx_class_name,
-                            feature_types=feature_pair,
-                            association_type=association_type,
-                            assoc_member_pair_idxs=association_type.member_idxs,
-                            **inx_class_attributes)
-
-            inx_classes.append(inx_class)
-
-        return inx_classes
 
     @classmethod
     def find_hits(cls, member_a, member_b,
@@ -127,7 +82,7 @@ class HydrogenBondType(InteractionType):
         donor_acceptor_pairs.extend(zip([(0,1) for i in range(len(pairs))], pairs))
 
         # pair the acceptors from the first with the donors of the
-        # second, keeping track of which memebr it is in
+        # second, keeping track of which member it is in
         pairs = list(it.product(members_features[1]['donors'],
                            members_features[0]['acceptors']))
         # make tuples of (member order, donor-acceptors) ((1,0), donor, acceptor)
@@ -219,6 +174,42 @@ class HydrogenBondType(InteractionType):
 
         return (True, distance, angle)
 
+    @property
+    def record(self):
+        record_fields = ['interaction_class', 'interaction_type',
+                         'association_type', 'assoc_member_pair_idxs',
+                         'donor_feature_type', 'acceptor_feature_type'] + \
+                         list(self.attributes_data.keys())
+        HydrogenBondTypeRecord = namedtuple('HydrogenBondTypeRecord', record_fields)
+        record_attr = {'interaction_class' : self.name}
+        record_attr['interaction_type'] = self.interaction_name
+        record_attr['association_type'] = self.association_type.name
+        record_attr['assoc_member_pair_idxs'] = self.assoc_member_pair_idxs
+        record_attr['donor_feature_type'] = self.feature_types[0].name
+        record_attr['acceptor_feature_type'] = self.feature_types[1].name
+
+        return HydrogenBondTypeRecord(**record_attr)
+
+    def pdb_serial_output(self, inxs, path, delim=","):
+        """Output the pdb serial numbers (index in pdb) of the donor and
+        acceptor in each HBond to a file like:
+
+        donor_1, acceptor_1
+        donor_2, acceptor_2
+        ...
+
+        Notice: This will probably be removed in the future.
+
+        """
+
+        with open(path, 'w') as wf:
+            for inx in inxs:
+                wf.write("{0}{1}{2}\n".format(inx.donor.atom_type.pdb_serial_number,
+                                              delim,
+                                              inx.acceptor.atom_type.pdb_serial_number))
+
+    #### Hydrogen Bond Specific methods
+    # i.e. not necessarily found in other interaction types
     @classmethod
     def check_distance(cls, distance, cutoff=mastinxconfig.HBOND_DIST_MAX):
         """For a float distance checks if it is less than the configuration
@@ -255,47 +246,6 @@ class HydrogenBondType(InteractionType):
             return True
         else:
             return False
-
-    @classmethod
-    def feature_inx_attribute(cls, feature):
-        feature_attribute = None
-        for feature_key in cls.feature_keywords[cls.grouping_attribute]:
-            if feature.attributes_data[cls.grouping_attribute] == feature_key:
-                feature_attribute = feature_key
-
-        return feature_attribute
-
-    @property
-    def record(self):
-        record_fields = ['interaction_class', 'interaction_type',
-                         'association_type', 'assoc_member_pair_idxs',
-                         'donor_feature_type', 'acceptor_feature_type'] + \
-                         list(self.attributes_data.keys())
-        HydrogenBondTypeRecord = namedtuple('HydrogenBondTypeRecord', record_fields)
-        record_attr = {'interaction_class' : self.name}
-        record_attr['interaction_type'] = self.interaction_name
-        record_attr['association_type'] = self.association_type.name
-        record_attr['assoc_member_pair_idxs'] = self.assoc_member_pair_idxs
-        record_attr['donor_feature_type'] = self.feature_types[0].name
-        record_attr['acceptor_feature_type'] = self.feature_types[1].name
-
-        return HydrogenBondTypeRecord(**record_attr)
-
-    def pdb_serial_output(self, inxs, path, delim=","):
-        """Output the pdb serial numbers (index in pdb) of the donor and
-        acceptor in each HBond to a file like:
-
-        donor_1, acceptor_1
-        donor_2, acceptor_2
-        ...
-
-        """
-
-        with open(path, 'w') as wf:
-            for inx in inxs:
-                wf.write("{0}{1}{2}\n".format(inx.donor.atom_type.pdb_serial_number,
-                                              delim,
-                                              inx.acceptor.atom_type.pdb_serial_number))
 
 
 class HydrogenBondInx(Interaction):

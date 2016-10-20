@@ -30,6 +30,21 @@ class InteractionType(object):
 
     """
 
+    interaction_name = "None"
+    feature_keywords = None
+    feature_order = None
+    grouping_attribute = None
+    # order is the number of features that participate in an interaction
+    degree = 0
+
+    # a string to use for formatting interaction class names
+    inx_class_name_template = "{assoc_type}_{inx_name}_{idx}_InxClass"
+    # This is used in interaction_classes for dynamically assigning
+    # names to interaction classes in associations and defining the
+    # interaction space of that association. Avoid making interaction
+    # class names with this form unless you don't plan on using
+    # interaction spaces
+
     def __init__(self, interaction_type_name,
                 feature_types=None,
                 association_type=None,
@@ -87,6 +102,80 @@ class InteractionType(object):
     def feature_types(self):
         return self._feature_types
 
+    @classmethod
+    def interaction_classes(cls, association_type,
+                            inx_class_name_template=cls.inx_class_name_template):
+        """Receives an association and creates all of the possible interaction
+        classes in the association. Interaction classes are simply
+        instantiations of this InteractionType corresponding to
+        topological representations of an interaction.
+
+        Notice: This nomenclature may change, as it might make more
+        sense to have this class (InteractionType) be the interaction
+        class and the instantions be the interaction types to keep it
+        more similar to what molecule types etc. are.
+
+        The default way of naming interaction classes is given in the
+        inx_class_name_template variable. Otherwise you can pass in an
+        iterable
+
+        """
+
+        # for each member collect the features relevant to this
+        # interaction type, in the feature_order, so initialize an
+        # empty list for each
+        members_features = [[] for feature_key in feature_order]
+        # and go through each member_type
+        for member_idx, member_type in enumerate(association_type.member_types):
+            for feature_type in member_type.feature_types.values():
+               # if the feature has one of the features in this interaction
+                attr = cls.feature_inx_attribute(feature_type)
+                if attr == cls.feature_order[member_idx]:
+                    # and add it to the appropriate list
+                    members_features[member_idx].append(feature_type)
+
+        # for each of these combinations take the product of
+        # compatible features
+        feature_pairs = it.product(*members_features)
+
+        # now that we have the pairs we will make interaction classes
+        # for each of them
+        inx_classes = []
+        for inx_class_idx, feature_pair in enumerate(feature_pairs):
+            # the name of the inx class
+            inx_class_name = inx_class_name_template.format(
+                assoc_type=association_type.name,
+                inx_name=cls.interaction_name,
+                idx=inx_class_idx)
+
+            # stub
+            inx_class_attributes = {}
+
+            # create the interaction class
+            inx_class = cls(inx_class_name,
+                            feature_types=feature_pair,
+                            association_type=association_type,
+                            assoc_member_pair_idxs=association_type.member_idxs,
+                            **inx_class_attributes)
+
+            inx_classes.append(inx_class)
+
+        return inx_classes
+
+    @classmethod
+    def feature_inx_attribute(cls, feature):
+        """Check to see if this feature is part of the classes grouping
+        attribute. Returns the feature attribute or None if it does
+        not match.
+
+        """
+        feature_attribute = None
+        for feature_key in cls.feature_keywords[cls.grouping_attribute]:
+            if feature.attributes_data[cls.grouping_attribute] == feature_key:
+                feature_attribute = feature_key
+
+        return feature_attribute
+
     def check(self, *args, **kwargs):
         """The principle class method for testing for the existence of an
         interaction from specified geometric constraint parameters.
@@ -94,7 +183,7 @@ class InteractionType(object):
         domain specificity.
 
         """
-        pass
+        raise NotImplementedError
 
     def find_hits(self, member_a, member_b):
         """Returns all the 'hits' for interactions of features between two
@@ -103,7 +192,7 @@ class InteractionType(object):
         in the InteractionType.check function.
 
         """
-        pass
+        raise NotImplementedError
 
 
 class Interaction(SelectionsList):

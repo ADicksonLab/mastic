@@ -1,0 +1,497 @@
+* Setting up the System
+
+** Collecting the Molecular Data
+The trypsin-benzamidine system consists of simply the trypsin protein
+and the small molecule benzamidine which is an inhibitor of trypsin.
+
+We will build up the system using other python libraries to accomplish
+the parsing of the relevant files for the molecular topology and
+positions.
+
+Loading atomic coordinates is simply reading in an xyz array and can
+be done by many libraries.
+
+Creating a molecular topology is a bit more complicated especially
+when the input file format (the Protein DataBank) does not require
+explicit connection information. Thus, many readers which infer
+connectivity correctly from PDBs are available and the MAST library
+delegates that task to one of those libraries.
+
+An even more difficult problem is the identification of chemical
+groups and other relevant features from molecular topologies. Again
+MAST does not perform this function in favor allowing this kind of
+information to be produced by more specialized libraries and converted
+to MAST data structures.
+
+A library that accomplishes the parsing of topologies and
+identification of chemical features (as well as coordinates in a
+limited manner) is RDKit which is mainly programmed in C++ with Python
+bindings.
+
+Thus for the early implementations of MAST RDKit was used to produce
+the needed inputs for constructing systems, and has a submodule in the
+interfaces module that includes a wrapper for converting RDKit objects
+to MAST objects and extracting the useful information RDKit discovers
+about chemicals.
+
+*** Preparing chemical data with RDKit
+
+We start with strings for the files saved in MAST for examples.
+
+We are loading in two files for Benzamidine in order to get the
+correct identification of chemical features. First the .mol format
+file which contains better topological information than the .pdb,
+which is used for the coordinates in the .pdb (e.g. crystal structure
+analysis) or to simply assign the correct indexing of atoms for loading in
+coordinates from simulations started with the .pdb.
+
+We choose not to remove the hydrogens because we will be using them
+for identifying hydrogen bonds.
+
+#+BEGIN_SRC python
+  from rdkit import Chem
+  import mast.tests.data as mastdata
+
+  BEN_MOL_rdkit = Chem.MolFromMolBlock(mastdata.benzamidine_MOL, sanitize=True)
+  BEN_PDB_rdkit = Chem.MolFromPDBBlock(mastdata.BEN_Hs_3ptb, removeHs=False, sanitize=True)
+  trypsin_rdkit = Chem.MolFromPDBBlock(mastdata.trypsin_3ptb, removeHs=False, sanitize=True)
+#+END_SRC
+
+If you have files you want to read use the rdkit.Chem.MolFromPDBFile
+etc. instead.
+
+To get the correct atom indices and assign the correct bond order
+properties for Benzamidine we use the AssignBondOrdersFromTemplate
+function in rdkit.
+
+However due to some issues in RDKit I have included a modified version
+of this function in the rdkit interface submodule which we will use in
+this tutorial.
+
+#+BEGIN_SRC python
+  from mast.interfaces.rdkit import AssignBondOrdersFromTemplate
+
+  BEN_rdkit = AssignBondOrdersFromTemplate(BEN_MOL_rdkit, BEN_PDB_rdkit)
+#+END_SRC
+
+
+*** Extracting data from RDKit objects
+
+Now that we have rich representations of molecules in RDKit form we
+want to convert these to MAST representations.
+
+The first step is to make a wrapper object for each molecule. This has
+been designed to extract a lot of important information in an
+automated way.
+
+Here we also name these structures, this will later go into making the
+class name for the MoleculeTypes so choose carefully.
+
+#+BEGIN_SRC python
+  from mast.interfaces.rdkit import RDKitMoleculeWrapper
+
+  BEN_rdkit_wrapper = RDKitMoleculeWrapper(BEN_rdkit, mol_name="BEN")
+  trypsin_rdkit_wrapper = RDKitMoleculeWrapper(trypsin_rdkit, mol_name="Trypsin")
+
+#+END_SRC
+
+Now that we have the wrapper we can extract the coordinates if we
+choose to:
+
+#+BEGIN_SRC python
+  BEN_coords = BEN_rdkit_wrapper.get_conformer_coords(0)
+  trypsin_coords = trypsin_rdkit_wrapper.get_conformer_coords(0)
+#+END_SRC
+
+And importantly we have the method that converts the RDKit Molecule to
+a mast.molecule.MoleculeType.
+
+A mast MoleculeType is used define the topology of a molecule. It
+consists of AtomTypes, BondTypes, and potentially other BondTypes (not
+yet implemented). AtomTypes are objects that represent different
+atoms, which are able to be defined differently for different domain
+specific needs such as atom types in molecular dynamics force
+fields. Different from force field atom types, in MAST each atom in a
+molecular topology has its own AtomType so as to distinguish them from
+each other in the molecular graph. The same is true for BondTypes and
+each are identified by a unique index and name.
+
+When we make a MoleculeType from the RDKitMoleculeWrapper object the
+AtomTypes and BondTypes are generated automatically.
+
+This could simply be achieved like this:
+#+BEGIN_SRC python
+  BEN_Molecule = BEN_rdkit_wrapper.make_molecule_type()
+#+END_SRC
+
+However, we want also to use RDKit's chemical feature finding
+capabilities so we specify to find_features. The default is to not
+find features because for large structures (like proteins) this takes
+a very long time to do so.
+
+For the small molecule benzamidine using RDKit this is not a problem
+and RDKit does a great job.
+
+#+BEGIN_SRC python
+  BEN_Molecule = BEN_rdkit_wrapper.make_molecule_type(find_features=True)
+#+END_SRC
+
+For proteins RDKit makes no assumptions based on amino acid structures
+so it takes a long time! Hopefully, future libraries will improve this
+situation.
+
+#+BEGIN_SRC python
+  Trypsin_Molecule = trypsin_rdkit_wrapper.make_molecule_type(find_features=True)
+#+END_SRC
+
+Take some time to explore this object and see how all the relevant
+information is stored in it allowing for an exploratory analysis and
+introspection.
+
+But now that you have this representation we
+can at least make a persistent object on the hard drive so you can
+just load it later. We will do this for the whole system but you might
+want a copy of the protein now in case you screw up later and need to
+restart.
+
+For this we will just use python's pickle module.
+
+#+BEGIN_SRC python
+  import os.path as osp
+  import pickle
+
+  trypsin_pkl_path = osp.join(".", "TrypsinMoleculeType.pkl")
+  with open(trypsin_pkl_path, 'wb') as wf:
+      pickle.dump(Trypsin_Molecule, wf)
+
+#+END_SRC
+
+** Putting the System together
+
+Now we have assembled all the parts needed to construct the
+system. Notice we have not actually used any of the coordinates
+yet. We wont until we want to actually analyze interactions. The
+separation of Atom, Molecule, System types without coordinates is
+important because it allows us to focus on the topology, features, and
+domain specific information of our system and specify that without
+having to think about coordinates until absolutely necessary. When
+analysing large coordinate datasets, which may be cumbersome to load
+into memory, we may want to leverage special techniques for dealing
+with that data. The "types" provide a template which we can just point
+at some chunk of coordinates and preserve all of our knowledge.
+
+In short is just hygenic to keep the two separate.
+
+To create the system really all we need to do is just provide a list
+of the members that are a part of that list, give it a name, and
+optionally assign further domain specific metadata to the system.
+
+While it may seem trivial to do so we gain some important
+functionality of acting on this agglomeration. Firstly, we have easy
+object persistence (through pickling etc). Second, we have a clean
+interface to acting on this data through the object methods (data +
+processing). Third, our conceptual understanding of the systems is
+refined and clarified.
+
+Member types of a system are typically MoleculeTypes but can also be
+single AtomTypes, and potentially many other non-physical or
+multiphysics entities.
+
+#+BEGIN_SRC python
+  import mast.system as mastsys
+
+  member_types = [BEN_Molecule, Trypsin_Molecule]
+  system_attrs = {'molecule_source' : 'rdkit'}
+  Trypsin_Benzamidine_System = mastsys.SystemType("Trypsin_Benzamidine_System",
+                                                  member_types=member_types,
+                                                  ,**system_attrs)
+#+END_SRC
+
+Again take some time to explore this object at the IPython terminal.
+
+** Defining associations between members of the system
+Another important feature of SystemTypes is the ability to define
+associations between elements within the system that may or may not be
+connected through chemical bonds.
+
+This aligns with natural notions of molecular complexes, such as
+ligand-protein interactions, protein-protein interactions or even
+intraprotein interactions that form secondary and tertiary structure.
+
+This isn't particularly novel but most software and file formats do
+not provide a way of conveniently dealing with these types
+relationships.
+
+You can manually define AssociationTypes as I will show in the next
+code block or you can use some of the methods the SystemType class
+provides for automatically generating AssociationTypes between all
+combinations of system members and defining an *interaction space* for
+profiling interactions when coordinates are included. I will show this
+in the interaction profiling section for simplicity here.
+
+Defining a simple receptor-ligand association that associates the
+ligand to the whole protein. Later we can control the granularity of
+associations to only part of members (e.g. for ligand-binding site
+interactions) but for now lets just choose one against the other in
+whole.
+
+#+BEGIN_SRC python
+
+  # these variables are used to define selections of only part of system
+  # members, which we will ignore for now
+  selection_map = {0 : None, 1 : None}
+  selection_types = [None, None]
+
+  rec_lig_attrs = {'info' : 'receptor-ligand'}
+  Trypsin_Benzamidine_Association = \
+              mastsys.AssociationType("Trypsin_Benzamidine_Association",
+                                      system_type=Trypsin_Benzamidine_System,
+                                      selection_map=selection_map,
+                                      selection_types=selection_types,
+                                      ,**rec_lig_attrs)
+#+END_SRC
+
+
+Now that we have the association we want to make sure the system knows
+about it.
+
+#+BEGIN_SRC python
+  Trypsin_Benzamidine_System.add_association_type(Trypsin_Benzamidine_Association)
+#+END_SRC
+
+Again the definition of an AssociationType may seem trivial and even
+obnoxious, however by being careful and identifying the relationships
+we care about up front frees us up to focus on the coordinate data
+later without having to keep all the complicated matching of members
+and features in our heads. When it comes to interaction profiling the
+AssociationType is key in coordination.
+
+** Making associations between parts of molecules
+
+For instance if we only want to profile the interactions of the ligand
+and some set of atoms we designate as the binding site we define a new
+AssociationType.
+
+For this example I will use some capabilities of MAST which combines
+the coordinates with the Type information. We will use the coordinates
+that we got from the crystal structure to define a "binding site"
+using a distance cutoff. Once we know the AtomTypes that make up the
+crystal structure binding site we can tell these to the
+AssociationType.
+
+Before we start adding coordinates I will introduce some nonstandard
+nomenclature that is useful for identifying MAST objects. Up until now
+we have only created XXXType objects with no coordinate data. We call
+the objects which have associated with them both a Type and
+coordinates a *substantiation* of the Type. This is so chosen because
+we can think of a type as being given substance in the real 3D
+world. This is meant to sound similar and allude to the
+Object-Oriented programming concept of instantiation, but it is indeed
+very different technically. For reference a Trypsin_Molecule is an
+instantiation of the MoleculeType class while the substantiation of
+the Trypsin_Molecule is an instantiation of the Molecule class and
+thus are not related via the programming language but the knowledge of
+the physical system.
+
+Similarly substantiations of relations like AssociationTypes are
+Associations, except Associations merely point to objects with
+coordinates. Although depending on what your doing you could indeed
+assign coordinates to an Association to somehow parametrize it.
+
+So first we use the coordinates we obtained from RDKit from the
+crystal structure PDB files and substantiate the Trypsin and
+Benzamidine MoleculeTypes to make Molecules in a System.
+
+#+BEGIN_SRC python
+  # put them together in the order they are as system members
+  member_coords = [BEN_coords, trypsin_coords]
+
+  # substantiate the system
+  system = Trypsin_Benzamidine_System.to_system(member_coords)
+#+END_SRC
+
+Take a look on the terminal at this object and see how it differs from
+the system as well as how you can do a lot of introspection about the
+system and it's properties.
+
+Now that we have a substantiated System we can calculate distances
+between atoms. We will use some MAST functions to do so and find the
+atoms on Trypsin that are close to Benzamidine.
+
+#+BEGIN_SRC python
+  binding_site_cutoff_dist = 4 #in Angstroms \AA
+
+  # find the atoms within this distance
+  binding_site_atoms = system.molecules[0].atoms_within_distance(
+      binding_site_cutoff_dist)
+
+  # get the indices of these atoms to define the AssociationType
+  binding_site_atom_idxs = [system.molecules[1].atoms.index(atom) for
+                            atom in binding_site_atoms]
+
+  # you might also want to get the pdb serial numbers so you can
+  # visually check to see where these atoms are
+  binding_site_atom_serials = [atom.atom_type.pdb_serial_number for atom
+                               in binding_site_atoms]
+#+END_SRC
+
+This example also shows how you can retrieve saved information from
+the atoms and their atom types to help you quickly analyze the nature
+and properties of these atoms.
+
+Usage of these properties in the AtomType namespace also keeps the API
+clean in the atom namespace allowing for much more pleasurable
+exploratory analysis.
+
+#+BEGIN_SRC python
+  # the selection map tells the association the index of the member and
+  # the indices of the atoms to include as one component of the
+  # association. By selection None as the indices no selection will be
+  # made and the whole molecule will be a component
+  selection_map = [(1, binding_site_atom_idxs), (0, None)]
+
+  # The selection types correspond to the elements in the selection map
+  # and tell the AssociationType what kind of selection to make on the
+  # molecule. Setting one of them to None should mean the selection map
+  # also had no indices selected and it should use the whole system
+  # member. The MoleculeAtomSelection allows for selection of atoms in a
+  # Molecule or MoelculeType.
+  selection_types = [mastmol.MoleculeAtomSelection, None]
+
+  # instantiate the association
+  TrypsinBS_Benzamidine_assoc = mastsys.AssociationType("TrypsinBS-Benzamidine",
+                                           system_type=Trypsin_Benzamidine_System,
+                                           selection_map=selection_map,
+                                           selection_types=selection_types)
+
+  # add it to the system
+  Trypsin_Benzamidine_System.add_association_type(TrypsinBS_Benzamidine_assoc)
+
+#+END_SRC
+
+** Saving the SystemType
+Now that we have a system defined and associations in that system
+defined and instantiated lets make a persistent copy on the hard
+drive. This will allow us to load it up when we get new data without
+having to go through this process. 
+
+#+BEGIN_SRC python
+  import os.path as osp
+  import pickle
+
+  system_pkl_path = osp.join(".", "trypsin_benzamidine_system.pkl")
+  with open(system_pkl_path, 'wb') as wf:
+      pickle.dump(Trypsin_Benzamidine_System, wf)
+
+#+END_SRC
+
+
+*** A note on persistence, file formats, and sharing
+In the future I would like to see a file format (HDF5 idaelly)
+tailored specifically to these types of systems so that they can
+easily be shared and compared. Currently the focus is on single
+molecule formats because that is the kind of data that has typically
+been available. While formats like the PDB can be used for this they
+are terribly cumbersome to work with, have limits to numerical to
+precision, not scalable to large numbers of atoms due to line limits,
+and do not allow for the addition of important metadata in an easily
+parseable way. While this has attempted to be alleviated with new PDBx
+format ultimately the PDB was designed for the deposition of
+crystallographic information in another age. Meanwhile, fields like
+meteorology and physics have developed general binary file formats
+(HDF5 and NetCDF) for dealing with large complicated data sets that
+have amazing tool chains in many languages for working with
+them. Imagine if your collaborator sent you not just a folder full of
+pdfs but a fully annotated system that could be used immediately for
+simulations etc. This will be necessary as the scale of investigations
+in biomolecular sciences get bigger and include many different
+molecules in large complexes with precise geometries and
+interactions. Such data is already being collected in new state of the
+art cryo-EM experiments.
+
+This would make possible the creation of a repository for ready made
+systems that computational scientists could have right off of the
+shelf instead of spending considerable time and effort re-creating
+complicated systems. Which is often a reason complicated real-life
+systems are avoided.
+
+Furthermore, coupling of these systems to force fields could make
+running simulations of complex systems accessible to even non-experts.
+
+
+** Profiling interactions from a multi-molecule system
+
+One of the main motivations for the creation of MAST was the need to
+profile intermolecular interactions such as hydrogen bonds and pi-pi
+interactions in drug-protein simulation data.
+
+*** Simple profiling
+
+Once the system and association types are defined this can be really
+easy. All you really need is to tell the association which types of
+interactions to look for.
+
+Here we will profile the ligand with the whole protein.
+
+#+BEGIN_SRC python
+  from mast.interactions.hydrogen_bond import HydrogenBondType
+
+  # substantiate the system with the new association
+  system = Trypsin_Benzamidine_System.to_system(member_coords)
+
+  # profile for interactions of HydrogenBondType in the 0th association
+  tryp_ben_prof_results = new_system.associations[0].profile_interactions([HydrogenBondType])
+#+END_SRC
+
+We can also easily profile the ligand-binding site interactions since
+we already defined that association.
+
+#+BEGIN_SRC python
+  # the 1st association which was binding site to ligand
+  tryp_ben_prof_results = new_system.associations[1].profile_interactions([HydrogenBondType])
+#+END_SRC
+
+Hopefully you think that all that trouble making the system at the
+beginning was worth it now.
+
+*** More details on the profile_interactions method
+There is a lot hidden under the covers here having to do
+with FeatureType, Feature, InteractionType, and Interaction classes.
+
+While these are all things many users will want to know about and
+customize for their application.
+
+In short the FeatureTypes are what the RDKit software identified for
+us when we created the MoleculeTypes and were carried around since
+then. These FeatureTypes are made of selections of atoms in the
+molecule and correspond to things like h-bond acceptors and h-bond
+donors as well as more complicated things like aromatic rings or amino
+and hydroxyl groups. RDKit assigns them strings based on what it
+considers them and MAST assigns each distinct FeatureType an
+object and an index in the MoleculeType.
+
+When profile_interactions is called it looks through all the features
+it has and checks if they are potentially part of HydrogenBondType
+interactions. HydrogenBondType only needs two features and so all the
+pairs of donor and acceptor features in the association are identified
+and and then checked for if they satisfy the tests contained in
+HydrogenBondType. For this class includes a test for the distance of
+the donor and acceptor and the angle between the donor, acceptor, and
+the hydrogen atom. In other InteractionType subclasses these tests
+will be different and will have different numbers of features possibly.
+
+The aim of MASTic (an extension to the core MAST functionality) is to
+provide a set of common interaction types relevant to computational
+biology. But it is important to note that anyone could invent any
+InteractionType subclass to profile for any kind of "interaction" they
+could want to profile. There will likely be separate instructions on
+how to create your own interactions in the future.
+
+*** Profiling interactions in *interaction space*
+
+#+BEGIN_SRC python
+
+#+END_SRC
+
+
+*** Analyzing profiling results
