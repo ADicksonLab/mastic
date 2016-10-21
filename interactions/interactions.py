@@ -104,7 +104,7 @@ class InteractionType(object):
 
     @classmethod
     def interaction_classes(cls, association_type,
-                            inx_class_name_template=cls.inx_class_name_template):
+                            inx_class_name_template=None):
         """Receives an association and creates all of the possible interaction
         classes in the association. Interaction classes are simply
         instantiations of this InteractionType corresponding to
@@ -120,7 +120,7 @@ class InteractionType(object):
         iterable
 
         """
-
+        inx_class_name_template = cls.inx_class_name_template
         # for each member collect the features relevant to this
         # interaction type, in the feature_order, so initialize an
         # empty list for each

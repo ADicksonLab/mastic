@@ -489,9 +489,146 @@ how to create your own interactions in the future.
 
 *** Profiling interactions in *interaction space*
 
+There is one problem with using the above method for profiling
+interactions and that is comparing profiling results for different
+substantiations of the system. We could come up with a clever indexing
+system that uses the indices of both features, but we have opted to
+introduce the concept of an *interaction space* where the dimensions
+correspond to potential interactions between features.
+
+A point in interaction space then is an n-tuple, where n is the number
+of potential interactions, and the values to each potential
+interaction describe the degree to which the interaction exists. For
+instance we might use a simple boolean value and hard cutoffs for if
+the interaction exists, 0 for does not exist and 1 for if the
+interaction exists. The implementation of how values are assigned to
+the n-tuple is up to the InteractionType class.
+
+Interaction space is similar to a phase space in that we are
+representing a whole system state as a single point, however
+interaction space greatly reduces the total degrees of freedom in a
+complete phase space for a macromolecular system by focusing only on
+domain specific features. This is motivated by the molecular design
+point of view where for instance a medicinal chemist thinks in terms
+of a drug scaffold and functional group additions which interact more
+or less specifically to features on the target. The focus on
+interactions is so widespread throughout the biological sciences that
+it certainly makes sense to frame a system in this way even though
+there is the added complexity of parametrizing the scoring functions.
+
+A nice side effect of determining an interaction space before
+profiling for interactions is that there is a consistency between
+profiling. For instance, if you profile one frame of a molecular
+dynamics trajectory you will obtain only a subset of possible
+interactions, the set I_1, and another frame the set I_2. The space of
+interactions defined by these individually are incompatible, and the
+indexing/naming scheme is particular to each one individually (of
+course unless there is well designed nomenclature algorithm). So by
+defining and indexing/naming all potential interactions ahead of time
+we merely profile and fill in the n-tuple.
+
+We can define an interaction space for a single AssociationType or for
+the whole system and all possible AssociationTypes, given the number
+of participating features needed for an interaction, from here forward
+termed the *degree of interaction*. Furthermore, an interaction can be
+symmetric or assymetric. An *assymetric interaction* is where the
+FeatureTypes that interact are different, and a *symmetric
+interaction* is where the FeatureTypes are the same. Hydrogen bonding
+and all electrostatic interactions are assymetric and interactions
+like hydrophobic or pi-pi stacking can be symmetric (they can be
+assymetric if comparing features of different shape).
+
+For an assymetric degree 2 interaction, like hydrogen bonding (one
+donor, one acceptor), in the two member system we have four possible
+associations: (0,0), (0,1), (1,0), (1,1).
+
+The order of the elements in these *association tuples* are the
+ordering of the FeatureTypes considered in the InteractionType and the
+values are the indices of the members between which the interaction
+takes place. The list of association tuples we call the *association
+polynomial* and each term in this polynomial adds to the possible
+dimensions in interaction space. The first and last terms are the
+*intramember interaction* associations and the middle terms are the
+*intermember interaction* associations.
+
+For a symmetric interaction of degree 2 we have only 3 terms: (0,0),
+(0,1), (1,1) because the intermember associations will have the same
+results.
+
+Thus the interaction space in a system for an interaction type is the
+sum of all possible interactions contained in the association polynomial.
+
+I_tot = I((0,0)) + I((0,1)) + I((1,0)) + I((1,1))
+
+where I(A_i) is the function that takes in an association tuple, A_i,
+and outputs a collection of *interaction classes*. I_tot is all
+interaction classes in the system for the interaction type in
+question. An interaction class is a unique pairing of FeatureTypes for
+an InteractionType, i.e. an instantiation of a particular type of
+interaction (HydrogenBondType) for particular FeatureTypes (say
+Feature_0 and Feature_1). A substantiation of an interaction class is
+an Interaction. Interaction types cannot be said to be substantiated.
+
+Okay, now that we have defined some terms to help us think about the
+problem we can actually construct an interaction space for our
+system. First we get the association tuples for the degree and
+symmetry of the interaction.
+
 #+BEGIN_SRC python
+  # use the association polynomial function of the system
+  assoc_terms = Trypsin_Benzamidine_System.association_polynomial(
+      # input the degree of the interaction
+      interaction_degree=HydrogenBondType.degree,
+      # return the indices of the system members instead of the members
+      # themselves
+      return_idxs=True,
+      # whether or not the interaction is symmetric or not
+      commutative=False)
 
 #+END_SRC
 
+Because we only have to members and a degree 2 interaction the
+polynomial is pretty simple, however for larger systems with
+complicated interactions this kind of approach is scalable and
+provides a language to communicate in.
+
+
+Now that we have the association polynomial terms we are interested in
+we can create an interaction space of the system.
+
+#+BEGIN_SRC python
+  hbond_inx_classes = Trypsin_Benzamidine_System.interaction_space(
+      assoc_terms, HydrogenBondType)
+#+END_SRC
+
+This gives us a list of instantiated HydrogenBondTypes for specific
+FeatureType pairs. Check one of them out on the terminal.
+
+We of course could manually specify which association terms we were
+interested in. For instance if we only cared about protein donors and
+ligand acceptors interacting we could have used the following.
+
+#+BEGIN_SRC python
+  # the protein is member 1 and the ligand member 0.
+  print([member_type.name for member_type in Trypsin_Benzamidine_System.member_types])
+
+  # The order of the feature types for the HydrogenBondType is (donor,
+  # acceptor)
+  print(HydrogenBondType.feature_order)
+
+
+  assym_hbond_inx_classes = Trypsin_Benzamidine_System.interaction_space(
+      [(1,0)], HydrogenBondType)
+
+#+END_SRC
+
+Now that we have the interaction classes we just pass these to profile
+interactions as well and the resulting Interaction objects will be
+associated with the proper interaction classes.
+
+#+BEGIN_SRC python
+  tryp_ben_prof_results = new_system.associations[0].profile_interactions([HydrogenBondType],
+                                                        interaction_classes=hbond_inx_classes)
+#+END_SRC
 
 *** Analyzing profiling results
