@@ -1,4 +1,4 @@
-* Setting up the System
+* Full tutorial with explanation
 
 ** Collecting the Molecular Data
 The trypsin-benzamidine system consists of simply the trypsin protein
@@ -48,7 +48,7 @@ coordinates from simulations started with the .pdb.
 We choose not to remove the hydrogens because we will be using them
 for identifying hydrogen bonds.
 
-#+BEGIN_SRC python
+#+BEGIN_SRC python :tangle make_Trypsin_Benzamidine_SystemType_pkl.py
   from rdkit import Chem
   import mast.tests.data as mastdata
 
@@ -68,7 +68,7 @@ However due to some issues in RDKit I have included a modified version
 of this function in the rdkit interface submodule which we will use in
 this tutorial.
 
-#+BEGIN_SRC python
+#+BEGIN_SRC python :tangle make_Trypsin_Benzamidine_SystemType_pkl.py
   from mast.interfaces.rdkit import AssignBondOrdersFromTemplate
 
   BEN_rdkit = AssignBondOrdersFromTemplate(BEN_MOL_rdkit, BEN_PDB_rdkit)
@@ -87,7 +87,7 @@ automated way.
 Here we also name these structures, this will later go into making the
 class name for the MoleculeTypes so choose carefully.
 
-#+BEGIN_SRC python
+#+BEGIN_SRC python :tangle make_Trypsin_Benzamidine_SystemType_pkl.py
   from mast.interfaces.rdkit import RDKitMoleculeWrapper
 
   BEN_rdkit_wrapper = RDKitMoleculeWrapper(BEN_rdkit, mol_name="BEN")
@@ -98,7 +98,7 @@ class name for the MoleculeTypes so choose carefully.
 Now that we have the wrapper we can extract the coordinates if we
 choose to:
 
-#+BEGIN_SRC python
+#+BEGIN_SRC python :tangle make_Trypsin_Benzamidine_SystemType_pkl.py
   BEN_coords = BEN_rdkit_wrapper.get_conformer_coords(0)
   trypsin_coords = trypsin_rdkit_wrapper.get_conformer_coords(0)
 #+END_SRC
@@ -132,7 +132,7 @@ a very long time to do so.
 For the small molecule benzamidine using RDKit this is not a problem
 and RDKit does a great job.
 
-#+BEGIN_SRC python
+#+BEGIN_SRC python :tangle make_Trypsin_Benzamidine_SystemType_pkl.py
   BEN_Molecule = BEN_rdkit_wrapper.make_molecule_type(find_features=True)
 #+END_SRC
 
@@ -140,7 +140,7 @@ For proteins RDKit makes no assumptions based on amino acid structures
 so it takes a long time! Hopefully, future libraries will improve this
 situation.
 
-#+BEGIN_SRC python
+#+BEGIN_SRC python :tangle make_Trypsin_Benzamidine_SystemType_pkl.py
   Trypsin_Molecule = trypsin_rdkit_wrapper.make_molecule_type(find_features=True)
 #+END_SRC
 
@@ -156,7 +156,7 @@ restart.
 
 For this we will just use python's pickle module.
 
-#+BEGIN_SRC python
+#+BEGIN_SRC python :tangle make_Trypsin_Benzamidine_SystemType_pkl.py
   import os.path as osp
   import pickle
 
@@ -197,7 +197,7 @@ Member types of a system are typically MoleculeTypes but can also be
 single AtomTypes, and potentially many other non-physical or
 multiphysics entities.
 
-#+BEGIN_SRC python
+#+BEGIN_SRC python :tangle make_Trypsin_Benzamidine_SystemType_pkl.py
   import mast.system as mastsys
 
   member_types = [BEN_Molecule, Trypsin_Molecule]
@@ -209,7 +209,7 @@ multiphysics entities.
 
 Again take some time to explore this object at the IPython terminal.
 
-** Defining associations between members of the system
+*** Defining associations between members of the system
 Another important feature of SystemTypes is the ability to define
 associations between elements within the system that may or may not be
 connected through chemical bonds.
@@ -235,11 +235,11 @@ associations to only part of members (e.g. for ligand-binding site
 interactions) but for now lets just choose one against the other in
 whole.
 
-#+BEGIN_SRC python
+#+BEGIN_SRC python :tangle make_Trypsin_Benzamidine_SystemType_pkl.py
 
   # these variables are used to define selections of only part of system
   # members, which we will ignore for now
-  selection_map = {0 : None, 1 : None}
+  selection_map = [(0, None), (1, None)]
   selection_types = [None, None]
 
   rec_lig_attrs = {'info' : 'receptor-ligand'}
@@ -255,7 +255,7 @@ whole.
 Now that we have the association we want to make sure the system knows
 about it.
 
-#+BEGIN_SRC python
+#+BEGIN_SRC python :tangle make_Trypsin_Benzamidine_SystemType_pkl.py
   Trypsin_Benzamidine_System.add_association_type(Trypsin_Benzamidine_Association)
 #+END_SRC
 
@@ -266,7 +266,7 @@ later without having to keep all the complicated matching of members
 and features in our heads. When it comes to interaction profiling the
 AssociationType is key in coordination.
 
-** Making associations between parts of molecules
+*** Making associations between parts of molecules
 
 For instance if we only want to profile the interactions of the ligand
 and some set of atoms we designate as the binding site we define a new
@@ -302,7 +302,7 @@ So first we use the coordinates we obtained from RDKit from the
 crystal structure PDB files and substantiate the Trypsin and
 Benzamidine MoleculeTypes to make Molecules in a System.
 
-#+BEGIN_SRC python
+#+BEGIN_SRC python :tangle make_Trypsin_Benzamidine_SystemType_pkl.py
   # put them together in the order they are as system members
   member_coords = [BEN_coords, trypsin_coords]
 
@@ -318,7 +318,7 @@ Now that we have a substantiated System we can calculate distances
 between atoms. We will use some MAST functions to do so and find the
 atoms on Trypsin that are close to Benzamidine.
 
-#+BEGIN_SRC python
+#+BEGIN_SRC python :tangle make_Trypsin_Benzamidine_SystemType_pkl.py
   binding_site_cutoff_dist = 4 #in Angstroms \AA
 
   # find the atoms within this distance
@@ -343,7 +343,9 @@ Usage of these properties in the AtomType namespace also keeps the API
 clean in the atom namespace allowing for much more pleasurable
 exploratory analysis.
 
-#+BEGIN_SRC python
+#+BEGIN_SRC python :tangle make_Trypsin_Benzamidine_SystemType_pkl.py
+  import mast.molecule as mastmol
+
   # the selection map tells the association the index of the member and
   # the indices of the atoms to include as one component of the
   # association. By selection None as the indices no selection will be
@@ -369,13 +371,13 @@ exploratory analysis.
 
 #+END_SRC
 
-** Saving the SystemType
+*** Saving the SystemType
 Now that we have a system defined and associations in that system
 defined and instantiated lets make a persistent copy on the hard
 drive. This will allow us to load it up when we get new data without
 having to go through this process. 
 
-#+BEGIN_SRC python
+#+BEGIN_SRC python :tangle make_Trypsin_Benzamidine_SystemType_pkl.py
   import os.path as osp
   import pickle
 
@@ -632,3 +634,9 @@ associated with the proper interaction classes.
 #+END_SRC
 
 *** Analyzing profiling results
+
+* Simple profiling with interaction space
+
+#+BEGIN_SRC python :tangle profile_hbonds_trypsin_benzamidine.py
+
+#+END_SRC

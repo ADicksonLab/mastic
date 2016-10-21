@@ -26,6 +26,7 @@ class HydrogenBondType(InteractionType):
     grouping_attribute = 'rdkit_family'
     # order is the number of features that participate in an interaction
     degree = 2
+    commutative = False
 
     def __init__(self, hydrogen_bond_type_name,
                  feature_types=None,
@@ -41,6 +42,48 @@ class HydrogenBondType(InteractionType):
 
         self.donor = feature_types[0]
         self.acceptor = feature_types[1]
+
+    @classmethod
+    def test_find_hits(cls, members,
+                       interaction_classes=None,
+                       distance_cutoff=mastinxconfig.HBOND_DIST_MAX,
+                       angle_cutoff=mastinxconfig.HBOND_DON_ANGLE_MIN):
+
+        # TODO checks
+
+        # for each member collect the grouped features
+        # initialize list of members (A, B, ...)
+        members_features = tuple([[] for i in members])
+        for i, member in enumerate(members):
+            for feature_key, feature in member.features.items():
+                # get groupby attribute to use as a key
+                group_attribute = feature.feature_type.attributes_data[cls.grouping_attribute]
+
+
+        ##### InteractionType specifc logic
+                if group_attribute in cls.aromatic_keys:
+                    aromatic_tup = (feature_key, feature)
+                    members_features[i].append(aromatic_tup)
+
+
+
+        # combine the features. this part may be improved by using the
+        # degree and the symmetry of the interaction.
+        # feature_tuples = it.product(members_features, repeat=cls.degree)
+
+        # for now we rely on knowledge of the interaction
+        feature_tuples = it.product(members_features[0],
+                                    members_features[1])
+
+        #####
+
+        # scan the pairs for hits and assign interaction classes if given
+        return super().find_hits(feature_tuples,
+                                 # if there was an interaction space given
+                                 interaction_classes=interaction_classes,
+                                 # the parameters for the interaction existence
+                                 distance_cutoff=mastinxconfig.HBOND_DIST_MAX,
+                                 angle_cutoff=mastinxconfig.HBOND_DON_ANGLE_MIN)
 
     @classmethod
     def find_hits(cls, member_a, member_b,

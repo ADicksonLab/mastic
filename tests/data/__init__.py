@@ -81,6 +81,7 @@ trypsin_mastmol_path = osp.join(data_dir, "trypsin+features_mastmol.pkl")
 with open(trypsin_mastmol_path, 'rb') as pkl_rf:
     Trypsin_Molecule = pickle.load(pkl_rf)
 
+
 # BEN_mastmol_path = osp.join(data_dir, "BEN+features_mastmol.pkl")
 # with open(BEN_mastmol_path, 'rb') as pkl_rf:
 #     BEN_Molecule = pickle.load(pkl_rf)
@@ -100,3 +101,7 @@ with open(trypsin_mastmol_path, 'rb') as pkl_rf:
 # TPPU_Hs_mastmol_path = osp.join(data_dir, "TPPU+Hs+features_mastmol.pkl")
 # with open(TPPU_Hs_mastmol_path, 'rb') as pkl_rf:
 #     TPPU_Hs_Molecule = pickle.load(pkl_rf)
+
+Trypsin_Benzamidine_SystemType_path = osp.join(data_dir, "Trypsin_Benzamidine_SystemType.pkl")
+with open(Trypsin_Benzamidine_SystemType_path, 'rb') as pkl_rf:
+    Trypsin_Benzamidine_SystemType = pickle.load(pkl_rf)

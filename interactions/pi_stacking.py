@@ -19,11 +19,14 @@ class PiStackingType(InteractionType):
 
     """
 
-    attributes = {}
     interaction_name = "PiStacking"
+    interaction_constructor = PiStackingInx
     feature_keywords = mastinxconfig.PISTACKING_FEATURES
     aromatic_keys = mastinxconfig.PISTACKING_FEATURES['rdkit_family']
+    feature_order = None
     grouping_attribute = 'rdkit_family'
+    degree = 2
+    commutative = True
 
     def __init__(self, pi_stacking_type_name,
                  feature_types=None,
@@ -38,7 +41,9 @@ class PiStackingType(InteractionType):
                          **pi_stacking_attrs)
 
     @classmethod
-    def find_hits(cls, member_a, member_b):
+    def find_hits(cls, member_a, member_b,
+                  interaction_classes=None,
+                  cutoff=None):
 
         # check that the keys ar okay in parent class
         # super().find_hits(members_features)
@@ -83,12 +88,73 @@ class PiStackingType(InteractionType):
             # else continue to the next pairing
             except InteractionError:
                 continue
+
+            # classify the hbond if given classes
+            interaction_class = None
+            if interaction_classes:
+                feature_pairs = [(inx_class.donor, inx_class.acceptor) for
+                                 inx_class in interaction_classes]
+                # get the matching interaction class, throws error if no match
+
+                try:
+                    interaction_classes_it = iter(interaction_classes)
+                    found = False
+                    while not found:
+                        inx_class = next(interaction_classes_it)
+                        feature_pair = (inx_class.donor, inx_class.acceptor)
+                        if feature_pair == \
+                           (donor_feature.feature_type, acceptor_feature.feature_type):
+                            hbond.interaction_class = inx_class
+                            found = True
+
+                except StopIteration:
+                    print("No matching interaction class given")
+
             # if it succeeds add it to the list of H-Bonds
             pistacks.append(pistack)
             # and the feature keys to the feature key pairs
             hit_pair_keys.append((arom_a_feature_key, arom_b_feature_key))
 
         return hit_pair_keys, pistacks
+
+
+
+    @classmethod
+    def test_find_hits(cls, members,
+                          interaction_classes=None,
+                          **parameters):
+
+        # TODO checks
+
+        # for each member collect the grouped features
+        # initialize list of members (A, B, ...)
+        members_features = tuple([[] for i in members])
+        for i, member in enumerate(members):
+            for feature_key, feature in member.features.items():
+                # get groupby attribute to use as a key
+                group_attribute = feature.feature_type.attributes_data[cls.grouping_attribute]
+
+
+        ##### InteractionType specifc logic
+                if group_attribute in cls.aromatic_keys:
+                    aromatic_tup = (feature_key, feature)
+                    members_features[i].append(aromatic_tup)
+
+
+
+        # combine the features. this part may be improved by using the
+        # degree and the symmetry of the interaction.
+        # feature_tuples = it.product(members_features, repeat=cls.degree)
+
+        # for now we rely on knowledge of the interaction
+        feature_tuples = it.product(members_features[0],
+                                    members_features[1])
+
+        #####
+
+        # scan the pairs for hits
+        return super().check(feature_tuples, **parameters)
+
 
     @classmethod
     def check(cls, arom_a_atoms, arom_b_atoms):
