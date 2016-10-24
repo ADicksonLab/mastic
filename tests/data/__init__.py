@@ -102,6 +102,13 @@ with open(trypsin_mastmol_path, 'rb') as pkl_rf:
 # with open(TPPU_Hs_mastmol_path, 'rb') as pkl_rf:
 #     TPPU_Hs_Molecule = pickle.load(pkl_rf)
 
+# a SystemType for Tryspin-Benzamidine
 Trypsin_Benzamidine_SystemType_path = osp.join(data_dir, "Trypsin_Benzamidine_SystemType.pkl")
 with open(Trypsin_Benzamidine_SystemType_path, 'rb') as pkl_rf:
     Trypsin_Benzamidine_SystemType = pickle.load(pkl_rf)
+
+# a substantiation of the Trypsin-Benzamidine SystemType from crystal
+# structure coordinates
+Trypsin_Benzamidine_System_cryst_path = osp.join(data_dir, "Trypsin_Benzamidine_System_cryst.pkl")
+with open(Trypsin_Benzamidine_System_cryst_path, 'rb') as pkl_rf:
+    Trypsin_Benzamidine_System_cryst = pickle.load(pkl_rf)

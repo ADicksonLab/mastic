@@ -48,7 +48,7 @@ coordinates from simulations started with the .pdb.
 We choose not to remove the hydrogens because we will be using them
 for identifying hydrogen bonds.
 
-#+BEGIN_SRC python :tangle make_Trypsin_Benzamidine_SystemType_pkl.py
+#+BEGIN_SRC python 
   from rdkit import Chem
   import mast.tests.data as mastdata
 
@@ -68,7 +68,7 @@ However due to some issues in RDKit I have included a modified version
 of this function in the rdkit interface submodule which we will use in
 this tutorial.
 
-#+BEGIN_SRC python :tangle make_Trypsin_Benzamidine_SystemType_pkl.py
+#+BEGIN_SRC python 
   from mast.interfaces.rdkit import AssignBondOrdersFromTemplate
 
   BEN_rdkit = AssignBondOrdersFromTemplate(BEN_MOL_rdkit, BEN_PDB_rdkit)
@@ -87,7 +87,7 @@ automated way.
 Here we also name these structures, this will later go into making the
 class name for the MoleculeTypes so choose carefully.
 
-#+BEGIN_SRC python :tangle make_Trypsin_Benzamidine_SystemType_pkl.py
+#+BEGIN_SRC python 
   from mast.interfaces.rdkit import RDKitMoleculeWrapper
 
   BEN_rdkit_wrapper = RDKitMoleculeWrapper(BEN_rdkit, mol_name="BEN")
@@ -98,7 +98,7 @@ class name for the MoleculeTypes so choose carefully.
 Now that we have the wrapper we can extract the coordinates if we
 choose to:
 
-#+BEGIN_SRC python :tangle make_Trypsin_Benzamidine_SystemType_pkl.py
+#+BEGIN_SRC python 
   BEN_coords = BEN_rdkit_wrapper.get_conformer_coords(0)
   trypsin_coords = trypsin_rdkit_wrapper.get_conformer_coords(0)
 #+END_SRC
@@ -132,7 +132,7 @@ a very long time to do so.
 For the small molecule benzamidine using RDKit this is not a problem
 and RDKit does a great job.
 
-#+BEGIN_SRC python :tangle make_Trypsin_Benzamidine_SystemType_pkl.py
+#+BEGIN_SRC python 
   BEN_Molecule = BEN_rdkit_wrapper.make_molecule_type(find_features=True)
 #+END_SRC
 
@@ -140,7 +140,7 @@ For proteins RDKit makes no assumptions based on amino acid structures
 so it takes a long time! Hopefully, future libraries will improve this
 situation.
 
-#+BEGIN_SRC python :tangle make_Trypsin_Benzamidine_SystemType_pkl.py
+#+BEGIN_SRC python 
   Trypsin_Molecule = trypsin_rdkit_wrapper.make_molecule_type(find_features=True)
 #+END_SRC
 
@@ -156,7 +156,7 @@ restart.
 
 For this we will just use python's pickle module.
 
-#+BEGIN_SRC python :tangle make_Trypsin_Benzamidine_SystemType_pkl.py
+#+BEGIN_SRC python 
   import os.path as osp
   import pickle
 
@@ -197,7 +197,7 @@ Member types of a system are typically MoleculeTypes but can also be
 single AtomTypes, and potentially many other non-physical or
 multiphysics entities.
 
-#+BEGIN_SRC python :tangle make_Trypsin_Benzamidine_SystemType_pkl.py
+#+BEGIN_SRC python 
   import mast.system as mastsys
 
   member_types = [BEN_Molecule, Trypsin_Molecule]
@@ -235,7 +235,7 @@ associations to only part of members (e.g. for ligand-binding site
 interactions) but for now lets just choose one against the other in
 whole.
 
-#+BEGIN_SRC python :tangle make_Trypsin_Benzamidine_SystemType_pkl.py
+#+BEGIN_SRC python 
 
   # these variables are used to define selections of only part of system
   # members, which we will ignore for now
@@ -255,7 +255,7 @@ whole.
 Now that we have the association we want to make sure the system knows
 about it.
 
-#+BEGIN_SRC python :tangle make_Trypsin_Benzamidine_SystemType_pkl.py
+#+BEGIN_SRC python 
   Trypsin_Benzamidine_System.add_association_type(Trypsin_Benzamidine_Association)
 #+END_SRC
 
@@ -302,7 +302,7 @@ So first we use the coordinates we obtained from RDKit from the
 crystal structure PDB files and substantiate the Trypsin and
 Benzamidine MoleculeTypes to make Molecules in a System.
 
-#+BEGIN_SRC python :tangle make_Trypsin_Benzamidine_SystemType_pkl.py
+#+BEGIN_SRC python 
   # put them together in the order they are as system members
   member_coords = [BEN_coords, trypsin_coords]
 
@@ -318,7 +318,7 @@ Now that we have a substantiated System we can calculate distances
 between atoms. We will use some MAST functions to do so and find the
 atoms on Trypsin that are close to Benzamidine.
 
-#+BEGIN_SRC python :tangle make_Trypsin_Benzamidine_SystemType_pkl.py
+#+BEGIN_SRC python 
   binding_site_cutoff_dist = 4 #in Angstroms \AA
 
   # find the atoms within this distance
@@ -343,7 +343,7 @@ Usage of these properties in the AtomType namespace also keeps the API
 clean in the atom namespace allowing for much more pleasurable
 exploratory analysis.
 
-#+BEGIN_SRC python :tangle make_Trypsin_Benzamidine_SystemType_pkl.py
+#+BEGIN_SRC python 
   import mast.molecule as mastmol
 
   # the selection map tells the association the index of the member and
@@ -377,11 +377,11 @@ defined and instantiated lets make a persistent copy on the hard
 drive. This will allow us to load it up when we get new data without
 having to go through this process. 
 
-#+BEGIN_SRC python :tangle make_Trypsin_Benzamidine_SystemType_pkl.py
+#+BEGIN_SRC python 
   import os.path as osp
   import pickle
 
-  system_pkl_path = osp.join(".", "trypsin_benzamidine_system.pkl")
+  system_pkl_path = osp.join(".", "Trypsin_Benzamidine_SystemType.pkl")
   with open(system_pkl_path, 'wb') as wf:
       pickle.dump(Trypsin_Benzamidine_System, wf)
 
@@ -635,8 +635,221 @@ associated with the proper interaction classes.
 
 *** Analyzing profiling results
 
-* Simple profiling with interaction space
 
-#+BEGIN_SRC python :tangle profile_hbonds_trypsin_benzamidine.py
 
+* Scripts
+
+** making a SystemType pickle for Trypsin Benzamidine
+
+#+BEGIN_SRC python :tangle make_Trypsin_Benzamidine_SystemType_pkl.py
+  from rdkit import Chem
+  import mast.tests.data as mastdata
+
+  BEN_MOL_rdkit = Chem.MolFromMolBlock(mastdata.benzamidine_MOL, sanitize=True)
+  BEN_PDB_rdkit = Chem.MolFromPDBBlock(mastdata.BEN_Hs_3ptb, removeHs=False, sanitize=True)
+  trypsin_rdkit = Chem.MolFromPDBBlock(mastdata.trypsin_3ptb, removeHs=False, sanitize=True)
+
+  from mast.interfaces.rdkit import AssignBondOrdersFromTemplate
+
+  BEN_rdkit = AssignBondOrdersFromTemplate(BEN_MOL_rdkit, BEN_PDB_rdkit)
+
+  from mast.interfaces.rdkit import RDKitMoleculeWrapper
+
+  BEN_rdkit_wrapper = RDKitMoleculeWrapper(BEN_rdkit, mol_name="BEN")
+  trypsin_rdkit_wrapper = RDKitMoleculeWrapper(trypsin_rdkit, mol_name="Trypsin")
+
+  BEN_coords = BEN_rdkit_wrapper.get_conformer_coords(0)
+  trypsin_coords = trypsin_rdkit_wrapper.get_conformer_coords(0)
+
+  BEN_Molecule = BEN_rdkit_wrapper.make_molecule_type(find_features=True)
+
+  Trypsin_Molecule = trypsin_rdkit_wrapper.make_molecule_type(find_features=True)
+
+  import os.path as osp
+  import pickle
+
+  trypsin_pkl_path = osp.join(".", "TrypsinMoleculeType.pkl")
+  with open(trypsin_pkl_path, 'wb') as wf:
+      pickle.dump(Trypsin_Molecule, wf)
+
+  import mast.system as mastsys
+
+  member_types = [BEN_Molecule, Trypsin_Molecule]
+  system_attrs = {'molecule_source' : 'rdkit'}
+  Trypsin_Benzamidine_System = mastsys.SystemType("Trypsin_Benzamidine_System",
+                                                  member_types=member_types,
+                                                  ,**system_attrs)
+
+  # when we make associations for assymmetric interactions we need to
+  # define an association of A -> B and B -> A so we define the receptor
+  # -> ligand interactions and ligand -> receptor interactions, this
+  # really only means the donors -> acceptors from the members.
+
+  # these variables are used to define selections of only part of system
+  # members, which we will ignore for now
+  selection_map_BA = [(1, None), (0, None)]
+  selection_types = [None, None]
+
+  rec_lig_attrs = {'info' : 'receptor-ligand'}
+  Trypsin_Benzamidine_Association = \
+              mastsys.AssociationType("Trypsin_Benzamidine_Association",
+                                      system_type=Trypsin_Benzamidine_System,
+                                      selection_map=selection_map_BA,
+                                      selection_types=selection_types,
+                                      ,**rec_lig_attrs)
+
+  Trypsin_Benzamidine_System.add_association_type(Trypsin_Benzamidine_Association)
+
+  selection_map_AB = selection_map_BA[::-1]
+  lig_rec_attrs = {'info' : 'ligand-receptor'}
+  Benzamidine_Trypsin_Association = \
+              mastsys.AssociationType("Benzamidine_Trypsin_Association",
+                                      system_type=Trypsin_Benzamidine_System,
+                                      selection_map=selection_map_AB,
+                                      selection_types=selection_types,
+                                      ,**lig_rec_attrs)
+
+  Trypsin_Benzamidine_System.add_association_type(Benzamidine_Trypsin_Association)
+
+
+  # put them together in the order they are as system members
+  member_coords = [BEN_coords, trypsin_coords]
+
+  # substantiate the system
+  system = Trypsin_Benzamidine_System.to_system(member_coords)
+
+  binding_site_cutoff_dist = 4 #in Angstroms \AA
+
+  # find the atoms within this distance
+  binding_site_atoms = system.molecules[0].atoms_within_distance(
+      binding_site_cutoff_dist)
+
+  # get the indices of these atoms to define the AssociationType
+  binding_site_atom_idxs = [system.molecules[1].atoms.index(atom) for
+                            atom in binding_site_atoms]
+
+  # you might also want to get the pdb serial numbers so you can
+  # visually check to see where these atoms are
+  binding_site_atom_serials = [atom.atom_type.pdb_serial_number for atom
+                               in binding_site_atoms]
+
+  import mast.molecule as mastmol
+
+  # the selection map tells the association the index of the member and
+  # the indices of the atoms to include as one component of the
+  # association. By selection None as the indices no selection will be
+  # made and the whole molecule will be a component
+  selection_map = [(1, binding_site_atom_idxs), (0, None)]
+
+  # The selection types correspond to the elements in the selection map
+  # and tell the AssociationType what kind of selection to make on the
+  # molecule. Setting one of them to None should mean the selection map
+  # also had no indices selected and it should use the whole system
+  # member. The MoleculeAtomSelection allows for selection of atoms in a
+  # Molecule or MoelculeType.
+  selection_types = [mastmol.MoleculeAtomSelection, None]
+
+  # instantiate the association
+  TrypsinBS_Benzamidine_assoc = mastsys.AssociationType("TrypsinBS-Benzamidine",
+                                           system_type=Trypsin_Benzamidine_System,
+                                           selection_map=selection_map,
+                                           selection_types=selection_types)
+
+  # add it to the system
+  Trypsin_Benzamidine_System.add_association_type(TrypsinBS_Benzamidine_assoc)
+
+  import os.path as osp
+  import pickle
+
+  system_pkl_path = osp.join(".", "Trypsin_Benzamidine_SystemType.pkl")
+  with open(system_pkl_path, 'wb') as wf:
+      pickle.dump(Trypsin_Benzamidine_System, wf)
+
+#+END_SRC
+
+** making a substantiated system pickle from the crystal structure of Trypsin Benzamidine
+
+#+BEGIN_SRC python :tangle make_Trypsin_Benzamidine_System_crystal_coords_pkl.py
+  import os.path as osp
+  import pickle
+  import sys
+  # must set this to pickle substantiated systems sometimes
+  sys.setrecursionlimit(100000)
+
+  # load the system type pickle in
+  system_pkl_path = osp.join(".", "Trypsin_Benzamidine_SystemType.pkl")
+  with open(system_pkl_path, 'rb') as rf:
+      Trypsin_Benzamidine_System = pickle.load(rf)
+
+  from rdkit import Chem
+  import mast.tests.data as mastdata
+
+  BEN_MOL_rdkit = Chem.MolFromMolBlock(mastdata.benzamidine_MOL, sanitize=True)
+  BEN_PDB_rdkit = Chem.MolFromPDBBlock(mastdata.BEN_Hs_3ptb, removeHs=False, sanitize=True)
+  trypsin_rdkit = Chem.MolFromPDBBlock(mastdata.trypsin_3ptb, removeHs=False, sanitize=True)
+
+  from mast.interfaces.rdkit import AssignBondOrdersFromTemplate
+
+  BEN_rdkit = AssignBondOrdersFromTemplate(BEN_MOL_rdkit, BEN_PDB_rdkit)
+
+  from mast.interfaces.rdkit import RDKitMoleculeWrapper
+
+  BEN_rdkit_wrapper = RDKitMoleculeWrapper(BEN_rdkit, mol_name="BEN")
+  trypsin_rdkit_wrapper = RDKitMoleculeWrapper(trypsin_rdkit, mol_name="Trypsin")
+
+  BEN_coords = BEN_rdkit_wrapper.get_conformer_coords(0)
+  trypsin_coords = trypsin_rdkit_wrapper.get_conformer_coords(0)
+  member_coords = [BEN_coords, trypsin_coords]
+
+  # substantiate the system with the new association
+  cryst_system = Trypsin_Benzamidine_System.to_system(member_coords)
+
+  # pickle it
+  system_cryst_pkl_path = osp.join(".", "Trypsin_Benzamidine_System_cryst.pkl")
+  with open(system_cryst_pkl_path, 'wb') as wf:
+      pickle.dump(cryst_system, wf)
+
+#+END_SRC
+
+
+** profiling interactions without interaction space of the crystal structure
+
+#+BEGIN_SRC python :tangle profile_simple_Trypsin_Benzamidine_cryst.py
+  import os.path as osp
+  import pickle
+
+  from mast.interactions.hydrogen_bond import HydrogenBondType
+
+  system_cryst_pkl_path = osp.join(".", "Trypsin_Benzamidine_System_cryst.pkl")
+  with open(system_cryst_pkl_path, 'rb') as pkl_rf:
+      Trypsin_Benzamidine_System_cryst = pickle.load(pkl_rf)
+
+
+  import ipdb; ipdb.set_trace()
+  tryp_ben_prof_results_0 = Trypsin_Benzamidine_System_cryst.associations[0].test_profile_interactions([HydrogenBondType])
+
+  # tryp_ben_prof_results_1 = Trypsin_Benzamidine_System_cryst.associations[1].test_profile_interactions([HydrogenBondType])
+#+END_SRC
+
+** profiling interactions with interaction space of the crystal structure
+
+#+BEGIN_SRC python :tangle profile_inx_space_Trypsin_Benzamidine_cryst.py
+  from mast.tests.data import Trypsin_Benzamidine_System_cryst, Trypsin_Benzamidine_SystemType
+  from mast.interactions.hydrogen_bond import HydrogenBondType
+
+  # use the association polynomial function of the system
+  assoc_terms = Trypsin_Benzamidine_SystemType.association_polynomial(
+      # input the degree of the interaction
+      interaction_degree=HydrogenBondType.degree,
+      # return the indices of the system members instead of the members
+      # themselves
+      return_idxs=True,
+      # whether or not the interaction is symmetric or not
+      commutative=False)
+
+  hbond_inx_classes = Trypsin_Benzamidine_SystemType.interaction_space(
+      assoc_terms, HydrogenBondType)
+
+  tryp_ben_prof_results = new_system.associations[0].profile_interactions([HydrogenBondType],
+                                                        interaction_classes=hbond_inx_classes)
 #+END_SRC

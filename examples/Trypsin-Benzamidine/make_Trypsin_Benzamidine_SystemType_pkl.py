@@ -36,20 +36,37 @@ Trypsin_Benzamidine_System = mastsys.SystemType("Trypsin_Benzamidine_System",
                                                 member_types=member_types,
                                                 **system_attrs)
 
+# when we make associations for assymmetric interactions we need to
+# define an association of A -> B and B -> A so we define the receptor
+# -> ligand interactions and ligand -> receptor interactions, this
+# really only means the donors -> acceptors from the members.
+
 # these variables are used to define selections of only part of system
 # members, which we will ignore for now
-selection_map = [(0, None), (1, None)]
+selection_map_BA = [(1, None), (0, None)]
 selection_types = [None, None]
 
 rec_lig_attrs = {'info' : 'receptor-ligand'}
 Trypsin_Benzamidine_Association = \
             mastsys.AssociationType("Trypsin_Benzamidine_Association",
                                     system_type=Trypsin_Benzamidine_System,
-                                    selection_map=selection_map,
+                                    selection_map=selection_map_BA,
                                     selection_types=selection_types,
                                     **rec_lig_attrs)
 
 Trypsin_Benzamidine_System.add_association_type(Trypsin_Benzamidine_Association)
+
+selection_map_AB = selection_map_BA[::-1]
+lig_rec_attrs = {'info' : 'ligand-receptor'}
+Benzamidine_Trypsin_Association = \
+            mastsys.AssociationType("Benzamidine_Trypsin_Association",
+                                    system_type=Trypsin_Benzamidine_System,
+                                    selection_map=selection_map_AB,
+                                    selection_types=selection_types,
+                                    **lig_rec_attrs)
+
+Trypsin_Benzamidine_System.add_association_type(Benzamidine_Trypsin_Association)
+
 
 # put them together in the order they are as system members
 member_coords = [BEN_coords, trypsin_coords]
@@ -100,6 +117,6 @@ Trypsin_Benzamidine_System.add_association_type(TrypsinBS_Benzamidine_assoc)
 import os.path as osp
 import pickle
 
-system_pkl_path = osp.join(".", "trypsin_benzamidine_system.pkl")
+system_pkl_path = osp.join(".", "Trypsin_Benzamidine_SystemType.pkl")
 with open(system_pkl_path, 'wb') as wf:
     pickle.dump(Trypsin_Benzamidine_System, wf)

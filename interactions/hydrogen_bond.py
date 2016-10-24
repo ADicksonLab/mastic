@@ -27,6 +27,7 @@ class HydrogenBondType(InteractionType):
     # order is the number of features that participate in an interaction
     degree = 2
     commutative = False
+    interaction_params = ['distance', 'angle']
 
     def __init__(self, hydrogen_bond_type_name,
                  feature_types=None,
@@ -49,37 +50,13 @@ class HydrogenBondType(InteractionType):
                        distance_cutoff=mastinxconfig.HBOND_DIST_MAX,
                        angle_cutoff=mastinxconfig.HBOND_DON_ANGLE_MIN):
 
-        # TODO checks
+        # DEBUG
+        # import ipdb; ipdb.set_trace()
 
-        # for each member collect the grouped features
-        # initialize list of members (A, B, ...)
-        members_features = tuple([[] for i in members])
-        for i, member in enumerate(members):
-            for feature_key, feature in member.features.items():
-                # get groupby attribute to use as a key
-                group_attribute = feature.feature_type.attributes_data[cls.grouping_attribute]
-
-
-        ##### InteractionType specifc logic
-                if group_attribute in cls.aromatic_keys:
-                    aromatic_tup = (feature_key, feature)
-                    members_features[i].append(aromatic_tup)
-
-
-
-        # combine the features. this part may be improved by using the
-        # degree and the symmetry of the interaction.
-        # feature_tuples = it.product(members_features, repeat=cls.degree)
-
-        # for now we rely on knowledge of the interaction
-        feature_tuples = it.product(members_features[0],
-                                    members_features[1])
-
-        #####
+        # TODO value checks
 
         # scan the pairs for hits and assign interaction classes if given
-        return super().find_hits(feature_tuples,
-                                 # if there was an interaction space given
+        return super().find_hits(members,
                                  interaction_classes=interaction_classes,
                                  # the parameters for the interaction existence
                                  distance_cutoff=mastinxconfig.HBOND_DIST_MAX,
@@ -191,7 +168,7 @@ class HydrogenBondType(InteractionType):
         return hit_pair_keys, hbonds
 
     @classmethod
-    def check(cls, donor_atom, h_atom, acceptor_atom,
+    def check(cls, donor, acceptor,
               distance_cutoff=mastinxconfig.HBOND_DIST_MAX,
               angle_cutoff=mastinxconfig.HBOND_DON_ANGLE_MIN):
         """Checks if the 3 atoms qualify as a hydrogen bond. Returns a tuple
@@ -199,23 +176,53 @@ class HydrogenBondType(InteractionType):
         qualified, the second and third are the distance and angle
         respectively. Angle may be None if distance failed to qualify.
 
+        Compatible with RDKit Acceptor and Donor features
+
         """
         from scipy.spatial.distance import cdist
+
+        donor_atom = donor.atoms[0]
+        acceptor_atom = acceptor.atoms[0]
+
         distance = cdist(np.array([donor_atom.coords]), np.array([acceptor_atom.coords]))[0,0]
         if cls.check_distance(distance, cutoff=distance_cutoff) is False:
-            return (False, distance, None)
+            return (False, (None, None))
 
-        v1 = donor_atom.coords - h_atom.coords
-        v2 = acceptor_atom.coords - h_atom.coords
+        # if the distance passes we want to check the angle, which we
+        # will need the coordinates of the adjacent hydrogens to the donor
+        h_atoms = [atom for atom in donor_atom.adjacent_atoms
+                   if atom.atom_type.element == 'H']
+
+        # check to see if even 1 hydrogen atom satisfies the angle
+        # constraint
+        okay_angle = None
+        h_atoms_iter = iter(h_atoms)
         try:
-            angle = np.degrees(np.arccos(np.dot(v1, v2)/(la.norm(v1) * la.norm(v2))))
-        except RuntimeWarning:
-            print("v1: {0} \n"
-                  "v2: {1}".format(v1, v2))
-        if cls.check_angle(angle, cutoff=angle_cutoff) is False:
-            return (False, distance, angle)
+            while okay_angle is None:
+                h_atom = next(h_atoms_iter)
 
-        return (True, distance, angle)
+                # calculate the angle
+                v1 = donor_atom.coords - h_atom.coords
+                v2 = acceptor_atom.coords - h_atom.coords
+
+                # DEBUG TODO need to figure out why this was giving
+                # weird warnings before, or if it still is.
+                try:
+                    angle = np.degrees(np.arccos(np.dot(v1, v2)/(la.norm(v1) * la.norm(v2))))
+                except RuntimeWarning:
+                    print("v1: {0} \n"
+                          "v2: {1}".format(v1, v2))
+
+                # check if the angle meets the constraints
+                if cls.check_angle(angle, cutoff=angle_cutoff) is False:
+                    okay_angle = angle
+
+        # none are found to meet the constraint
+        except StopIterationError:
+            return (False, (distance, None))
+
+        # return in the order of cls.interaction_params
+        return (True, (distance, okay_angle))
 
     @property
     def record(self):
@@ -297,40 +304,55 @@ class HydrogenBondInx(Interaction):
 
     """
 
-    def __init__(self, donor=None, H=None, acceptor=None,
+    interaction_type = HydrogenBondType
+
+    def __init__(self, donor, acceptor,
+                 check=True,
+                 interaction_class=None,
+                 distance=None,
+                 angle=None,
                  distance_cutoff=mastinxconfig.HBOND_DIST_MAX,
-                 angle_cutoff=mastinxconfig.HBOND_DON_ANGLE_MIN,
-                 interaction_class=None):
+                 angle_cutoff=mastinxconfig.HBOND_DON_ANGLE_MIN):
 
         donor_atom = donor.atoms[0]
         acceptor_atom = acceptor.atoms[0]
-        okay, distance, angle = HydrogenBondType.check(donor_atom, H, acceptor_atom,
-                                                       distance_cutoff=distance_cutoff,
-                                                       angle_cutoff=angle_cutoff)
-        if not okay:
-            if angle is None:
-                raise InteractionError(
-                    """donor: {0}
-                    H: {1}
-                    acceptor: {2}
-                    distance = {3} FAILED
-                    angle = not calculated""".format(donor_atom, H, acceptor_atom, distance))
+        if check:
+            okay, param_values = HydrogenBondType.check(donor_atom, acceptor_atom,
+                                                           distance_cutoff=distance_cutoff,
+                                                           angle_cutoff=angle_cutoff)
 
-            else:
-                raise InteractionError(
-                    """donor: {0}
-                    H: {1}
-                    acceptor: {2}
-                    distance = {3}
-                    angle = {4} FAILED""".format(donor_atom, H, acceptor_atom, distance, angle))
+            distance, angle = param_values[0], param_values[1]
+            if not okay:
+                if angle is None:
+                    raise InteractionError(
+                        """donor: {0}
+                        H: {1}
+                        acceptor: {2}
+                        distance = {3} FAILED
+                        angle = not calculated""".format(donor_atom,
+                                                         H,
+                                                         acceptor_atom,
+                                                         distance))
+
+                else:
+                    raise InteractionError(
+                        """donor: {0}
+                        H: {1}
+                        acceptor: {2}
+                        distance = {3}
+                        angle = {4} FAILED""".format(donor_atom,
+                                                     H,
+                                                     acceptor_atom,
+                                                     distance, angle))
+            elif (distance is None) or (angle is None) and (check is False):
+                raise ValueError("Must provide distance and angle if check=False is passed")
 
         # success, finish creating interaction
         atom_system = donor.system
         super().__init__(features=[donor, acceptor],
-                         interaction_type=HydrogenBondType,
+                         interaction_type=self.interaction_type,
                          system=atom_system)
         self._donor = donor
-        self._H = H
         self._acceptor = acceptor
         self._distance = distance
         self._angle = angle
@@ -341,10 +363,12 @@ class HydrogenBondInx(Interaction):
         """The donor Feature in the hydrogen bond."""
         return self._donor
 
+    # TODO implement a way to find the H atoms that satisfy the interaction
     @property
     def H(self):
         """The donated hydrogen Atom in the hydrogen bond."""
-        return self._H
+        raise NotImplementedError
+        # return self._H
 
     @property
     def acceptor(self):
@@ -386,7 +410,8 @@ class HydrogenBondInx(Interaction):
         record_attr['acceptor_coords'] = self.acceptor.atoms[0].coords
         record_attr['distance'] = self.distance
         record_attr['angle'] = self.angle
-        record_attr['H_coords'] = self.H.coords
+        # TODO
+        # record_attr['H_coords'] = self.H.coords
 
         return HydrogenBondInxRecord(**record_attr)
 

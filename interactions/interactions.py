@@ -185,7 +185,8 @@ class InteractionType(object):
         """
         raise NotImplementedError
 
-    def find_hits(self, *features, interaction_classes=None, **parameters):
+    @classmethod
+    def find_hits(cls, members, interaction_classes=interaction_classes, **parameters):
         """Returns all the 'hits' for interactions of features between two
         members (molecules, selections, etc.), where a hit is a
         feature set that satisfies the geometric constraints defined
@@ -193,72 +194,66 @@ class InteractionType(object):
 
         """
 
+        # for each member collect the grouped features
+        # initialize list of members (A, B, ...)
+        members_features = [[] for i in members]
+        for i, member in enumerate(members):
+            for feature_key, feature in member.features.items():
+                # get groupby attribute to use as a key
+                group_attribute = feature.feature_type.attributes_data[cls.grouping_attribute]
+
+
+                if group_attribute == cls.feature_order[i]:
+                    feature_tup = (feature_key, feature)
+                    members_features[i].append(feature_tup)
+
+        # combine the features
+        feature_tuples = it.product(members_features[0], members_features[1])
+
         # initializing for the keys
         hit_pair_keys = []
         # initializing list for the actual Interaction objects
         inxs = []
-        for feature_key_tups in feature_tuples:
-            feature_keys = tuple([feature_key_tup[0] for feature_key_tup in feature_key_tups])
-            features = tuple([feature_key_tup[1] for feature_key_tup in feature_key_tups])
 
-            # try to make an InteractionInx object, which calls check,
-            #
-            # OPTIMIZATION: otherwise we have to call check first then
-            # the InteractionInx constructor will re-call check to get
-            # the results of the tests. If we allow passing and not
-            # checking the results in the constructor then it would be
-            # faster, however I am not going to allow that in this
-            # 'safe' InteractionType, an unsafe optimized version can
-            # be made separately if desired.
-            try:
-                inx = cls.interaction_constructor(*features, **parameters,
-                                                  interaction_class=None)
-            # else continue to the next combination of features
-            except InteractionError:
+        # for all the (feature_key, (features)) check if they are a
+        # hit and make the Interaction object if they are
+        for feature_key_pair in feature_tuples:
+            feature_keys = tuple([feature_key_tup[0] for feature_key_tup in feature_key_pair])
+            features = tuple([feature_key_tup[1] for feature_key_tup in feature_key_pair])
+
+            # call check for the InteractionType which checks to see
+            # if the two features are in an interaction.
+            # param_values should be in the same order as their labels in cls.interaction_params
+            okay, param_values = cls.check(*features, **parameters)
+
+            # if the feature pair did not pass do not construct an Interaction
+            if not okay:
                 continue
 
-            # classify the hbond if given classes
-            interaction_class = None
+            # associate the parameter values with the names for them
+            param_values = {param_name : param_val for param_name,
+                            param_val in zip(cls.interaction_params, param_values)}
+
+            # otherwise make the Interaction from the features and the
+            # values from check
+            inx = cls.interaction_constructor(*features,
+                                              interaction_class=None,
+                                              check=False,
+                                              **param_values,
+                                              **parameters)
+
+            # classify the interaction if given an interaction space
+            # of interaction classes
             if interaction_classes:
+                interaction_class = match_inxclass(inx, interaction_classes)
 
-                # get the matching interaction class, throws error if no match
-                try:
-                    interaction_classes_it = iter(interaction_classes)
-                    found = False
-                    while not found:
-                        inx_class = next(interaction_classes_it)
-                        feature_pair = tuple([feature_type for feature_type
-                                        in inx_class.feature_types])
-                        # get the feature types to compare to the
-                        # feature pair in the inx class
-                        feature_types_tup = tuple([feature.feature_type for feature in
-                                                   features])
-                        # if the interaction is not commutative the
-                        # order must be the same as the interaction class
-                        if not cls.commutative:
-                            if feature_pair == feature_types_tup:
-                                inx.interaction_class = inx_class
-                                found = True
-                        # if the interaction is not commutative the
-                        # order might not be the same as the order in
-                        # the interaction class so we permute the
-                        # current inx feature types to check if any match
-                        else:
-                            for feature_pair_perm in it.permutations(feature_pair):
-                                if feature_pair_perm == feature_types_tup:
-                                    inx.interaction_class = inx_class
-                                    found = True
-                except StopIteration:
-                    print("No matching interaction class given")
-
-            # if it succeeds add it to the list of Interactions
+            # add it to the list of Interactions
             inxs.append(inx)
+
             # and the feature keys to the feature key pairs
             hit_pair_keys.append(feature_keys)
 
         return hit_pair_keys, inxs
-
-
 
 class Interaction(SelectionsList):
     """Substantiates the InteractionType class by containing Feature
@@ -315,6 +310,48 @@ class Interaction(SelectionsList):
             "as this Interaction, not {}".format(Counter(interaction_class.feature_types))
         self._interaction_class = interaction_class
 
+
+
+def match_inxclass(inx, interaction_classes):
+    """Given an Interaction object and a list of InteractionType objects
+    (interaction classes) determines if the Interaction's features
+    match a combination of features in one of the interaction classes.
+
+    Returns the matching interaction class.
+
+    """
+    interaction_classes_it = iter(interaction_classes)
+    found = False
+    match = None
+    # get the matching interaction class, throws error if no match
+    try:
+        while not found:
+            inx_class = next(interaction_classes_it)
+            feature_pair = tuple([feature_type for feature_type
+                            in inx_class.feature_types])
+            # get the feature types to compare to the
+            # feature pair in the inx class
+            feature_types_tup = tuple([feature.feature_type for feature in
+                                       inx.features])
+            # if the interaction is not commutative the
+            # order must be the same as the interaction class
+            if not cls.commutative:
+                if feature_pair == feature_types_tup:
+                    match = inx_class
+                    found = True
+            # if the interaction is not commutative the
+            # order might not be the same as the order in
+            # the interaction class so we permute the
+            # current inx feature types to check if any match
+            else:
+                for feature_pair_perm in it.permutations(feature_pair):
+                    if feature_pair_perm == feature_types_tup:
+                        match = inx_class
+                        found = True
+    except StopIteration:
+        print("No matching interaction class given")
+
+    return match
 
 if __name__ == "__main__":
     pass
