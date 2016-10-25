@@ -642,12 +642,17 @@ associated with the proper interaction classes.
 ** making a SystemType pickle for Trypsin Benzamidine
 
 #+BEGIN_SRC python :tangle make_Trypsin_Benzamidine_SystemType_pkl.py
+  import os.path as osp
+
   from rdkit import Chem
   import mast.tests.data as mastdata
 
-  BEN_MOL_rdkit = Chem.MolFromMolBlock(mastdata.benzamidine_MOL, sanitize=True)
-  BEN_PDB_rdkit = Chem.MolFromPDBBlock(mastdata.BEN_Hs_3ptb, removeHs=False, sanitize=True)
-  trypsin_rdkit = Chem.MolFromPDBBlock(mastdata.trypsin_3ptb, removeHs=False, sanitize=True)
+  BEN_MOL_path = osp.join(".", "benzamidine.mol")
+  BEN_MOL_rdkit = Chem.MolFromMolFile(BEN_MOL_path, sanitize=True)
+  BEN_PDB_path = osp.join(".", "BEN+Hs_3ptb.pdb")
+  BEN_PDB_rdkit = Chem.MolFromPDBFile(BEN_PDB_path, removeHs=False, sanitize=False)
+  trypsin_PDB_path = osp.join(".", "trypsin+Hs_3ptb.pdb")
+  trypsin_rdkit = Chem.MolFromPDBFile(trypsin_PDB_path, removeHs=False, sanitize=False)
 
   from mast.interfaces.rdkit import AssignBondOrdersFromTemplate
 
@@ -784,9 +789,12 @@ associated with the proper interaction classes.
   from rdkit import Chem
   import mast.tests.data as mastdata
 
-  BEN_MOL_rdkit = Chem.MolFromMolBlock(mastdata.benzamidine_MOL, sanitize=True)
-  BEN_PDB_rdkit = Chem.MolFromPDBBlock(mastdata.BEN_Hs_3ptb, removeHs=False, sanitize=True)
-  trypsin_rdkit = Chem.MolFromPDBBlock(mastdata.trypsin_3ptb, removeHs=False, sanitize=True)
+  BEN_MOL_path = osp.join(".", "benzamidine.mol")
+  BEN_MOL_rdkit = Chem.MolFromMolFile(BEN_MOL_path, sanitize=True)
+  BEN_PDB_path = osp.join(".", "BEN+Hs_3ptb.pdb")
+  BEN_PDB_rdkit = Chem.MolFromPDBFile(BEN_PDB_path, removeHs=False, sanitize=False)
+  trypsin_PDB_path = osp.join(".", "trypsin+Hs_3ptb.pdb")
+  trypsin_rdkit = Chem.MolFromPDBFile(trypsin_PDB_path, removeHs=False, sanitize=False)
 
   from mast.interfaces.rdkit import AssignBondOrdersFromTemplate
 
@@ -824,18 +832,27 @@ associated with the proper interaction classes.
   with open(system_cryst_pkl_path, 'rb') as pkl_rf:
       Trypsin_Benzamidine_System_cryst = pickle.load(pkl_rf)
 
-
-  import ipdb; ipdb.set_trace()
   tryp_ben_prof_results_0 = Trypsin_Benzamidine_System_cryst.associations[0].test_profile_interactions([HydrogenBondType])
-
-  # tryp_ben_prof_results_1 = Trypsin_Benzamidine_System_cryst.associations[1].test_profile_interactions([HydrogenBondType])
+  tryp_ben_prof_results_1 = Trypsin_Benzamidine_System_cryst.associations[1].test_profile_interactions([HydrogenBondType])
 #+END_SRC
 
 ** profiling interactions with interaction space of the crystal structure
 
 #+BEGIN_SRC python :tangle profile_inx_space_Trypsin_Benzamidine_cryst.py
-  from mast.tests.data import Trypsin_Benzamidine_System_cryst, Trypsin_Benzamidine_SystemType
+  import os.path as osp
+  import pickle
+
   from mast.interactions.hydrogen_bond import HydrogenBondType
+
+  # load the system type pickle in
+  system_pkl_path = osp.join(".", "Trypsin_Benzamidine_SystemType.pkl")
+  with open(system_pkl_path, 'rb') as rf:
+      Trypsin_Benzamidine_SystemType = pickle.load(rf)
+
+  # load the crystal structure substantiated system
+  system_cryst_pkl_path = osp.join(".", "Trypsin_Benzamidine_System_cryst.pkl")
+  with open(system_cryst_pkl_path, 'rb') as pkl_rf:
+      Trypsin_Benzamidine_System_cryst = pickle.load(pkl_rf)
 
   # use the association polynomial function of the system
   assoc_terms = Trypsin_Benzamidine_SystemType.association_polynomial(
@@ -847,9 +864,23 @@ associated with the proper interaction classes.
       # whether or not the interaction is symmetric or not
       commutative=False)
 
-  hbond_inx_classes = Trypsin_Benzamidine_SystemType.interaction_space(
-      assoc_terms, HydrogenBondType)
+  # this gives them to you organized by which association they fall under
+  hbond_inx_classes_assocs = Trypsin_Benzamidine_SystemType.interaction_space(
+                                       assoc_terms, HydrogenBondType)
 
-  tryp_ben_prof_results = new_system.associations[0].profile_interactions([HydrogenBondType],
-                                                        interaction_classes=hbond_inx_classes)
+  # if you want the whole collection of interaction classes in one list
+  from itertools import chain
+  hbond_inx_classes = list(chain(*[inx_classes for inx_classes in
+                                   hbond_inx_classes_assocs.values()]))
+
+  # however we are only interested in one association
+  rec_lig_association = Trypsin_Benzamidine_System_cryst.associations[1]
+  rec_lig_association_type = rec_lig_association.association_type
+  rec_lig_member_idxs = rec_lig_association_type.member_idxs
+  rec_lig_inx_classes = hbond_inx_classes_assocs[rec_lig_member_idxs]
+
+  # profile that association
+  rec_lig_inxs = rec_lig_association.profile_interactions(
+      [HydrogenBondType],
+      interaction_classes=rec_lig_inx_classes)[HydrogenBondType]
 #+END_SRC

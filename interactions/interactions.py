@@ -124,7 +124,7 @@ class InteractionType(object):
         # for each member collect the features relevant to this
         # interaction type, in the feature_order, so initialize an
         # empty list for each
-        members_features = [[] for feature_key in feature_order]
+        members_features = [[] for feature_key in cls.feature_order]
         # and go through each member_type
         for member_idx, member_type in enumerate(association_type.member_types):
             for feature_type in member_type.feature_types.values():
@@ -186,7 +186,10 @@ class InteractionType(object):
         raise NotImplementedError
 
     @classmethod
-    def find_hits(cls, members, interaction_classes=interaction_classes, **parameters):
+    def find_hits(cls, members,
+                  interaction_classes=interaction_classes,
+                  return_feature_keys=False,
+                  **parameters):
         """Returns all the 'hits' for interactions of features between two
         members (molecules, selections, etc.), where a hit is a
         feature set that satisfies the geometric constraints defined
@@ -202,23 +205,23 @@ class InteractionType(object):
                 # get groupby attribute to use as a key
                 group_attribute = feature.feature_type.attributes_data[cls.grouping_attribute]
 
-
                 if group_attribute == cls.feature_order[i]:
-                    feature_tup = (feature_key, feature)
-                    members_features[i].append(feature_tup)
+                    members_features[i].append((feature_key, feature))
 
         # combine the features
         feature_tuples = it.product(members_features[0], members_features[1])
 
-        # initializing for the keys
-        hit_pair_keys = []
+        if return_feature_keys:
+            # initializing for the keys
+            hit_pair_keys = []
         # initializing list for the actual Interaction objects
         inxs = []
 
         # for all the (feature_key, (features)) check if they are a
         # hit and make the Interaction object if they are
         for feature_key_pair in feature_tuples:
-            feature_keys = tuple([feature_key_tup[0] for feature_key_tup in feature_key_pair])
+            if return_feature_keys:
+                feature_keys = tuple([feature_key_tup[0] for feature_key_tup in feature_key_pair])
             features = tuple([feature_key_tup[1] for feature_key_tup in feature_key_pair])
 
             # call check for the InteractionType which checks to see
@@ -246,14 +249,19 @@ class InteractionType(object):
             # of interaction classes
             if interaction_classes:
                 interaction_class = match_inxclass(inx, interaction_classes)
+                inx.interaction_class = interaction_class
 
             # add it to the list of Interactions
             inxs.append(inx)
 
             # and the feature keys to the feature key pairs
-            hit_pair_keys.append(feature_keys)
+            if return_feature_keys:
+                hit_pair_keys.append(feature_keys)
 
-        return hit_pair_keys, inxs
+        if return_feature_keys:
+            return hit_pair_keys, inxs
+        else:
+            return inxs
 
 class Interaction(SelectionsList):
     """Substantiates the InteractionType class by containing Feature
@@ -335,7 +343,7 @@ def match_inxclass(inx, interaction_classes):
                                        inx.features])
             # if the interaction is not commutative the
             # order must be the same as the interaction class
-            if not cls.commutative:
+            if not inx_class.commutative:
                 if feature_pair == feature_types_tup:
                     match = inx_class
                     found = True

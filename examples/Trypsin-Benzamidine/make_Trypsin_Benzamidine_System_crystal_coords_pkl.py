@@ -12,9 +12,12 @@ with open(system_pkl_path, 'rb') as rf:
 from rdkit import Chem
 import mast.tests.data as mastdata
 
-BEN_MOL_rdkit = Chem.MolFromMolBlock(mastdata.benzamidine_MOL, sanitize=True)
-BEN_PDB_rdkit = Chem.MolFromPDBBlock(mastdata.BEN_Hs_3ptb, removeHs=False, sanitize=True)
-trypsin_rdkit = Chem.MolFromPDBBlock(mastdata.trypsin_3ptb, removeHs=False, sanitize=True)
+BEN_MOL_path = osp.join(".", "benzamidine.mol")
+BEN_MOL_rdkit = Chem.MolFromMolFile(BEN_MOL_path, sanitize=True)
+BEN_PDB_path = osp.join(".", "BEN+Hs_3ptb.pdb")
+BEN_PDB_rdkit = Chem.MolFromPDBFile(BEN_PDB_path, removeHs=False, sanitize=False)
+trypsin_PDB_path = osp.join(".", "trypsin+Hs_3ptb.pdb")
+trypsin_rdkit = Chem.MolFromPDBFile(trypsin_PDB_path, removeHs=False, sanitize=False)
 
 from mast.interfaces.rdkit import AssignBondOrdersFromTemplate
 

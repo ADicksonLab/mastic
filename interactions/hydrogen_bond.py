@@ -7,6 +7,7 @@ from collections import namedtuple, defaultdict
 
 import numpy as np
 import numpy.linalg as la
+from scipy.spatial.distance import cdist
 
 import mast.config.interactions as mastinxconfig
 from mast.interactions.interactions import InteractionType, Interaction, InteractionError
@@ -18,6 +19,7 @@ class HydrogenBondType(InteractionType):
 
     """
 
+    attributes = {}
     interaction_name = "HydrogenBond"
     feature_keywords = mastinxconfig.HBOND_FEATURES
     donor_key = 'Donor'
@@ -44,14 +46,16 @@ class HydrogenBondType(InteractionType):
         self.donor = feature_types[0]
         self.acceptor = feature_types[1]
 
-    @classmethod
-    def test_find_hits(cls, members,
-                       interaction_classes=None,
-                       distance_cutoff=mastinxconfig.HBOND_DIST_MAX,
-                       angle_cutoff=mastinxconfig.HBOND_DON_ANGLE_MIN):
+    @staticmethod
+    def interaction_constructor(*params, **kwargs):
+        return HydrogenBondInx(*params, **kwargs)
 
-        # DEBUG
-        # import ipdb; ipdb.set_trace()
+    @classmethod
+    def find_hits(cls, members,
+                  interaction_classes=None,
+                  return_feature_keys=False,
+                  distance_cutoff=mastinxconfig.HBOND_DIST_MAX,
+                  angle_cutoff=mastinxconfig.HBOND_DON_ANGLE_MIN):
 
         # TODO value checks
 
@@ -61,111 +65,6 @@ class HydrogenBondType(InteractionType):
                                  # the parameters for the interaction existence
                                  distance_cutoff=mastinxconfig.HBOND_DIST_MAX,
                                  angle_cutoff=mastinxconfig.HBOND_DON_ANGLE_MIN)
-
-    @classmethod
-    def find_hits(cls, member_a, member_b,
-                  interaction_classes=None,
-                  distance_cutoff=mastinxconfig.HBOND_DIST_MAX,
-                  angle_cutoff=mastinxconfig.HBOND_DON_ANGLE_MIN):
-
-        # check that the keys ar okay in parent class
-        # super().find_hits(members_features)
-
-        # for each member collect the grouped features
-        # initialize list of members
-        members_features = [{'donors':[], 'acceptors':[]} for member in [member_a, member_b]]
-        for i, member in enumerate([member_a, member_b]):
-            for feature_key, feature in member.features.items():
-                # get groupby attribute to use as a key
-                group_attribute = feature.feature_type.attributes_data[cls.grouping_attribute]
-
-                if group_attribute == cls.acceptor_key:
-                    acceptor_tup = (feature_key, feature)
-                    members_features[i]['acceptors'].append(acceptor_tup)
-
-                elif group_attribute == cls.donor_key:
-                    # get the donor-H pairs of atoms for this donor
-                    donor_atom = feature.atoms[0]
-                    donor_H_pairs = [(feature, atom) for atom in
-                                     donor_atom.adjacent_atoms if
-                                     atom.atom_type.element == 'H']
-                    donor_H_pairs_tup = [(feature_key, donor_H_pair) for
-                                         donor_H_pair in donor_H_pairs]
-                    members_features[i]['donors'].extend(donor_H_pairs_tup)
-
-        donor_acceptor_pairs = []
-        # pair the donors from the first with acceptors of the second,
-        # keeping track of which member it is in
-        pairs = list(it.product(members_features[0]['donors'],
-                           members_features[1]['acceptors']))
-        # make tuples of (member order, donor-acceptors) ((0,1), (donor, acceptor))
-        donor_acceptor_pairs.extend(zip([(0,1) for i in range(len(pairs))], pairs))
-
-        # pair the acceptors from the first with the donors of the
-        # second, keeping track of which member it is in
-        pairs = list(it.product(members_features[1]['donors'],
-                           members_features[0]['acceptors']))
-        # make tuples of (member order, donor-acceptors) ((1,0), donor, acceptor)
-        donor_acceptor_pairs.extend(zip([(1,0) for i in range(len(pairs))], pairs))
-
-        # scan the pairs for hits
-        hit_pair_keys = []
-        hbonds = []
-        for member_order, donor_acceptor_tup in donor_acceptor_pairs:
-            donor_tup = donor_acceptor_tup[0]
-            acceptor_tup = donor_acceptor_tup[1]
-            donor_feature_key = donor_tup[0]
-            donor_feature = donor_tup[1][0]
-            h_atom = donor_tup[1][1]
-            acceptor_feature_key = acceptor_tup[0]
-            acceptor_feature = acceptor_tup[1]
-
-            # try to make a HydrogenBondInx object, which calls check,
-            #
-            # OPTIMIZATION: otherwise we have to call check first then
-            # the HydrogenBondInx constructor will re-call check to
-            # get the angle and distance. If we allow passing and not
-            # checking the angle and distance in the constructor then
-            # it would be faster, however I am not going to allow that
-            # in this 'safe' InteractionType, an unsafe optimized
-            # version can be made separately if desired.
-            try:
-                hbond = HydrogenBondInx(donor=donor_feature, H=h_atom,
-                                        acceptor=acceptor_feature,
-                                        distance_cutoff=distance_cutoff,
-                                        angle_cutoff=angle_cutoff,
-                                        interaction_class=None)
-            # else continue to the next pairing
-            except InteractionError:
-                continue
-
-            # classify the hbond if given classes
-            interaction_class = None
-            if interaction_classes:
-                feature_pairs = [(inx_class.donor, inx_class.acceptor) for
-                                 inx_class in interaction_classes]
-                # get the matching interaction class, throws error if no match
-
-                try:
-                    interaction_classes_it = iter(interaction_classes)
-                    found = False
-                    while not found:
-                        inx_class = next(interaction_classes_it)
-                        feature_pair = (inx_class.donor, inx_class.acceptor)
-                        if feature_pair == \
-                           (donor_feature.feature_type, acceptor_feature.feature_type):
-                            hbond.interaction_class = inx_class
-                            found = True
-
-                except StopIteration:
-                    print("No matching interaction class given")
-
-            # if it succeeds add it to the list of H-Bonds
-            hbonds.append(hbond)
-            # and the feature keys to the feature key pairs
-            hit_pair_keys.append((member_order, (donor_feature_key, acceptor_feature_key,),))
-
-        return hit_pair_keys, hbonds
 
     @classmethod
     def check(cls, donor, acceptor,
@@ -179,12 +78,15 @@ class HydrogenBondType(InteractionType):
         Compatible with RDKit Acceptor and Donor features
 
         """
-        from scipy.spatial.distance import cdist
+
 
         donor_atom = donor.atoms[0]
         acceptor_atom = acceptor.atoms[0]
 
-        distance = cdist(np.array([donor_atom.coords]), np.array([acceptor_atom.coords]))[0,0]
+        # calculate the distance
+        distance = cls.calc_distance(donor_atom, acceptor_atom)
+
+        # check it
         if cls.check_distance(distance, cutoff=distance_cutoff) is False:
             return (False, (None, None))
 
@@ -201,17 +103,7 @@ class HydrogenBondType(InteractionType):
             while okay_angle is None:
                 h_atom = next(h_atoms_iter)
 
-                # calculate the angle
-                v1 = donor_atom.coords - h_atom.coords
-                v2 = acceptor_atom.coords - h_atom.coords
-
-                # DEBUG TODO need to figure out why this was giving
-                # weird warnings before, or if it still is.
-                try:
-                    angle = np.degrees(np.arccos(np.dot(v1, v2)/(la.norm(v1) * la.norm(v2))))
-                except RuntimeWarning:
-                    print("v1: {0} \n"
-                          "v2: {1}".format(v1, v2))
+                angle = cls.calc_angle(donor_atom, acceptor_atom, h_atom)
 
                 # check if the angle meets the constraints
                 if cls.check_angle(angle, cutoff=angle_cutoff) is False:
@@ -260,8 +152,18 @@ class HydrogenBondType(InteractionType):
 
     #### Hydrogen Bond Specific methods
     # i.e. not necessarily found in other interaction types
-    @classmethod
-    def check_distance(cls, distance, cutoff=mastinxconfig.HBOND_DIST_MAX):
+    @staticmethod
+    def calc_distance(donor_atom, acceptor_atom):
+        return cdist(np.array([donor_atom.coords]), np.array([acceptor_atom.coords]))[0,0]
+
+    @staticmethod
+    def calc_angle(donor_atom, acceptor_atom, h_atom):
+        v1 = donor_atom.coords - h_atom.coords
+        v2 = acceptor_atom.coords - h_atom.coords
+        return np.degrees(np.arccos(np.dot(v1, v2)/(la.norm(v1) * la.norm(v2))))
+
+    @staticmethod
+    def check_distance(distance, cutoff=mastinxconfig.HBOND_DIST_MAX):
         """For a float distance checks if it is less than the configuration
         file HBOND_DIST_MAX value.
 
@@ -271,8 +173,8 @@ class HydrogenBondType(InteractionType):
         else:
             return False
 
-    @classmethod
-    def check_angle(cls, angle, cutoff=mastinxconfig.HBOND_DON_ANGLE_MIN):
+    @staticmethod
+    def check_angle(angle, cutoff=mastinxconfig.HBOND_DON_ANGLE_MIN):
         """For a float distance checks if it is less than the configuration
         file HBOND_DON_ANGLE_MIN value.
 
@@ -401,8 +303,8 @@ class HydrogenBondInx(Interaction):
     def record(self):
         record_fields = ['interaction_class',
                          'donor_coords', 'acceptor_coords',
-                         'distance', 'angle',
-                         'H_coords']
+                         'distance', 'angle',]
+                         #'H_coords']
 
         HydrogenBondInxRecord = namedtuple('HydrogenBondInxRecord', record_fields)
         record_attr = {'interaction_class' : self.interaction_class.name}
