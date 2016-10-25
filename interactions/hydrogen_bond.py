@@ -21,15 +21,19 @@ class HydrogenBondType(InteractionType):
 
     attributes = {}
     interaction_name = "HydrogenBond"
-    feature_keywords = mastinxconfig.HBOND_FEATURES
-    donor_key = 'Donor'
-    acceptor_key = 'Acceptor'
-    feature_order = [donor_key, acceptor_key]
-    grouping_attribute = 'rdkit_family'
+
+    feature_keys = mastinxconfig.FEATURE_KEYS
+    feature_classifiers = mastinxconfig.HBOND_FEATURES
+    
+    donor_key = feature_keys[0]
+    acceptor_key = feature_keys[1]
+    donor_feature_classifiers = feature_classifiers[donor_key]
+    acceptor_feature_classifiers = feature_classifiers[acceptor_key]
+
     # order is the number of features that participate in an interaction
-    degree = 2
-    commutative = False
-    interaction_params = ['distance', 'angle']
+    degree = mastinxconfig.HBOND_DEGREE
+    commutative = mastinxconfig.HBOND_COMMUTATIVITY
+    interaction_param_keys = mastinxconfig.HBOND_PARAM_KEYS
 
     def __init__(self, hydrogen_bond_type_name,
                  feature_types=None,
@@ -187,7 +191,7 @@ class HydrogenBondType(InteractionType):
 
     @classmethod
     def is_donor(cls, feature):
-        if feature.attributes_data[cls.grouping_attribute] == cls.donor_key:
+        if feature.attributes_data[cls.grouping_attribute] in cls.donor_keys:
             return True
         else:
             return False

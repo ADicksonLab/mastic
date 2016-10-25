@@ -1,25 +1,52 @@
-INTERACTION_ATTRIBUTES = ['name']
+INTERACTION_ATTRIBUTES = ['name', ]
 
 # families and types from the RDKit feature definition database
 # (.fdef)
-HBOND_FEATURES = {'rdkit_family' : ['Donor', 'Acceptor'],
-                  'rdkit_type' : []}
 
-PISTACKING_FEATURES = {'rdkit_family' : ['Aromatic'],
-                       'rdkit_type' : ['Arom6', 'Arom5']}
+# Feature dictionaries have as their keys the grouping attribute.  The
+# list has as many elements as the degree of the interaction.  Each
+# element is a list of keywords that can be used to identify the
+# feature from rdkit.
+# the grouping attributes assign which key to use in the INX_FEATURES
+# dictionary when finding appropriate features for each member of the
+# interaction
 
+# HydrogenBondType : hydrogen bonds with explicit hydrogens
+HBOND_DEGREE = 2
+HBOND_COMMUTATIVITY = False
+HBOND_PARAM_KEYS = ['distance', 'angle']
+HBOND_FEATURE_KEYS = ['donor', 'acceptor']
+HBOND_RDKIT_FEATURES = {HBOND_FEATURE_KEYS[0] : ['Donor'],
+                        HBOND_FEATURE_KEYS[1] : ['Acceptor']}
+HBOND_FEATURES = HBOND_RDKIT_FEATURES
 
-HYDROPH_FEATURE_FAMILIES = ['Hydrophobe', 'LumpedHydrophobe']
-HYDROPH_FEATURE_TYPES = []
+PISTACKING_DEGREE = 2
+PISTACKING_GROUPING_ATTRIBUTES = ['rdkit_family', 'rdkit_family']
+PISTACKING_FEATURES = {'rdkit_family' : [['Aromatic'], ['Aromatic']],
+                       'rdkit_type' : [['Arom6', 'Arom5'], ['Arom6', 'Arom5']]}
 
-PICATION_FEATURE_FAMILIES = ['Aromatic', 'PosIonizable']
-PICATION_FEATURE_TYPES = []
+HYDROPH_DEGREE = 2
+HYDROPH_GROUPING_ATTRIBUTES = ['rdkit_family', 'rdkit_family']
+HYDROPH_FEATURES = {'rdkit_family' : [['Hydrophobe', 'LumpedHydrophobe'],
+                                      ['Hydrophobe', 'LumpedHydrophobe']],
+                    'rdkit_type' : [[], []]}
 
-SALTBRIDGE_FEATURE_FAMILIES = ['PosIonizable', 'NegIonizable']
-SALTBRIDGE_FEATURE_TYPES = []
+PICATION_DEGREE = 2
+PICATION_GROUPING_ATTRIBUTES = ['rdkit_family', 'rdkit_family']
+PICATION_FEATURES = {'rdkit_family' : [['Aromatic'], ['PosIonizable']],
+                     'rdkit_type' : [[], []]}
 
-HALOGEN_FEATURE_FAMILIES = []
-HALOGEN_FEATURE_TYPES = ['HalogenAcceptor']
+SALTBRIDGE_DEGREE = 2
+SALTBRIDGE_GROUPING_ATTRIBUTES = ['rdkit_family', 'rdkit_family']
+SALTBRIDGE_FEATURES = {'rdkit_family' : [['PosIonizable'], ['NegIonizable']],
+                       'rdkit_type' : [[], []]}
+
+# HalogenBondType : strong hydrogen bonds with halogen acceptors and
+# explicit hydrogens
+HALOGEN_BOND_DEGREE = 2
+HALOGEN_BOND_GROUPING_ATTRIBUTES = ['rdkit_family', 'rdkit_type']
+HALOGEN_BOND_FEATURES = {'rdkit_family' : [['Donor'], []],
+                         'rdkit_type' : [[], ['HalogenAcceptor']]}
 
 WATER_BRIDGE_FEATURE_FAMILIES = []
 WATER_BRIDGE_FEATURE_TYPES = []
@@ -60,13 +87,13 @@ PICATION_DIST_MAX = 6.0 # /AA
 SALTBRIDGE_DIST_MAX = 5.5 # /AA
 
 # Max. distance between oxy. and halogen (Halogen bonds in biological molecules., Auffinger)+0.5
-HALOGEN_DIST_MAX = 4.0 # /AA
+HALOGEN_BOND_DIST_MAX = 4.0 # /AA
 # Optimal acceptor angle (Halogen bonds in biological molecules., Auffinger)
-HALOGEN_ACC_ANGLE = 120 # /degrees
+HALOGEN_BOND_ACC_ANGLE = 120 # /degrees
 # Optimal donor angle (Halogen bonds in biological molecules., Auffinger)
-HALOGEN_DON_ANGLE = 165 # /degrees
+HALOGEN_BOND_DON_ANGLE = 165 # /degrees
 # Max. deviation from optimal angle
-HALOGEN_ANGLE_DEV = 30 # /degrees
+HALOGEN_BOND_ANGLE_DEV = 30 # /degrees
 
 # Min. distance between water oxygen and polar atom (Jiang et al., 2005) -0.1
 WATER_BRIDGE_MINDIST = 2.5 # /AA

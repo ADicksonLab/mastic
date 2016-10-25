@@ -14,9 +14,7 @@ import mast.system as mastsys
 
 import mast.config.interactions as mastinxconfig
 
-__all__ = ['AssociationType', 'Association',
-           'Interaction', 'HydrogenBondInx', 'NoHHydrogenBondInx'
-           'InteractionType', 'HydrogenBondType', 'NoHHydrogenBondType']
+__all__ = ['Interaction', 'InteractionType', "InteractionError"]
 
 class InteractionError(Exception):
     pass
@@ -30,12 +28,16 @@ class InteractionType(object):
 
     """
 
+    attributes = {}
     interaction_name = "None"
-    feature_keywords = None
-    feature_order = None
-    grouping_attribute = None
+
+    feature_keys = None
+    feature_classifiers = None
+
     # order is the number of features that participate in an interaction
     degree = 0
+    commutative = True
+    interaction_param_keys = []
 
     # a string to use for formatting interaction class names
     inx_class_name_template = "{assoc_type}_{inx_name}_{idx}_InxClass"
@@ -124,13 +126,17 @@ class InteractionType(object):
         # for each member collect the features relevant to this
         # interaction type, in the feature_order, so initialize an
         # empty list for each
-        members_features = [[] for feature_key in cls.feature_order]
+        members_features = [[] for feature_key in cls.feature_keys]
         # and go through each member_type
         for member_idx, member_type in enumerate(association_type.member_types):
             for feature_type in member_type.feature_types.values():
-               # if the feature has one of the features in this interaction
-                attr = cls.feature_inx_attribute(feature_type)
-                if attr == cls.feature_order[member_idx]:
+                # get the classifiers for this feature (based on the
+                # feature identification algorithms applied)
+                feature_classifiers = cls.feature_inx_attributes(feature_type)
+
+                # if the feature has one of the classifiers for this member of the interaction
+                inx_member_classifiers = cls.feature_classifiers[cls.feature_keys[member_idx]]
+                if not set(feature_classifiers).isdisjoint(inx_member_classifiers):
                     # and add it to the appropriate list
                     members_features[member_idx].append(feature_type)
 
@@ -163,18 +169,19 @@ class InteractionType(object):
         return inx_classes
 
     @classmethod
-    def feature_inx_attribute(cls, feature):
+    def feature_inx_attributes(cls, feature):
         """Check to see if this feature is part of the classes grouping
         attribute. Returns the feature attribute or None if it does
         not match.
 
         """
-        feature_attribute = None
-        for feature_key in cls.feature_keywords[cls.grouping_attribute]:
-            if feature.attributes_data[cls.grouping_attribute] == feature_key:
-                feature_attribute = feature_key
+        feature_attribute = []
+        for feature_key, inx_classifiers in cls.feature_classifiers.items():
+            feature_classifiers = feature.__dict__[mastfeatconfig.FEATURE_CLASSIFIER_KEY]
+            if not set(feature_classifiers).isdisjoint(inx_classifiers):
+                feature_attribute.append(feature_key)
 
-        return feature_attribute
+        return feature_attributes
 
     def check(self, *args, **kwargs):
         """The principle class method for testing for the existence of an

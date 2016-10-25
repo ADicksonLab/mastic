@@ -5,6 +5,7 @@ import numpy as np
 
 import mast.molecule as mastmol
 import mast.features as mastfeat
+import mast.config.feat as mastfeatconfig
 
 from rdkit import RDConfig
 from rdkit import Chem
@@ -263,11 +264,11 @@ class RDKitMoleculeWrapper(object):
             for idx, feat_dict in self.find_features().items():
                 atom_idxs = feat_dict['atom_ids']
                 feature_attrs = {}
-                feature_attrs['rdkit_family'] = feat_dict['family']
-                feature_attrs['rdkit_type'] = feat_dict['type']
+                feature_classifiers = [feat_dict['family'] + feat_dict['type']]
+                feature_attrs[mastfeatconfig.FEATURE_CLASSIFIER_KEY] = feature_classifiers
                 feature_attrs['rdkit_position'] = feat_dict['position']
 
-                feature_type_name = "{0}Feature{1}Type".format(self.mol_name, idx)
+                feature_type_name = mastfeatconfig.FEATURE_TYPE_TEMPLATE.format(self.mol_name, idx)
                 feature_type = mastfeat.FeatureType(feature_type_name,
                                                     molecule_type=molecule_type,
                                                     atom_idxs=atom_idxs,
