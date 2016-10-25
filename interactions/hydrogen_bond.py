@@ -10,6 +10,7 @@ import numpy.linalg as la
 from scipy.spatial.distance import cdist
 
 import mast.config.interactions as mastinxconfig
+import mast.config.features as mastfeatconfig
 from mast.interactions.interactions import InteractionType, Interaction, InteractionError
 
 
@@ -19,21 +20,27 @@ class HydrogenBondType(InteractionType):
 
     """
 
+    ## class attributes that need to exist
     attributes = {}
     interaction_name = "HydrogenBond"
-
-    feature_keys = mastinxconfig.FEATURE_KEYS
+    feature_keys = mastinxconfig.HBOND_FEATURE_KEYS
     feature_classifiers = mastinxconfig.HBOND_FEATURES
-    
+    # order is the number of features that participate in an interaction
+    degree = mastinxconfig.HBOND_DEGREE
+    commutative = mastinxconfig.HBOND_COMMUTATIVITY
+    interaction_param_keys = mastinxconfig.HBOND_PARAM_KEYS
+
+    ## specific to this class parameters but make defaults easier and
+    ## for writing other similar InteractionTypes
+    distance_cutoff = mastinxconfig.HBOND_DIST_MAX
+    angle_cutoff = mastinxconfig.HBOND_DON_ANGLE_MIN
+
+    ## convenience class attributes particular to this class
     donor_key = feature_keys[0]
     acceptor_key = feature_keys[1]
     donor_feature_classifiers = feature_classifiers[donor_key]
     acceptor_feature_classifiers = feature_classifiers[acceptor_key]
 
-    # order is the number of features that participate in an interaction
-    degree = mastinxconfig.HBOND_DEGREE
-    commutative = mastinxconfig.HBOND_COMMUTATIVITY
-    interaction_param_keys = mastinxconfig.HBOND_PARAM_KEYS
 
     def __init__(self, hydrogen_bond_type_name,
                  feature_types=None,
@@ -47,8 +54,8 @@ class HydrogenBondType(InteractionType):
                          assoc_member_pair_idxs=assoc_member_pair_idxs,
                          **hydrogen_bond_attrs)
 
-        self.donor = feature_types[0]
-        self.acceptor = feature_types[1]
+        self.donor_type = feature_types[0]
+        self.acceptor_type = feature_types[1]
 
     @staticmethod
     def interaction_constructor(*params, **kwargs):
@@ -58,8 +65,8 @@ class HydrogenBondType(InteractionType):
     def find_hits(cls, members,
                   interaction_classes=None,
                   return_feature_keys=False,
-                  distance_cutoff=mastinxconfig.HBOND_DIST_MAX,
-                  angle_cutoff=mastinxconfig.HBOND_DON_ANGLE_MIN):
+                  distance_cutoff=distance_cutoff,
+                  angle_cutoff=angle_cutoff):
 
         # TODO value checks
 
@@ -67,13 +74,13 @@ class HydrogenBondType(InteractionType):
         return super().find_hits(members,
                                  interaction_classes=interaction_classes,
                                  # the parameters for the interaction existence
-                                 distance_cutoff=mastinxconfig.HBOND_DIST_MAX,
-                                 angle_cutoff=mastinxconfig.HBOND_DON_ANGLE_MIN)
+                                 distance_cutoff=distance_cutoff,
+                                 angle_cutoff=angle_cutoff)
 
     @classmethod
     def check(cls, donor, acceptor,
-              distance_cutoff=mastinxconfig.HBOND_DIST_MAX,
-              angle_cutoff=mastinxconfig.HBOND_DON_ANGLE_MIN):
+              distance_cutoff=distance_cutoff,
+              angle_cutoff=angle_cutoff):
         """Checks if the 3 atoms qualify as a hydrogen bond. Returns a tuple
         (bool, float, float) where the first element is whether or not it
         qualified, the second and third are the distance and angle
@@ -114,7 +121,7 @@ class HydrogenBondType(InteractionType):
                     okay_angle = angle
 
         # none are found to meet the constraint
-        except StopIterationError:
+        except StopIteration:
             return (False, (distance, None))
 
         # return in the order of cls.interaction_params
@@ -167,7 +174,7 @@ class HydrogenBondType(InteractionType):
         return np.degrees(np.arccos(np.dot(v1, v2)/(la.norm(v1) * la.norm(v2))))
 
     @staticmethod
-    def check_distance(distance, cutoff=mastinxconfig.HBOND_DIST_MAX):
+    def check_distance(distance, cutoff=distance_cutoff):
         """For a float distance checks if it is less than the configuration
         file HBOND_DIST_MAX value.
 
@@ -178,7 +185,7 @@ class HydrogenBondType(InteractionType):
             return False
 
     @staticmethod
-    def check_angle(angle, cutoff=mastinxconfig.HBOND_DON_ANGLE_MIN):
+    def check_angle(angle, cutoff=angle_cutoff):
         """For a float distance checks if it is less than the configuration
         file HBOND_DON_ANGLE_MIN value.
 
@@ -217,13 +224,13 @@ class HydrogenBondInx(Interaction):
                  interaction_class=None,
                  distance=None,
                  angle=None,
-                 distance_cutoff=mastinxconfig.HBOND_DIST_MAX,
-                 angle_cutoff=mastinxconfig.HBOND_DON_ANGLE_MIN):
+                 distance_cutoff=interaction_type.distance_cutoff,
+                 angle_cutoff=interaction_type.angle_cutoff):
 
         donor_atom = donor.atoms[0]
         acceptor_atom = acceptor.atoms[0]
         if check:
-            okay, param_values = HydrogenBondType.check(donor_atom, acceptor_atom,
+            okay, param_values = interaction_type.check(donor_atom, acceptor_atom,
                                                            distance_cutoff=distance_cutoff,
                                                            angle_cutoff=angle_cutoff)
 

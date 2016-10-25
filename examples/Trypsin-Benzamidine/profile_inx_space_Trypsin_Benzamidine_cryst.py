@@ -39,6 +39,7 @@ rec_lig_member_idxs = rec_lig_association_type.member_idxs
 rec_lig_inx_classes = hbond_inx_classes_assocs[rec_lig_member_idxs]
 
 # profile that association
+import ipdb; ipdb.set_trace()
 rec_lig_inxs = rec_lig_association.profile_interactions(
     [HydrogenBondType],
     interaction_classes=rec_lig_inx_classes)[HydrogenBondType]

@@ -13,6 +13,7 @@ import mast.features as mastfeat
 import mast.system as mastsys
 
 import mast.config.interactions as mastinxconfig
+import mast.config.features as mastfeatconfig
 
 __all__ = ['Interaction', 'InteractionType', "InteractionError"]
 
@@ -132,7 +133,8 @@ class InteractionType(object):
             for feature_type in member_type.feature_types.values():
                 # get the classifiers for this feature (based on the
                 # feature identification algorithms applied)
-                feature_classifiers = cls.feature_inx_attributes(feature_type)
+                # feature_classifiers = cls.feature_inx_attributes(feature_type)
+                feature_classifiers = feature_type.feature_classifiers
 
                 # if the feature has one of the classifiers for this member of the interaction
                 inx_member_classifiers = cls.feature_classifiers[cls.feature_keys[member_idx]]
@@ -170,18 +172,18 @@ class InteractionType(object):
 
     @classmethod
     def feature_inx_attributes(cls, feature):
-        """Check to see if this feature is part of the classes grouping
-        attribute. Returns the feature attribute or None if it does
-        not match.
+        """Check to see if this feature can be a participant in this
+        interaction. Returns the classifiers that qualify it for
+        participation in this interaction.
 
         """
-        feature_attribute = []
-        for feature_key, inx_classifiers in cls.feature_classifiers.items():
-            feature_classifiers = feature.__dict__[mastfeatconfig.FEATURE_CLASSIFIER_KEY]
-            if not set(feature_classifiers).isdisjoint(inx_classifiers):
-                feature_attribute.append(feature_key)
+        feature_inx_classifiers = []
+        inx_classifiers = it.chain(*[classifiers for classifiers in
+                                     cls.feature_classifiers.values()])
+        if not set(feature.feature_classifiers).isdisjoint(inx_classifiers):
+            feature_inx_classifiers.extend(feature.feature_classifiers)
 
-        return feature_attributes
+        return feature_inx_classifiers
 
     def check(self, *args, **kwargs):
         """The principle class method for testing for the existence of an
@@ -207,13 +209,15 @@ class InteractionType(object):
         # for each member collect the grouped features
         # initialize list of members (A, B, ...)
         members_features = [[] for i in members]
-        for i, member in enumerate(members):
+        for memb_idx, member in enumerate(members):
+            # collect the features for this member/classifier
             for feature_key, feature in member.features.items():
-                # get groupby attribute to use as a key
-                group_attribute = feature.feature_type.attributes_data[cls.grouping_attribute]
-
-                if group_attribute == cls.feature_order[i]:
-                    members_features[i].append((feature_key, feature))
+                # get the classifiers this feature has
+                feature_classifiers = feature.feature_type.feature_classifiers
+                # if any match the classifiers for this interaction member keep it
+                inx_member_classifiers = cls.feature_classifiers[cls.feature_keys[memb_idx]]
+                if not set(feature_classifiers).isdisjoint(inx_member_classifiers):
+                    members_features[memb_idx].append((feature_key, feature))
 
         # combine the features
         feature_tuples = it.product(members_features[0], members_features[1])
@@ -233,7 +237,7 @@ class InteractionType(object):
 
             # call check for the InteractionType which checks to see
             # if the two features are in an interaction.
-            # param_values should be in the same order as their labels in cls.interaction_params
+            # param_values should be in the same order as their labels in cls.interaction_param_keys
             okay, param_values = cls.check(*features, **parameters)
 
             # if the feature pair did not pass do not construct an Interaction
@@ -242,7 +246,7 @@ class InteractionType(object):
 
             # associate the parameter values with the names for them
             param_values = {param_name : param_val for param_name,
-                            param_val in zip(cls.interaction_params, param_values)}
+                            param_val in zip(cls.interaction_param_keys, param_values)}
 
             # otherwise make the Interaction from the features and the
             # values from check
