@@ -9,6 +9,7 @@ from collections import namedtuple
 
 import numpy as np
 import numpy.linalg as la
+from scipy.spatial.distance import cdist
 
 import mast.config.interactions as mastinxconfig
 from mast.interactions.interactions import InteractionType, Interaction, InteractionError
@@ -19,14 +20,13 @@ class PiStackingType(InteractionType):
 
     """
 
+    attributes = {}
     interaction_name = "PiStacking"
-    interaction_constructor = PiStackingInx
-    feature_keywords = mastinxconfig.PISTACKING_FEATURES
-    aromatic_keys = mastinxconfig.PISTACKING_FEATURES['rdkit_family']
-    feature_order = None
-    grouping_attribute = 'rdkit_family'
+    feature_keys = mastinxconfig.PISTACKING_FEATURE_KEYS
+    feature_classifiers = mastinxconfig.PISTACKING_FEATURES
     degree = 2
     commutative = True
+    interaction_param_keys = mastinxconfig.PISTACKING_PARAM_KEYS
 
     def __init__(self, pi_stacking_type_name,
                  feature_types=None,
@@ -40,126 +40,154 @@ class PiStackingType(InteractionType):
                          assoc_member_pair_idxs=assoc_member_pair_idxs,
                          **pi_stacking_attrs)
 
+    @staticmethod
+    def interaction_constructor(*params, **kwargs):
+        return PiStackingInx(*params, **kwargs)
+
     @classmethod
-    def find_hits(cls, member_a, member_b,
+    def find_hits(cls, members,
                   interaction_classes=None,
-                  cutoff=None):
+                  return_feature_keys=False,
+                  distance_cutoff=distance_cutoff,
+                  angle_cutoff=angle_cutoff):
 
-        # check that the keys ar okay in parent class
-        # super().find_hits(members_features)
+        # TODO value checks
 
-        # for each member collect the grouped features
-        # initialize list of members (A, B)
-        members_features = ([], [])
-        for i, member in enumerate([member_a, member_b]):
-            for feature_key, feature in member.features.items():
-                # get groupby attribute to use as a key
-                group_attribute = feature.feature_type.attributes_data[cls.grouping_attribute]
-
-                if group_attribute in cls.aromatic_keys:
-                    aromatic_tup = (feature_key, feature)
-                    members_features[i].append(aromatic_tup)
-
-        # pair the aromatic features
-        aromatic_pairs = []
-        pi_stack_pairs = it.product(members_features[0],
-                                    members_features[1])
-
-        # scan the pairs for hits
-        hit_pair_keys = []
-        pistacks = []
-        for arom_a_tup, arom_b_tup in pi_stack_pairs:
-            arom_a_feature_key = atom_a_tup[0]
-            arom_a_feature = donor_tup[1]
-            arom_b_feature_key = arom_b_tup[0]
-            arom_b_feature = arom_b_tup[1]
-            # try to make a PiStackingInx object, which calls check,
-            #
-            # OPTIMIZATION: otherwise we have to call check first then
-            # the PiStackingInx constructor will re-call check to
-            # get the angle and distance. If we allow passing and not
-            # checking the angle and distance in the constructor then
-            # it would be faster, however I am not going to allow that
-            # in this 'safe' InteractionType, an unsafe optimized
-            # version can be made separately if desired.
-            try:
-                pistack = PiStackingInx(feature1=arom_a_feature,
-                                        feature2=arom_b_feature)
-            # else continue to the next pairing
-            except InteractionError:
-                continue
-
-            # classify the hbond if given classes
-            interaction_class = None
-            if interaction_classes:
-                feature_pairs = [(inx_class.donor, inx_class.acceptor) for
-                                 inx_class in interaction_classes]
-                # get the matching interaction class, throws error if no match
-
-                try:
-                    interaction_classes_it = iter(interaction_classes)
-                    found = False
-                    while not found:
-                        inx_class = next(interaction_classes_it)
-                        feature_pair = (inx_class.donor, inx_class.acceptor)
-                        if feature_pair == \
-                           (donor_feature.feature_type, acceptor_feature.feature_type):
-                            hbond.interaction_class = inx_class
-                            found = True
-
-                except StopIteration:
-                    print("No matching interaction class given")
-
-            # if it succeeds add it to the list of H-Bonds
-            pistacks.append(pistack)
-            # and the feature keys to the feature key pairs
-            hit_pair_keys.append((arom_a_feature_key, arom_b_feature_key))
-
-        return hit_pair_keys, pistacks
-
-
+        # scan the pairs for hits and assign interaction classes if given
+        return super().find_hits(members,
+                                 interaction_classes=interaction_classes,
+                                 # the parameters for the interaction existence
+                                 distance_cutoff=distance_cutoff,
+                                 angle_cutoff=angle_cutoff)
 
     @classmethod
-    def test_find_hits(cls, members,
-                          interaction_classes=None,
-                          **parameters):
+    def plip_check(cls, arom_a, arom_b):
 
-        # TODO checks
+        param_values = [None for param in cls.interaction_param_keys]
 
-        # for each member collect the grouped features
-        # initialize list of members (A, B, ...)
-        members_features = tuple([[] for i in members])
-        for i, member in enumerate(members):
-            for feature_key, feature in member.features.items():
-                # get groupby attribute to use as a key
-                group_attribute = feature.feature_type.attributes_data[cls.grouping_attribute]
+        # coordinates for atoms of aromatic rings (heavy atoms only)
+        arom_a_coords = np.array([atom.coords for atom in arom_a.atoms])
+        arom_b_coords = np.array([atom.coords for atom in arom_b.atoms])
+        arom_coords = [arom_a_coords, arom_b_coords]
+
+        ### 1) calculate the distance between centroids
+        centroid_a = atom_a_coords.mean(axis=1)
+        centroid_b = atom_b_coords.mean(axis=1)
+        centroids = [centroid_a, centroid_b]
+        centroid_distance = cdist(centroid_a, centroid_b)[0,0]
+        param_values[0] = centroid_distance
+        # if this passes then move on
+        if cls.check_centroid_distance(distance) is False:
+            return (False, tuple(param_values))
+
+        ### 2) Calculate and check the angle between the two ring normal vectors
+
+        ## 2.1) calculate the normal vectors of the rings by using
+        # vectors from the centroid to 2 different points on the ring
+        arom_plane_vectors = []
+        arom_norms = []
+
+        # now get the norm vectors for each ring
+        ring_a = 0
+        ring_b = 1
+
+        # ring A
+        # choose the atoms
+        atom_coords = arom_coords[ring_a]
+        a0 = atom_coords[0]
+        if len(atom_coords) in [6,5]:
+            a1 = atom_coords[3]
+        else:
+            raise InteractionError("aromatic rings without 5 or 6 atoms not supported")
+
+        a0c = a0 - centroids[ring_a]
+        arom_plane_vectors.append(a0c)
+        a1c = a1 - centroid[ring_a]
+        norm_up = np.cross(a0c, a1c)
+        norm_down = np.cross(a1c, a0c)
+        # get the norm so that it points to the other ring
+        d_up = cdist([norm_up + centroids[ring_a]], centroids[ring_b])
+        d_down = cdist([norm_down + centroids[ring_a]], centroids[ring_b])
+        norm = norm_up if d_up < d_down else norm_down
+        arom_norms.append(norm)
+
+        # ring b
+        # choose the atoms
+        atom_coords = arom_coords[ring_b]
+        a0 = atom_coords[0]
+        if len(atom_coords) in [6,5]:
+            a1 = atom_coords[3]
+        else:
+            raise InteractionError("aromatic rings without 5 or 6 atoms not supported")
+
+        a0c = a0 - centroids[ring_b]
+        arom_plane_vectors.append(a0c)
+        a1c = a1 - centroid[ring_b]
+        norm_up = np.cross(a0c, a1c)
+        norm_down = np.cross(a1c, a0c)
+        # get the norm so that it points to the other ring
+        d_up = cdist([norm_up + centroids[ring_b]], centroids[ring_a])
+        d_down = cdist([norm_down + centroids[ring_b]], centroids[ring_a])
+        norm = norm_up if d_up < d_down else norm_down
+        arom_norms.append(norm)
+
+        ## 2.2) calculate the angle between the normal vectors
+        try:
+            # flip one of them because it is opposite the other
+            ring_normal_angle = np.degrees(np.arccos(
+                np.dot(arom_norms[0], -1 * arom_norms[1])/(la.norm(
+                    arom_norms[0]) * la.norm(arom_norms[1]))))
+        except RuntimeWarning:
+            print("v1: {0} \n"
+                  "v2: {1}".format(arom_norms[0], arom_norms[1]))
+
+        # if normals happen to be opposite directions correct and get
+        # the angle that is non-negative and smallest
+        alt_angle = 180 - ring_normal_angle
+        ring_normal_angle = min(ring_normal_angle,
+                  alt_angle if not alt_angle < 0 alt_angle)
+        param_values[1] = ring_normal_angle
+        ## 2.3) check the ring normal angles, we expect a string if it
+        # passed or False if it failed
+        if cls.check_ring_normal_angle(ring_normal_angle) is False:
+            return (False, tuple(param_values))
 
 
-        ##### InteractionType specifc logic
-                if group_attribute in cls.aromatic_keys:
-                    aromatic_tup = (feature_key, feature)
-                    members_features[i].append(aromatic_tup)
+
+        ### 3) Project the centers of each ring over each other and get
+        # the offset
+
+        # the vector going from centroid a to b
+        centroid_vec_a = centroid_b - centroid_a
+        # project this onto the normal of centroid_a
+        norm_a_proj = np.dot(centroid_vec_a, arom_norms[0]) /\
+                        (la.norm(centroid_vec_a) * la.norm(arom_norms[0]))
+        # get the rejection of the centroid vector to the norm
+        # (i.e. the projection onto the plane vector)
+        plane_a_proj = centroid_vec_a - norm_a_proj
+
+        # repeat for the other way
+        centroid_vec_b = centroid_a - centroid_b
+        norm_b_proj = np.dot(centroid_vec_b, arom_norms[1]) /\
+                        (la.norm(centroid_vec_b) * la.norm(arom_norms[1]))
+        plane_b_proj = centroid_vec_b - norm_b_proj
+
+        centroid_offset = min(plane_a_proj, plane_b_proj)
+        param_values[2] = centroid_offset
+        if cls.check_ring_centroid_offset(centroid_offset) is False:
+            return (False, tuple(param_values))
 
 
+        ### 4) Determine whether the stacking is parallel of
+        # perpendicular, as a string
+        stacking_type = cls.check_stacking_type(ring_normal_angle)
+        param_values[3] = stacking_type
 
-        # combine the features. this part may be improved by using the
-        # degree and the symmetry of the interaction.
-        # feature_tuples = it.product(members_features, repeat=cls.degree)
-
-        # for now we rely on knowledge of the interaction
-        feature_tuples = it.product(members_features[0],
-                                    members_features[1])
-
-        #####
-
-        # scan the pairs for hits
-        return super().check(feature_tuples, **parameters)
-
+        # END return the interaction parameters and a True result
+        return (True, tuple(param_values))
 
     @classmethod
     def check(cls, arom_a_atoms, arom_b_atoms):
-
-        from scipy.spatial.distance import cdist
 
         # parameter initialization for return
         centroid_distance = None
@@ -186,7 +214,7 @@ class PiStackingType(InteractionType):
 
         # 2.1) calculate the normal vectors of the rings by using
         # vectors from the centroid to 2 different points on the ring
-        arom_vectors = []
+        arom_plane_vectors = []
         arom_norms = []
         for i, atom_coords in enumerate(arom_coords):
             # choose the atoms
@@ -197,7 +225,7 @@ class PiStackingType(InteractionType):
                 raise InteractionError("aromatic rings without 5 or 6 atoms not supported")
 
             a0c = a0 - centroid[i]
-            arom_vectors.append(a0c)
+            arom_plane_vectors.append(a0c)
             a1c = a1 - centroid
             norm = a0c.cross(a1c)
             arom_norms.append(norm)
@@ -273,9 +301,9 @@ class PiStackingType(InteractionType):
 
 
         # 3.2) project the point to the reference ring plane
-        proj_point = arom_vectors[ref_arom_idx] * \
+        proj_point = arom_plane_vectors[ref_arom_idx] * \
                      (arom_coords[proj_arom_idx][proj_atom_idx].dot(
-                         arom_vectors[ref_arom_idx]))
+                         arom_plane_vectors[ref_arom_idx]))
         proj_centroid_distance = cdist([proj_point], [centroids[ref_arom_idx]])
         offset_result = cls.check_offset_distance(proj_centroid_distance)
         if offset_result is False:
@@ -360,21 +388,26 @@ class PiStackingInx(Interaction):
 
     """
 
-    def __init__(self, feature1=None, feature2=None):
+    interaction_type = PiStackingType
 
-        okay, centroid_distance, ring_normal_angle, \
-            T_distance, offset_distance = \
-                PiStackingType.check(feature1.atoms, feature2.atoms)
+    def __init__(self, arom_a, arom_b,
+                 check=True,
+                 interaction_class=None,):
 
-        if not okay:
-            raise InteractionError
+        if check:
+            okay, param_values = self.interaction_type.check(arom_a.atoms, arom_b.atoms)
+
+            if not okay:
+                raise InteractionError
 
         # success, finish creating interaction
-        super().__init__(features=[feature1, feature2],
-                         interaction_type=PiStackingType,
+        atom_system = arom_a.system
+        super().__init__(features=[arom_a, arom_b],
+                         interaction_type=self.interaction_type,
                          system=atom_system)
-        self._arom_a = feature1
-        self._arom_b = feature2
+        self._arom_a = arom_a
+        self._arom_b = arom_b
+        # constraint params
         self._centroid_distance = centroid_distance
         self._ring_normal_angle = ring_normal_angle
         self._T_distance = T_distance
@@ -415,14 +448,6 @@ class PiStackingInx(Interaction):
         record_attr['H_coords'] = self.H.coords
 
         return PiStackingInxRecord(**record_attr)
-
-    def pickle(self, path):
-        import sys
-        sys.setrecursionlimit(10000)
-        import pickle
-        with open(path, 'wb') as wf:
-            pickle.dump(self, wf)
-
 
 
 #### parallel yaw calculations

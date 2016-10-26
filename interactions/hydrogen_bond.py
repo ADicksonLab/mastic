@@ -23,17 +23,17 @@ class HydrogenBondType(InteractionType):
     ## class attributes that need to exist
     attributes = {}
     interaction_name = "HydrogenBond"
-    feature_keys = mastinxconfig.HBOND_FEATURE_KEYS
-    feature_classifiers = mastinxconfig.HBOND_FEATURES
-    # order is the number of features that participate in an interaction
-    degree = mastinxconfig.HBOND_DEGREE
-    commutative = mastinxconfig.HBOND_COMMUTATIVITY
-    interaction_param_keys = mastinxconfig.HBOND_PARAM_KEYS
+    feature_keys = mastinxconfig.HYDROGEN_BOND_FEATURE_KEYS
+    feature_classifiers = mastinxconfig.HYDROGEN_BOND_FEATURES
+    # degree is the number of features that participate in an interaction
+    degree = mastinxconfig.HYDROGEN_BOND_DEGREE
+    commutative = mastinxconfig.HYDROGEN_BOND_COMMUTATIVITY
+    interaction_param_keys = mastinxconfig.HYDROGEN_BOND_PARAM_KEYS
 
     ## specific to this class parameters but make defaults easier and
     ## for writing other similar InteractionTypes
-    distance_cutoff = mastinxconfig.HBOND_DIST_MAX
-    angle_cutoff = mastinxconfig.HBOND_DON_ANGLE_MIN
+    distance_cutoff = mastinxconfig.HYDROGEN_BOND_DIST_MAX
+    angle_cutoff = mastinxconfig.HYDROGEN_BOND_DON_ANGLE_MIN
 
     ## convenience class attributes particular to this class
     donor_key = feature_keys[0]
@@ -176,7 +176,7 @@ class HydrogenBondType(InteractionType):
     @staticmethod
     def check_distance(distance, cutoff=distance_cutoff):
         """For a float distance checks if it is less than the configuration
-        file HBOND_DIST_MAX value.
+        file HYDROGEN_BOND_DIST_MAX value.
 
         """
         if distance < cutoff:
@@ -187,7 +187,7 @@ class HydrogenBondType(InteractionType):
     @staticmethod
     def check_angle(angle, cutoff=angle_cutoff):
         """For a float distance checks if it is less than the configuration
-        file HBOND_DON_ANGLE_MIN value.
+        file HYDROGEN_BOND_DON_ANGLE_MIN value.
 
         """
 
@@ -230,7 +230,7 @@ class HydrogenBondInx(Interaction):
         donor_atom = donor.atoms[0]
         acceptor_atom = acceptor.atoms[0]
         if check:
-            okay, param_values = interaction_type.check(donor_atom, acceptor_atom,
+            okay, param_values = self.interaction_type.check(donor_atom, acceptor_atom,
                                                            distance_cutoff=distance_cutoff,
                                                            angle_cutoff=angle_cutoff)
 
@@ -360,11 +360,3 @@ class HydrogenBondInx(Interaction):
                       angle=self.angle,)
 
         print(string)
-
-    def pickle(self, path):
-        import sys
-        sys.setrecursionlimit(10000)
-        import pickle
-        with open(path, 'wb') as wf:
-            pickle.dump(self, wf)
-

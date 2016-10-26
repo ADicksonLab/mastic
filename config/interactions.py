@@ -12,14 +12,38 @@ INTERACTION_ATTRIBUTES = ['name', ]
 # interaction
 
 # HydrogenBondType : hydrogen bonds with explicit hydrogens
-HBOND_DEGREE = 2
-HBOND_COMMUTATIVITY = False
-HBOND_PARAM_KEYS = ['distance', 'angle']
-HBOND_FEATURE_KEYS = ['donor', 'acceptor']
-HBOND_RDKIT_FEATURES = {HBOND_FEATURE_KEYS[0] : ['Donor'],
-                        HBOND_FEATURE_KEYS[1] : ['Acceptor']}
-HBOND_FEATURES = HBOND_RDKIT_FEATURES
+HYDROGEN_BOND_DEGREE = 2
+HYDROGEN_BOND_COMMUTATIVITY = False
+HYDROGEN_BOND_PARAM_KEYS = ['distance', 'angle']
+HYDROGEN_BOND_FEATURE_KEYS = ['donor', 'acceptor']
+HYDROGEN_BOND_RDKIT_FEATURES = {HYDROGEN_BOND_FEATURE_KEYS[0] : ['Donor'],
+                        HYDROGEN_BOND_FEATURE_KEYS[1] : ['Acceptor']}
+HYDROGEN_BOND_FEATURES = HYDROGEN_BOND_RDKIT_FEATURES
 
+
+# HalogenBondType : strong interactions with halogen acceptors and
+# explicit hydrogens
+HALOGEN_BOND_DEGREE = 2
+HALOGEN_BOND_COMMUTATIVITY = False
+HALOGEN_BOND_PARAM_KEYS = ['distance', 'donor_angle', 'acceptor_angle']
+HALOGEN_BOND_FEATURE_KEYS = ['donor', 'halogen_acceptor']
+HALOGEN_BOND_GROUPING_ATTRIBUTES = ['rdkit_family', 'rdkit_type']
+HALOGEN_BOND_FEATURES = {'rdkit_family' : [['Donor'], []],
+                         'rdkit_type' : [[], ['HalogenAcceptor']]}
+
+# Halogen bond -Y-O ~ X-C-
+# where Y = C, P, S and X = F, Cl, Br, I
+# parameters taken from (Halogen bonds in biological molecules., Auffinger et al., 2004)
+# Maximum distance between oxygen and halogen +0.5
+HALOGEN_BOND_DIST_MAX = 4.0 # /AA
+# Optimal donor angle
+HALOGEN_BOND_DON_ANGLE = 165 # the X-C angle in /degrees
+# Optimal acceptor angle
+HALOGEN_BOND_ACC_ANGLE = 120 # the Y-O angle in /degrees
+# Maximum deviation from optimal angle
+HALOGEN_BOND_ANGLE_DEV = 30 # /degrees
+
+# PiStackingType
 PISTACKING_DEGREE = 2
 PISTACKING_GROUPING_ATTRIBUTES = ['rdkit_family', 'rdkit_family']
 PISTACKING_FEATURES = {'rdkit_family' : [['Aromatic'], ['Aromatic']],
@@ -41,12 +65,6 @@ SALTBRIDGE_GROUPING_ATTRIBUTES = ['rdkit_family', 'rdkit_family']
 SALTBRIDGE_FEATURES = {'rdkit_family' : [['PosIonizable'], ['NegIonizable']],
                        'rdkit_type' : [[], []]}
 
-# HalogenBondType : strong hydrogen bonds with halogen acceptors and
-# explicit hydrogens
-HALOGEN_BOND_DEGREE = 2
-HALOGEN_BOND_GROUPING_ATTRIBUTES = ['rdkit_family', 'rdkit_type']
-HALOGEN_BOND_FEATURES = {'rdkit_family' : [['Donor'], []],
-                         'rdkit_type' : [[], ['HalogenAcceptor']]}
 
 WATER_BRIDGE_FEATURE_FAMILIES = []
 WATER_BRIDGE_FEATURE_TYPES = []
@@ -54,14 +72,18 @@ WATER_BRIDGE_FEATURE_TYPES = []
 METAL_FEATURE_FAMILIES = []
 METAL_FEATURE_TYPES = []
 
+# Hydrogen Bond -D-H ~ A-
+# parameters taken from (Hubbard & Haider, 2001)
+# Max. distance between hydrogen bond donor and acceptor  + 0.6 A
+HYDROGEN_BOND_DIST_MAX = 4.1 # /AA
+# Min. angle at the hydrogen bond donor + 10
+HYDROGEN_BOND_DON_ANGLE_MIN = 100 # /AA
+
+
+
+
 # Determines allowed deviation from planarity in aromatic rings
 AROMATIC_PLANARITY = 5.0 # /AA
-
-# Max. distance between hydrogen bond donor and acceptor (Hubbard & Haider, 2001) + 0.6 A
-HBOND_DIST_MAX = 4.1 # /AA
-# Min. angle at the hydrogen bond donor (Hubbard & Haider, 2001) + 10
-HBOND_DON_ANGLE_MIN = 100 # /AA
-
 
 # Max. distance for parallel or offset pistacking (McGaughey, 1998)
 PISTACK_CENTROID_DIST_MAX = 7.5 # /AA
@@ -86,14 +108,6 @@ PICATION_DIST_MAX = 6.0 # /AA
 # Thornton, 1983) + 1.5
 SALTBRIDGE_DIST_MAX = 5.5 # /AA
 
-# Max. distance between oxy. and halogen (Halogen bonds in biological molecules., Auffinger)+0.5
-HALOGEN_BOND_DIST_MAX = 4.0 # /AA
-# Optimal acceptor angle (Halogen bonds in biological molecules., Auffinger)
-HALOGEN_BOND_ACC_ANGLE = 120 # /degrees
-# Optimal donor angle (Halogen bonds in biological molecules., Auffinger)
-HALOGEN_BOND_DON_ANGLE = 165 # /degrees
-# Max. deviation from optimal angle
-HALOGEN_BOND_ANGLE_DEV = 30 # /degrees
 
 # Min. distance between water oxygen and polar atom (Jiang et al., 2005) -0.1
 WATER_BRIDGE_MINDIST = 2.5 # /AA
