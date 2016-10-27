@@ -45,9 +45,25 @@ HALOGEN_BOND_ANGLE_DEV = 30 # /degrees
 
 # PiStackingType
 PISTACKING_DEGREE = 2
-PISTACKING_GROUPING_ATTRIBUTES = ['rdkit_family', 'rdkit_family']
-PISTACKING_FEATURES = {'rdkit_family' : [['Aromatic'], ['Aromatic']],
-                       'rdkit_type' : [['Arom6', 'Arom5'], ['Arom6', 'Arom5']]}
+PISTACKING_COMMUTATIVITY = True
+PISTACKING_PARAM_KEYS = ['centroid_distance', 'ring_normal_angle',
+                         'centroid_offset', 'stacking_type']
+PISTACKING_FEATURE_KEYS = ['arom_1', 'arom_2']
+PISTACKING_RDKIT_FEATURES = {PISTACKING_FEATURE_KEYS[0] : ['Aromatic', 'Arom6'],
+                             PISTACKING_FEATURE_KEYS[1] : ['Aromatic', 'Arom6']}
+PISTACKING_FEATURES = PISTACKING_RDKIT_FEATURES
+
+# Max. distance for parallel or offset pistacking (McGaughey, 1998)
+PISTACKING_CENTROID_DIST_MAX = 7.5 # /AA
+# Max. Deviation from parallel or perpendicular orientation
+PISTACKING_ANGLE_DEVIATION = 30 # /degrees
+# Maximum offset of the two rings (corresponds to the radius of
+# benzene + 0.5 A)
+PISTACKING_OFFSET_MAX = 2.0 # /AA
+
+# Maximum distance the closest atom must be in a T-stack
+PISTACKING_T_DIST = 5.0 #/AA
+
 
 HYDROPH_DEGREE = 2
 HYDROPH_GROUPING_ATTRIBUTES = ['rdkit_family', 'rdkit_family']
@@ -85,15 +101,6 @@ HYDROGEN_BOND_DON_ANGLE_MIN = 100 # /AA
 # Determines allowed deviation from planarity in aromatic rings
 AROMATIC_PLANARITY = 5.0 # /AA
 
-# Max. distance for parallel or offset pistacking (McGaughey, 1998)
-PISTACK_CENTROID_DIST_MAX = 7.5 # /AA
-# Max. Deviation from parallel or perpendicular orientation
-PISTACK_ANGLE_DEVIATION = 30 # /degrees
-# Maximum offset of the two rings (corresponds to the radius of
-# benzene + 0.5 A)
-PISTACK_OFFSET_MAX = 2.0 # /AA
-# Maximum distance the closest atom must be in a T-stack
-PISTACK_T_DIST = 5.0 #/AA
 
 # Some distance thresholds were extended (max. 1.0A) if too
 # restrictive too account for low-quality structures Distance cutoff

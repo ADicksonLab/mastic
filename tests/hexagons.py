@@ -26,8 +26,10 @@ hex_theta = (1.0/3.0)*math.pi
 hex_rot_matrices = [rotation_matrix(axes[2], hex_theta*(i+1.0)) for i in range(6)]
 
 benzene_bond_length = 1.39
+benzene_H_bond_length = 1.09
 
-def hexagon3d(centroid=[0.0,0.0,0.0], x_theta=0.0, y_theta=0.0, z_theta=0.0, radius=benzene_bond_length):
+def hexagon3d(centroid=[0.0,0.0,0.0], x_theta=0.0, y_theta=0.0,
+              z_theta=0.0, radius=benzene_bond_length):
     # read in centroid
     centroid = np.asarray(centroid)
     # make the first point that will be rotated
@@ -45,12 +47,28 @@ def hexagon3d(centroid=[0.0,0.0,0.0], x_theta=0.0, y_theta=0.0, z_theta=0.0, rad
     hexagon = hexagon + centroid
     return hexagon
 
+def benzene3d(centroid=[0.0,0.0,0.0], x_theta=0.0, y_theta=0.0,
+              z_theta=0.0):
+
+    # make a hexagon for the carbons
+    C_hex = hexagon3d(centroid=centroid, x_theta=x_theta, y_theta=y_theta,
+              z_theta=z_theta, radius=benzene_bond_length)
+
+    # make a larger hexagon for the Hs
+    H_hex = hexagon3d(centroid=centroid, x_theta=x_theta, y_theta=y_theta,
+                      z_theta=z_theta, radius=(benzene_bond_length + benzene_H_bond_length))
+
+    return np.concatenate([C_hex, H_hex])
+
 def pdb_row(i, x, y, z, el='C', color=0.0):
     pdb_row = "ATOM    {0:>3}  {4}   UNK C   1    {1:>8.3f}{2:>8.3f}{3:>8.3f}  1.00 {5:>5.2f}           C  \n".format(i, x, y, z, el, color)
     return pdb_row
 
 
+# need an end row for writing PDBs
 end_row = "END                                                                             "
+
+# simple Carbon only hexagons
 def hexagon_pdb_lines(hexagon, centroid=None):
     pdb_rows = []
     for i, coord in enumerate(hexagon):
@@ -62,5 +80,24 @@ def hexagon_pdb_lines(hexagon, centroid=None):
 
 def write_hexagon_pdb(hexagon, file_path, centroid=None):
     pdb_lines = hexagon_pdb_lines(hexagon, centroid=centroid)
+    with open(file_path, 'w') as wf:
+        wf.writelines(pdb_lines)
+
+# make benzene PDBs
+def benzene_pdb_lines(benzene):
+    pdb_rows = []
+    # the carbons first
+    for i, coord in enumerate(benzene[0:6]):
+        pdb_rows.append(pdb_row(i, coord[0], coord[1], coord[2], el='C', color=float(i)+1))
+
+    # the hydrogens
+    for i, coord in enumerate(benzene[6:12]):
+        pdb_rows.append(pdb_row(i, coord[0], coord[1], coord[2], el='H', color=float(i)+1))
+
+    pdb_rows.append(end_row)
+    return pdb_rows
+
+def write_benzene_pdb(benzene, file_path):
+    pdb_lines = benzene_pdb_lines(benzene)
     with open(file_path, 'w') as wf:
         wf.writelines(pdb_lines)
