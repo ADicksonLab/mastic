@@ -184,9 +184,10 @@ class PiStackingType(InteractionType):
                         (la.norm(centroid_vec_b) * la.norm(arom_norms[1]))
         plane_b_proj = centroid_vec_b - norm_b_proj
 
-        centroid_offset = min(plane_a_proj, plane_b_proj)
+        # compare the magnitudes of the two
+        centroid_offset = min(la.norm(plane_a_proj), la.norm(plane_b_proj))
         param_values[2] = centroid_offset
-        if cls.check_ring_centroid_offset(centroid_offset,
+        if cls.check_centroid_offset_distance(centroid_offset,
                                           cutoff=centroid_offset_max) is False:
             return (False, tuple(param_values))
 
@@ -220,26 +221,31 @@ class PiStackingType(InteractionType):
         file HBOND_DON_ANGLE_MIN value.
 
         """
-        if (angle > 180.0 - dev and angle < 180.0 + dev) or \
-           (angle > 360.0 - dev and angle < 0.0 + dev) or\
-           (angle > 90.0 - dev and angle < 90.0 + dev):
+        if 0 <= angle <= dev or 90 - dev <= angle <= 90 + dev:
             return True
         else:
             return False
 
     @classmethod
-    def check_offset_distance(cls, distance,
+    def check_centroid_offset_distance(cls, distance,
                               cutoff=centroid_offset_max):
         """For a float distance checks if it is less than the configuration
         file HBOND_DIST_MAX value.
 
         """
-        if distance < cutoff:
+        if distance <= cutoff:
             return True
         else:
             return False
 
-
+    @classmethod
+    def check_stacking_type(cls, angle, dev=ring_normal_angle_deviation):
+        if 0.0 <= angle <= dev:
+            return 'parallel'
+        elif 90 - dev <= angle <= 90 + dev:
+            return 'perpendicular'
+        else:
+            return None
 
 
     @property
@@ -421,13 +427,20 @@ class PiStackingInx(Interaction):
     """
 
     interaction_type = PiStackingType
+    #interaction_params = {key : None for key in interaction_type.interaction_param_keys}
 
     def __init__(self, arom_a, arom_b,
                  check=True,
-                 interaction_class=None,):
+                 interaction_class=None,
+                 **param_values):
 
         if check:
-            okay, param_values = self.interaction_type.check(arom_a.atoms, arom_b.atoms)
+            # use the default settings for the interaction_type only
+            # for implicit checks, the idea is that we want the user
+            # to mutate the InteractionType to change the
+            # classification criteria
+            okay, param_values = self.interaction_type.check(arom_a.atoms,
+                                                             arom_b.atoms,)
 
             if not okay:
                 raise InteractionError
@@ -436,14 +449,10 @@ class PiStackingInx(Interaction):
         atom_system = arom_a.system
         super().__init__(features=[arom_a, arom_b],
                          interaction_type=self.interaction_type,
-                         system=atom_system)
+                         system=atom_system,
+                         **param_values)
         self._arom_a = arom_a
         self._arom_b = arom_b
-        # constraint params
-        self._centroid_distance = centroid_distance
-        self._ring_normal_angle = ring_normal_angle
-        self._T_distance = T_distance
-        self._offset_distance = offset_distance
 
     @property
     def arom_a(self):
@@ -451,35 +460,28 @@ class PiStackingInx(Interaction):
     @property
     def arom_b(self):
         return self._arom_b
-    @property
-    def centroid_distance(self):
-        return self._centroid_distance
-    @property
-    def ring_normal_angle(self):
-        return self._ring_normal_angle
-    @property
-    def T_distance(self):
-        return self._T_distance
-    @property
-    def offset_distance(self):
-        return self._offset_distance
+    # @property
+    # def centroid_distance(self):
+    #     return self.interaction_params['centroid_distance']
+    # @property
+    # def ring_normal_angle(self):
+    #     return self.interaction_params['ring_normal_angle']
+    # @property
+    # def T_distance(self):
+    #     return self.interaction_params['centroid_offset']
+    # @property
+    # def offset_distance(self):
+    #     return self.interaction_params['stacking_type']
 
     @property
     def record(self):
-        record_fields = ['interaction_class',
-                         'donor_coords', 'acceptor_coords',
-                         'distance', 'angle',
-                         'H_coords']
+        record_fields = ['interaction_class'] + \
+                        self.interaction_type.interaction_param_keys
 
         PiStackingInxRecord = namedtuple('PiStackingInxRecord', record_fields)
         record_attr = {'interaction_class' : self.interaction_class.name}
-        record_attr['donor_coords'] = self.donor.atoms[0].coords
-        record_attr['acceptor_coords'] = self.acceptor.atoms[0].coords
-        record_attr['distance'] = self.distance
-        record_attr['angle'] = self.angle
-        record_attr['H_coords'] = self.H.coords
 
-        return PiStackingInxRecord(**record_attr)
+        return PiStackingInxRecord(**record_attr, **self.interaction_params)
 
 
 #### parallel yaw calculations

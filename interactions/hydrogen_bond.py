@@ -218,6 +218,7 @@ class HydrogenBondInx(Interaction):
     """
 
     interaction_type = HydrogenBondType
+    interaction_params = {key : None for key in interaction_type.interaction_param_keys}
 
     def __init__(self, donor, acceptor,
                  check=True,

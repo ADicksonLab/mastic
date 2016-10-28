@@ -253,8 +253,7 @@ class InteractionType(object):
             inx = cls.interaction_constructor(*features,
                                               interaction_class=None,
                                               check=False,
-                                              **param_values,
-                                              **parameters)
+                                              **param_values)
 
             # classify the interaction if given an interaction space
             # of interaction classes
@@ -286,7 +285,8 @@ class Interaction(SelectionsList):
     short for interaction.
 
     """
-    def __init__(self, features=None, system=None, interaction_type=None):
+    def __init__(self, features=None, system=None,
+                 interaction_type=None, **param_values):
 
         assert interaction_type, "interaction_type must be given"
         assert issubclass(interaction_type, InteractionType), \
@@ -301,6 +301,10 @@ class Interaction(SelectionsList):
         super().__init__(selection_list=features)
         self._interaction_type = interaction_type
         self._interaction_class = None
+        self._interaction_params = param_values
+        # add the param values as individual attributes
+        for param_name, param_value in param_values.items():
+            self.__dict__[param_name] = param_value
 
     @property
     def features(self):
@@ -329,7 +333,9 @@ class Interaction(SelectionsList):
             "as this Interaction, not {}".format(Counter(interaction_class.feature_types))
         self._interaction_class = interaction_class
 
-
+    @property
+    def interaction_params(self):
+        return self._interaction_params
 
 def match_inxclass(inx, interaction_classes):
     """Given an Interaction object and a list of InteractionType objects
