@@ -218,59 +218,29 @@ class HydrogenBondInx(Interaction):
     """
 
     interaction_type = HydrogenBondType
-    interaction_params = {key : None for key in interaction_type.interaction_param_keys}
 
     def __init__(self, donor, acceptor,
                  check=True,
                  interaction_class=None,
-                 distance=None,
-                 angle=None,
-                 distance_cutoff=interaction_type.distance_cutoff,
-                 angle_cutoff=interaction_type.angle_cutoff):
+                 **param_values):
 
         donor_atom = donor.atoms[0]
         acceptor_atom = acceptor.atoms[0]
         if check:
-            okay, param_values = self.interaction_type.check(donor_atom, acceptor_atom,
-                                                           distance_cutoff=distance_cutoff,
-                                                           angle_cutoff=angle_cutoff)
+            okay, param_values = self.interaction_type.check(donor_atom, acceptor_atom)
 
-            distance, angle = param_values[0], param_values[1]
             if not okay:
-                if angle is None:
-                    raise InteractionError(
-                        """donor: {0}
-                        H: {1}
-                        acceptor: {2}
-                        distance = {3} FAILED
-                        angle = not calculated""".format(donor_atom,
-                                                         H,
-                                                         acceptor_atom,
-                                                         distance))
-
-                else:
-                    raise InteractionError(
-                        """donor: {0}
-                        H: {1}
-                        acceptor: {2}
-                        distance = {3}
-                        angle = {4} FAILED""".format(donor_atom,
-                                                     H,
-                                                     acceptor_atom,
-                                                     distance, angle))
-            elif (distance is None) or (angle is None) and (check is False):
-                raise ValueError("Must provide distance and angle if check=False is passed")
+                raise InteractionError
 
         # success, finish creating interaction
         atom_system = donor.system
         super().__init__(features=[donor, acceptor],
                          interaction_type=self.interaction_type,
-                         system=atom_system)
+                         system=atom_system,
+                         interaction_class=interaction_class,
+                         **param_values)
         self._donor = donor
         self._acceptor = acceptor
-        self._distance = distance
-        self._angle = angle
-        self._interaction_class = interaction_class
 
     @property
     def donor(self):
@@ -290,44 +260,20 @@ class HydrogenBondInx(Interaction):
         return self._acceptor
 
     @property
-    def distance(self):
-        """The distance between the donor atom and the acceptor atom."""
-        return self._distance
-
-    @property
-    def angle(self):
-        """The angle (in degrees) between the donor atom, hydrogen atom, and
-        acceptor atom with the hydrogen atom as the vertex.
-
-        """
-        return self._angle
-
-    @property
-    def interaction_class(self):
-        return self._interaction_class
-
-    @interaction_class.setter
-    def interaction_class(self, inx_class):
-        # TODO type checking
-        self._interaction_class = inx_class
-
-    @property
     def record(self):
         record_fields = ['interaction_class',
-                         'donor_coords', 'acceptor_coords',
-                         'distance', 'angle',]
+                         'donor_coords', 'acceptor_coords',] +\
+                         self.interaction_type.interaction_param_keys
                          #'H_coords']
 
         HydrogenBondInxRecord = namedtuple('HydrogenBondInxRecord', record_fields)
         record_attr = {'interaction_class' : self.interaction_class.name}
         record_attr['donor_coords'] = self.donor.atoms[0].coords
         record_attr['acceptor_coords'] = self.acceptor.atoms[0].coords
-        record_attr['distance'] = self.distance
-        record_attr['angle'] = self.angle
         # TODO
         # record_attr['H_coords'] = self.H.coords
 
-        return HydrogenBondInxRecord(**record_attr)
+        return HydrogenBondInxRecord(**record_attr, **self.interaction_params)
 
     def pp(self):
 

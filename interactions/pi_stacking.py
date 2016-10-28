@@ -427,7 +427,6 @@ class PiStackingInx(Interaction):
     """
 
     interaction_type = PiStackingType
-    #interaction_params = {key : None for key in interaction_type.interaction_param_keys}
 
     def __init__(self, arom_a, arom_b,
                  check=True,
@@ -460,18 +459,6 @@ class PiStackingInx(Interaction):
     @property
     def arom_b(self):
         return self._arom_b
-    # @property
-    # def centroid_distance(self):
-    #     return self.interaction_params['centroid_distance']
-    # @property
-    # def ring_normal_angle(self):
-    #     return self.interaction_params['ring_normal_angle']
-    # @property
-    # def T_distance(self):
-    #     return self.interaction_params['centroid_offset']
-    # @property
-    # def offset_distance(self):
-    #     return self.interaction_params['stacking_type']
 
     @property
     def record(self):
