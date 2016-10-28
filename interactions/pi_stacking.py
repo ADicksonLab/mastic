@@ -52,194 +52,64 @@ class PiStackingType(InteractionType):
     @classmethod
     def find_hits(cls, members,
                   interaction_classes=None,
-                  return_feature_keys=False,
-                  centroid_max_distance=centroid_max_distance,
-                  ring_normal_angle_deviation=ring_normal_angle_deviation,
-                  centroid_offset_max=centroid_offset_max):
+                  return_feature_keys=False):
 
         # TODO value checks
 
         # scan the pairs for hits and assign interaction classes if given
         return super().find_hits(members,
-                                 interaction_classes=interaction_classes,
-                                 # the parameters for the interaction existence
-                                 centroid_max_distance=centroid_max_distance,
-                                 ring_normal_angle_deviation=ring_normal_angle_deviation,
-                                 centroid_offset_max=centroid_offset_max)
+                                 interaction_classes=interaction_classes)
 
     @classmethod
-    def check(cls, arom_a, arom_b,
-              centroid_max_distance=centroid_max_distance,
-              ring_normal_angle_deviation=ring_normal_angle_deviation,
-              centroid_offset_max=centroid_offset_max):
+    def check(cls, arom_a, arom_b):
 
-        param_values = [None for param in cls.interaction_param_keys]
+        features = [arom_a, arom_b]
+        feature_tests = [cls.test_features_centroid_distance,
+                         cls.test_features_centroid_offset,
+                         cls.test_features_ring_normal_angle,
+                         cls.test_features_stacking_type]
 
-        # coordinates for atoms of aromatic rings (heavy atoms only)
-        arom_a_coords = np.array([atom.coords for atom in arom_a.atoms])
-        arom_b_coords = np.array([atom.coords for atom in arom_b.atoms])
-        arom_coords = [arom_a_coords, arom_b_coords]
-
-        ### 1) calculate the distance between centroids
-        centroid_a = arom_a_coords.mean(axis=0)
-        centroid_b = arom_b_coords.mean(axis=0)
-        centroids = [centroid_a, centroid_b]
-        centroid_distance = cdist([centroid_a], [centroid_b])[0,0]
-        param_values[0] = centroid_distance
-        # if this passes then move on
-        if cls.check_centroid_distance(centroid_distance,
-                                       cutoff=centroid_max_distance) is False:
-            return (False, tuple(param_values))
-
-        ### 2) Calculate and check the angle between the two ring normal vectors
-
-        ## 2.1) calculate the normal vectors of the rings by using
-        # vectors from the centroid to 2 different points on the ring
-        arom_plane_vectors = []
-        arom_norms = []
-
-        # now get the norm vectors for each ring
-        ring_a = 0
-        ring_b = 1
-
-        # ring A
-        # choose the atoms
-        atom_coords = arom_coords[ring_a]
-        a0 = atom_coords[0]
-        if len(atom_coords) in [6,5]:
-            a1 = atom_coords[2]
-        else:
-            raise InteractionError("aromatic rings without 5 or 6 atoms not supported")
-
-        a0c = a0 - centroids[ring_a]
-        arom_plane_vectors.append(a0c)
-        a1c = a1 - centroids[ring_a]
-        norm_up = np.cross(a0c, a1c)
-        norm_down = np.cross(a1c, a0c)
-        # get the norm so that it points to the other ring
-        d_up = cdist([norm_up + centroids[ring_a]], [centroids[ring_b]])
-        d_down = cdist([norm_down + centroids[ring_a]], [centroids[ring_b]])
-        norm = norm_up if d_up < d_down else norm_down
-        arom_norms.append(norm)
-
-        # ring b
-        # choose the atoms
-        atom_coords = arom_coords[ring_b]
-        a0 = atom_coords[0]
-        if len(atom_coords) in [6,5]:
-            a1 = atom_coords[2]
-        else:
-            raise InteractionError("aromatic rings without 5 or 6 atoms not supported")
-
-        a0c = a0 - centroids[ring_b]
-        arom_plane_vectors.append(a0c)
-        a1c = a1 - centroids[ring_b]
-        norm_up = np.cross(a0c, a1c)
-        norm_down = np.cross(a1c, a0c)
-        # get the norm so that it points to the other ring
-        d_up = cdist([norm_up + centroids[ring_b]], [centroids[ring_a]])
-        d_down = cdist([norm_down + centroids[ring_b]], [centroids[ring_a]])
-        norm = norm_up if d_up < d_down else norm_down
-        arom_norms.append(norm)
-
-        ## 2.2) calculate the angle between the normal vectors
-        try:
-            # flip one of them because it is opposite the other
-            ring_normal_angle = np.degrees(np.arccos(
-                np.dot(arom_norms[0], -1 * arom_norms[1])/(la.norm(
-                    arom_norms[0]) * la.norm(arom_norms[1]))))
-        except RuntimeWarning:
-            print("v1: {0} \n"
-                  "v2: {1}".format(arom_norms[0], arom_norms[1]))
-
-        # if normals happen to be opposite directions correct and get
-        # the angle that is non-negative and smallest
-        alt_angle = 180 - ring_normal_angle
-        ring_normal_angle = min(ring_normal_angle, alt_angle) if not\
-                            alt_angle < 0 else ring_normal_angle
-        param_values[1] = ring_normal_angle
-        ## 2.3) check the ring normal angles, we expect a string if it
-        # passed or False if it failed
-        if cls.check_ring_normal_angle(ring_normal_angle,
-                                       dev=ring_normal_angle_deviation) is False:
-            return (False, tuple(param_values))
-
-
-
-        ### 3) Project the centers of each ring over each other and get
-        # the offset
-
-        # the vector going from centroid a to b
-        centroid_vec_a = centroid_b - centroid_a
-        # project this onto the normal of centroid_a
-        norm_a_proj = np.dot(centroid_vec_a, arom_norms[0]) /\
-                        (la.norm(centroid_vec_a) * la.norm(arom_norms[0]))
-        # get the rejection of the centroid vector to the norm
-        # (i.e. the projection onto the plane vector)
-        plane_a_proj = centroid_vec_a - norm_a_proj
-
-        # repeat for the other way
-        centroid_vec_b = centroid_a - centroid_b
-        norm_b_proj = np.dot(centroid_vec_b, arom_norms[1]) /\
-                        (la.norm(centroid_vec_b) * la.norm(arom_norms[1]))
-        plane_b_proj = centroid_vec_b - norm_b_proj
-
-        # compare the magnitudes of the two
-        centroid_offset = min(la.norm(plane_a_proj), la.norm(plane_b_proj))
-        param_values[2] = centroid_offset
-        if cls.check_centroid_offset_distance(centroid_offset,
-                                          cutoff=centroid_offset_max) is False:
-            return (False, tuple(param_values))
-
-
-        ### 4) Determine whether the stacking is parallel of
-        # perpendicular, as a string
-        stacking_type = cls.check_stacking_type(ring_normal_angle)
-        param_values[3] = stacking_type
-
-        # END return the interaction parameters and a True result
-        return (True, tuple(param_values))
+        return super().check(features, feature_tests)
 
 
 
     @classmethod
-    def check_centroid_distance(cls, distance,
-                                cutoff=centroid_max_distance):
+    def check_centroid_distance(cls, distance):
         """For a float distance checks if it is less than the configuration
         file HBOND_DIST_MAX value.
 
         """
-        if distance <= cutoff:
+        if distance <= cls.centroid_max_distance:
             return True
         else:
             return False
 
     @classmethod
-    def check_ring_normal_angle(cls, angle,
-                                dev=ring_normal_angle_deviation):
+    def check_ring_normal_angle(cls, angle):
         """For a float distance checks if it is less than the configuration
         file HBOND_DON_ANGLE_MIN value.
 
         """
+        dev = cls.ring_normal_angle_deviation
         if 0 <= angle <= dev or 90 - dev <= angle <= 90 + dev:
             return True
         else:
             return False
 
     @classmethod
-    def check_centroid_offset_distance(cls, distance,
-                              cutoff=centroid_offset_max):
+    def check_centroid_offset_distance(cls, distance):
         """For a float distance checks if it is less than the configuration
         file HBOND_DIST_MAX value.
 
         """
-        if distance <= cutoff:
+        if distance <= cls.centroid_offset_max:
             return True
         else:
             return False
 
     @classmethod
-    def check_stacking_type(cls, angle, dev=ring_normal_angle_deviation):
+    def check_stacking_type(cls, angle):
+        dev = cls.ring_normal_angle_deviation
         if 0.0 <= angle <= dev:
             return 'parallel'
         elif 90 - dev <= angle <= 90 + dev:
@@ -247,6 +117,47 @@ class PiStackingType(InteractionType):
         else:
             return None
 
+    @classmethod
+    def test_features_centroid_distance(cls, arom_a, arom_b):
+        centroid_distance = calc_centroid_distance(arom_a, arom_b)
+
+        # if this passes then move on
+        if cls.check_centroid_distance(centroid_distance) is False:
+            return False, centroid_distance
+        else:
+            return True, centroid_distance
+
+    @classmethod
+    def test_features_ring_normal_angle(cls, arom_a, arom_b):
+
+        # calculate the normal angle
+        ring_normal_angle = calc_arom_normal_angle(arom_a, arom_b)
+
+        if cls.check_ring_normal_angle(ring_normal_angle) is False:
+            return False, ring_normal_angle
+        else:
+            return True, ring_normal_angle
+
+    @classmethod
+    def test_features_centroid_offset(cls, arom_a, arom_b):
+        # calculate the centroid offset
+        centroid_offset = calc_centroid_offset(arom_a, arom_b)
+
+        if cls.check_centroid_offset_distance(centroid_offset) is False:
+            return False, centroid_offset
+        else:
+            return True, centroid_offset
+
+    @classmethod
+    def test_features_stacking_type(cls, arom_a, arom_b):
+        # Determine whether the stacking is parallel of perpendicular, as
+        # a string
+        ring_normal_angle = calc_arom_normal_angle(arom_a, arom_b)
+        stacking_type = cls.check_stacking_type(ring_normal_angle)
+        if stacking_type is None:
+            return False, stacking_type
+        else:
+            return True, stacking_type
 
     @property
     def record(self):
@@ -263,6 +174,138 @@ class PiStackingType(InteractionType):
         record_attr['arom_b_feature_type'] = self.feature_types[1]
 
         return PiStackingTypeRecord(**record_attr)
+
+
+def calc_centroid_offset(arom_a, arom_b):
+    # Project the centers of each ring over each other and get
+    # the offset
+
+    centroid_a, centroid_b = calc_centroids(arom_a, arom_b)
+    arom_norm_a, arom_norm_b = calc_arom_norms(arom_a, arom_b)
+
+    # the vector going from centroid a to b
+    centroid_vec_a = centroid_b - centroid_a
+    # project this onto the normal of centroid_a
+    norm_a_proj = np.dot(centroid_vec_a, arom_norm_a) /\
+                    (la.norm(centroid_vec_a) * la.norm(arom_norm_a))
+    # get the rejection of the centroid vector to the norm
+    # (i.e. the projection onto the plane vector)
+    plane_a_proj = centroid_vec_a - norm_a_proj
+
+    # repeat for the other way
+    centroid_vec_b = centroid_a - centroid_b
+    norm_b_proj = np.dot(centroid_vec_b, arom_norm_b) /\
+                    (la.norm(centroid_vec_b) * la.norm(arom_norm_b))
+    plane_b_proj = centroid_vec_b - norm_b_proj
+
+    # compare the magnitudes of the two
+    centroid_offset = min(la.norm(plane_a_proj), la.norm(plane_b_proj))
+
+    return centroid_offset
+
+
+def calc_centroids(arom_a, arom_b):
+    # coordinates for atoms of aromatic rings (heavy atoms only)
+    arom_a_coords = np.array([atom.coords for atom in arom_a.atoms])
+    arom_b_coords = np.array([atom.coords for atom in arom_b.atoms])
+    arom_coords = [arom_a_coords, arom_b_coords]
+
+    centroid_a = arom_a_coords.mean(axis=0)
+    centroid_b = arom_b_coords.mean(axis=0)
+    centroids = [centroid_a, centroid_b]
+
+    return centroid_a, centroid_b
+
+def calc_centroid_distance(arom_a, arom_b):
+    centroid_a, centroid_b = calc_centroids(arom_a, arom_b)
+    centroid_distance = cdist([centroid_a], [centroid_b])[0,0]
+    return centroid_distance
+
+def calc_arom_norms(arom_a, arom_b):
+    # Calculate and check the angle between the two ring normal vectors
+
+    centroid_a, centroid_b = calc_centroids(arom_a, arom_b)
+
+    # vectors from the centroid to 2 different points on the ring
+    arom_plane_vectors = []
+    arom_norms = []
+
+    # coordinates for atoms of aromatic rings (heavy atoms only)
+    arom_a_coords = np.array([atom.coords for atom in arom_a.atoms])
+    arom_b_coords = np.array([atom.coords for atom in arom_b.atoms])
+    arom_coords = [arom_a_coords, arom_b_coords]
+
+    # now get the norm vectors for each ring
+    ring_a = 0
+    ring_b = 1
+
+    # ring A
+    # choose the atoms
+    atom_coords = arom_coords[ring_a]
+    a0 = atom_coords[0]
+    if len(atom_coords) in [6,5]:
+        a1 = atom_coords[2]
+    else:
+        raise InteractionError("aromatic rings without 5 or 6 atoms not supported")
+
+    # TODO fix the norm_up and down thing
+    a0c = a0 - centroid_a
+    arom_plane_vectors.append(a0c)
+    a1c = a1 - centroid_a
+    norm_up = np.cross(a0c, a1c)
+    norm_down = np.cross(a1c, a0c)
+    # get the norm so that it points to the other ring
+    d_up = cdist([norm_up + centroid_a], [centroid_b])
+    d_down = cdist([norm_down + centroid_a], [centroid_b])
+    norm = norm_up if d_up < d_down else norm_down
+    arom_norms.append(norm)
+
+    # ring b
+    # choose the atoms
+    atom_coords = arom_coords[ring_b]
+    a0 = atom_coords[0]
+    if len(atom_coords) in [6,5]:
+        a1 = atom_coords[2]
+    else:
+        raise InteractionError("aromatic rings without 5 or 6 atoms not supported")
+
+    a0c = a0 - centroid_b
+    arom_plane_vectors.append(a0c)
+    a1c = a1 - centroid_b
+    norm_up = np.cross(a0c, a1c)
+    norm_down = np.cross(a1c, a0c)
+    # get the norm so that it points to the other ring
+    d_up = cdist([norm_up + centroid_b], [centroid_a])
+    d_down = cdist([norm_down + centroid_b], [centroid_a])
+    norm = norm_up if d_up < d_down else norm_down
+    arom_norms.append(norm)
+
+    return tuple(arom_norms)
+
+def calc_arom_normal_angle(arom_a, arom_b):
+    ## 2.2) calculate the angle between the normal vectors
+
+    # get the normal vectors
+    arom_norm_a, arom_norm_b = calc_arom_norms(arom_a, arom_b)
+
+    try:
+        # flip one of them because it is opposite the other
+        ring_normal_angle = np.degrees(np.arccos(
+            np.dot(arom_norm_a, -1 * arom_norm_b)/(la.norm(
+                arom_norm_a) * la.norm(arom_norm_b))))
+    except RuntimeWarning:
+        print("v1: {0} \n"
+              "v2: {1}".format(arom_norms[0], arom_norms[1]))
+
+    # if normals happen to be opposite directions correct and get
+    # the angle that is non-negative and smallest
+    alt_angle = 180 - ring_normal_angle
+    ring_normal_angle = min(ring_normal_angle, alt_angle) if not\
+                        alt_angle < 0 else ring_normal_angle
+
+    return ring_normal_angle
+
+
 
     # @classmethod
     # def check_T_distance(cls, distance):

@@ -185,20 +185,36 @@ class InteractionType(object):
 
         return feature_inx_classifiers
 
-    def check(self, *args, **kwargs):
+    @classmethod
+    def check(cls, features, feature_tests):
         """The principle class method for testing for the existence of an
         interaction from specified geometric constraint parameters.
         All subclasses of InteractionType should implement this for
         domain specificity.
 
         """
-        raise NotImplementedError
+
+        # initialize the list for storing every param value that will
+        # be tested
+        param_values = [None for test in feature_tests]
+        # run the tests on the features
+        for i, feature_test in enumerate(feature_tests):
+            # run the test
+            okay, param_value = feature_test(*features)
+            # add the value good or bad to the param values
+            param_values[i] = param_value
+            # if it's bad return a bad okay and give the params
+            if not okay:
+                return False, tuple(param_values)
+
+        # if they all passed, success!
+        return True, tuple(param_values)
+
 
     @classmethod
     def find_hits(cls, members,
                   interaction_classes=interaction_classes,
-                  return_feature_keys=False,
-                  **parameters):
+                  return_feature_keys=False):
         """Returns all the 'hits' for interactions of features between two
         members (molecules, selections, etc.), where a hit is a
         feature set that satisfies the geometric constraints defined
@@ -238,7 +254,7 @@ class InteractionType(object):
             # call check for the InteractionType which checks to see
             # if the two features are in an interaction.
             # param_values should be in the same order as their labels in cls.interaction_param_keys
-            okay, param_values = cls.check(*features, **parameters)
+            okay, param_values = cls.check(*features)
 
             # if the feature pair did not pass do not construct an Interaction
             if not okay:

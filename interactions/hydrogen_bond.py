@@ -64,23 +64,16 @@ class HydrogenBondType(InteractionType):
     @classmethod
     def find_hits(cls, members,
                   interaction_classes=None,
-                  return_feature_keys=False,
-                  distance_cutoff=distance_cutoff,
-                  angle_cutoff=angle_cutoff):
+                  return_feature_keys=False):
 
         # TODO value checks
 
         # scan the pairs for hits and assign interaction classes if given
         return super().find_hits(members,
-                                 interaction_classes=interaction_classes,
-                                 # the parameters for the interaction existence
-                                 distance_cutoff=distance_cutoff,
-                                 angle_cutoff=angle_cutoff)
+                                 interaction_classes=interaction_classes)
 
     @classmethod
-    def check(cls, donor, acceptor,
-              distance_cutoff=distance_cutoff,
-              angle_cutoff=angle_cutoff):
+    def check(cls, donor, acceptor):
         """Checks if the 3 atoms qualify as a hydrogen bond. Returns a tuple
         (bool, float, float) where the first element is whether or not it
         qualified, the second and third are the distance and angle
@@ -90,7 +83,15 @@ class HydrogenBondType(InteractionType):
 
         """
 
+        # assemble the features and their tests
+        features = [donor, acceptor]
+        feature_tests = [cls.test_features_distance, cls.test_features_angle]
+        # pass to parent function, this returns a results tuple of the
+        # form: (okay, (param_values))
+        return super().check(features, feature_tests)
 
+    @classmethod
+    def test_features_distance(cls, donor, acceptor):
         donor_atom = donor.atoms[0]
         acceptor_atom = acceptor.atoms[0]
 
@@ -98,8 +99,17 @@ class HydrogenBondType(InteractionType):
         distance = cls.calc_distance(donor_atom, acceptor_atom)
 
         # check it
-        if cls.check_distance(distance, cutoff=distance_cutoff) is False:
-            return (False, (None, None))
+        # if it fails return a false okay and the distance
+        if cls.check_distance(distance) is False:
+            return False, distance
+        # otherwise return that it was okay
+        else:
+            return True, distance
+
+    @classmethod
+    def test_features_angle(cls, donor, acceptor):
+        donor_atom = donor.atoms[0]
+        acceptor_atom = acceptor.atoms[0]
 
         # if the distance passes we want to check the angle, which we
         # will need the coordinates of the adjacent hydrogens to the donor
@@ -110,22 +120,79 @@ class HydrogenBondType(InteractionType):
         # constraint
         okay_angle = None
         h_atoms_iter = iter(h_atoms)
+        h_atoms_angles = []
+        # if it doesn't the loop will end and a false okay and the bad
+        # angles will be returned
         try:
             while okay_angle is None:
                 h_atom = next(h_atoms_iter)
 
+                # calculate the angle for this hydrogen
                 angle = cls.calc_angle(donor_atom, acceptor_atom, h_atom)
 
+                # save the angle
+                h_atoms_angles.append(angle)
+
                 # check if the angle meets the constraints
-                if cls.check_angle(angle, cutoff=angle_cutoff) is False:
+                if cls.check_angle(angle) is False:
                     okay_angle = angle
 
         # none are found to meet the constraint
         except StopIteration:
-            return (False, (distance, None))
+            return False, tuple(h_atoms_angles)
 
-        # return in the order of cls.interaction_params
-        return (True, (distance, okay_angle))
+        # if it succeeds in finding a good angle return the first one
+        return True, okay_angle
+
+    #### Hydrogen Bond Specific methods
+    # i.e. not necessarily found in other interaction types
+
+    @classmethod
+    def check_distance(cls, distance):
+        """For a float distance checks if it is less than the configuration
+        file HYDROGEN_BOND_DIST_MAX value.
+
+        """
+        if distance < cls.distance_cutoff:
+            return True
+        else:
+            return False
+
+    @classmethod
+    def check_angle(cls, angle):
+        """For a float distance checks if it is less than the configuration
+        file HYDROGEN_BOND_DON_ANGLE_MIN value.
+
+        """
+
+        if angle > cls.angle_cutoff:
+            return True
+        else:
+            return False
+
+    @classmethod
+    def is_donor(cls, feature):
+        if feature.attributes_data[cls.grouping_attribute] in cls.donor_keys:
+            return True
+        else:
+            return False
+
+    @classmethod
+    def is_acceptor(cls, feature):
+        if feature.attributes_data[cls.grouping_attribute] == cls.acceptor_key:
+            return True
+        else:
+            return False
+
+    @staticmethod
+    def calc_distance(donor_atom, acceptor_atom):
+        return cdist(np.array([donor_atom.coords]), np.array([acceptor_atom.coords]))[0,0]
+
+    @staticmethod
+    def calc_angle(donor_atom, acceptor_atom, h_atom):
+        v1 = donor_atom.coords - h_atom.coords
+        v2 = acceptor_atom.coords - h_atom.coords
+        return np.degrees(np.arccos(np.dot(v1, v2)/(la.norm(v1) * la.norm(v2))))
 
     @property
     def record(self):
@@ -160,56 +227,6 @@ class HydrogenBondType(InteractionType):
                 wf.write("{0}{1}{2}\n".format(inx.donor.atom_type.pdb_serial_number,
                                               delim,
                                               inx.acceptor.atom_type.pdb_serial_number))
-
-    #### Hydrogen Bond Specific methods
-    # i.e. not necessarily found in other interaction types
-    @staticmethod
-    def calc_distance(donor_atom, acceptor_atom):
-        return cdist(np.array([donor_atom.coords]), np.array([acceptor_atom.coords]))[0,0]
-
-    @staticmethod
-    def calc_angle(donor_atom, acceptor_atom, h_atom):
-        v1 = donor_atom.coords - h_atom.coords
-        v2 = acceptor_atom.coords - h_atom.coords
-        return np.degrees(np.arccos(np.dot(v1, v2)/(la.norm(v1) * la.norm(v2))))
-
-    @staticmethod
-    def check_distance(distance, cutoff=distance_cutoff):
-        """For a float distance checks if it is less than the configuration
-        file HYDROGEN_BOND_DIST_MAX value.
-
-        """
-        if distance < cutoff:
-            return True
-        else:
-            return False
-
-    @staticmethod
-    def check_angle(angle, cutoff=angle_cutoff):
-        """For a float distance checks if it is less than the configuration
-        file HYDROGEN_BOND_DON_ANGLE_MIN value.
-
-        """
-
-        if angle > cutoff:
-            return True
-        else:
-            return False
-
-    @classmethod
-    def is_donor(cls, feature):
-        if feature.attributes_data[cls.grouping_attribute] in cls.donor_keys:
-            return True
-        else:
-            return False
-
-    @classmethod
-    def is_acceptor(cls, feature):
-        if feature.attributes_data[cls.grouping_attribute] == cls.acceptor_key:
-            return True
-        else:
-            return False
-
 
 class HydrogenBondInx(Interaction):
     """Substantiates HydrogenBondType by selecting donor and acceptor
