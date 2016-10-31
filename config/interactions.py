@@ -61,6 +61,8 @@ PISTACKING_ANGLE_DEVIATION = 30 # /degrees
 # benzene + 0.5 A)
 PISTACKING_OFFSET_MAX = 2.0 # /AA
 
+PISTACKING_HEAVY_ATOMS_ELEMENT_SYMBOLS = ['C', 'N']
+
 # Maximum distance the closest atom must be in a T-stack
 PISTACKING_T_DIST = 5.0 #/AA
 

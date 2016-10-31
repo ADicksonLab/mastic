@@ -1,6 +1,9 @@
 import os.path as osp
 import pickle
 
+import mast.interactions.pi_stacking as pinx
+import mast.interactions.hydrogen_bond as hinx
+
 work_dir = "/home/salotz/Dropbox/devel/mast/work/pi_stacking"
 
 # load the SystemType
@@ -31,7 +34,6 @@ stacked_member_coords = [ref_benzene_coords, test_benzenes['stacked']]
 stacked_system = Benzene_Benzene_SystemType.to_system(stacked_member_coords)
 
 # profile the interactions between the two rings
-import ipdb; ipdb.set_trace()
 stacked_inxs = stacked_system.associations[0].\
                profile_interactions([PiStackingType],
                             interaction_classes=pistack_inx_classes)\
@@ -39,13 +41,16 @@ stacked_inxs = stacked_system.associations[0].\
 
 # substantiate the systems and profile each one
 test_inxs = {}
+test_failed_hits = {}
 for test_name, test_benzene in test_benzenes.items():
     member_coords = [ref_benzene_coords, test_benzene]
     system = Benzene_Benzene_SystemType.to_system(member_coords)
 
     # profile the interactions between the two rings
-    inxs = system.associations[0].\
+    failed_hits, all_inxs = system.associations[0].\
            profile_interactions([PiStackingType],
-                                interaction_classes=pistack_inx_classes)\
-                                [PiStackingType]
+                                interaction_classes=pistack_inx_classes,
+                                return_failed_hits=True)
+    inxs = all_inxs[PiStackingType]
+    test_failed_hits[test_name] = failed_hits
     test_inxs[test_name] = inxs

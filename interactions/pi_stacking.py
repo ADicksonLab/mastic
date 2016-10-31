@@ -32,6 +32,7 @@ class PiStackingType(InteractionType):
     centroid_max_distance = mastinxconfig.PISTACKING_CENTROID_DIST_MAX
     ring_normal_angle_deviation = mastinxconfig.PISTACKING_ANGLE_DEVIATION
     centroid_offset_max = mastinxconfig.PISTACKING_OFFSET_MAX
+    heavy_atoms = mastinxconfig.PISTACKING_HEAVY_ATOMS_ELEMENT_SYMBOLS
 
     def __init__(self, pi_stacking_type_name,
                  feature_types=None,
@@ -52,21 +53,24 @@ class PiStackingType(InteractionType):
     @classmethod
     def find_hits(cls, members,
                   interaction_classes=None,
-                  return_feature_keys=False):
+                  return_feature_keys=False,
+                  return_failed_hits=False):
 
         # TODO value checks
 
         # scan the pairs for hits and assign interaction classes if given
         return super().find_hits(members,
-                                 interaction_classes=interaction_classes)
+                                 interaction_classes=interaction_classes,
+                                 return_feature_keys=return_feature_keys,
+                                 return_failed_hits=return_failed_hits)
 
     @classmethod
     def check(cls, arom_a, arom_b):
 
         features = [arom_a, arom_b]
         feature_tests = [cls.test_features_centroid_distance,
-                         cls.test_features_centroid_offset,
                          cls.test_features_ring_normal_angle,
+                         cls.test_features_centroid_offset,
                          cls.test_features_stacking_type]
 
         return super().check(features, feature_tests)
@@ -119,7 +123,13 @@ class PiStackingType(InteractionType):
 
     @classmethod
     def test_features_centroid_distance(cls, arom_a, arom_b):
-        centroid_distance = calc_centroid_distance(arom_a, arom_b)
+        arom_a_heavy_atom_coords = np.array([atom.coords for atom in arom_a.atoms if
+                                             atom.atom_type.element in cls.heavy_atoms])
+        arom_b_heavy_atom_coords = np.array([atom.coords for atom in arom_b.atoms if
+                                             atom.atom_type.element in cls.heavy_atoms])
+
+        centroid_distance = calc_centroid_distance(arom_a_heavy_atom_coords,
+                                                   arom_b_heavy_atom_coords)
 
         # if this passes then move on
         if cls.check_centroid_distance(centroid_distance) is False:
@@ -129,9 +139,13 @@ class PiStackingType(InteractionType):
 
     @classmethod
     def test_features_ring_normal_angle(cls, arom_a, arom_b):
-
+        arom_a_heavy_atom_coords = np.array([atom.coords for atom in arom_a.atoms if
+                                             atom.atom_type.element in cls.heavy_atoms])
+        arom_b_heavy_atom_coords = np.array([atom.coords for atom in arom_b.atoms if
+                                             atom.atom_type.element in cls.heavy_atoms])
         # calculate the normal angle
-        ring_normal_angle = calc_arom_normal_angle(arom_a, arom_b)
+        ring_normal_angle = calc_arom_normal_angle(arom_a_heavy_atom_coords,
+                                                   arom_b_heavy_atom_coords)
 
         if cls.check_ring_normal_angle(ring_normal_angle) is False:
             return False, ring_normal_angle
@@ -140,8 +154,13 @@ class PiStackingType(InteractionType):
 
     @classmethod
     def test_features_centroid_offset(cls, arom_a, arom_b):
+        arom_a_heavy_atom_coords = np.array([atom.coords for atom in arom_a.atoms if
+                                             atom.atom_type.element in cls.heavy_atoms])
+        arom_b_heavy_atom_coords = np.array([atom.coords for atom in arom_b.atoms if
+                                             atom.atom_type.element in cls.heavy_atoms])
         # calculate the centroid offset
-        centroid_offset = calc_centroid_offset(arom_a, arom_b)
+        centroid_offset = calc_centroid_offset(arom_a_heavy_atom_coords,
+                                               arom_b_heavy_atom_coords)
 
         if cls.check_centroid_offset_distance(centroid_offset) is False:
             return False, centroid_offset
@@ -150,9 +169,14 @@ class PiStackingType(InteractionType):
 
     @classmethod
     def test_features_stacking_type(cls, arom_a, arom_b):
+        arom_a_heavy_atom_coords = np.array([atom.coords for atom in arom_a.atoms if
+                                             atom.atom_type.element in cls.heavy_atoms])
+        arom_b_heavy_atom_coords = np.array([atom.coords for atom in arom_b.atoms if
+                                             atom.atom_type.element in cls.heavy_atoms])
         # Determine whether the stacking is parallel of perpendicular, as
         # a string
-        ring_normal_angle = calc_arom_normal_angle(arom_a, arom_b)
+        ring_normal_angle = calc_arom_normal_angle(arom_a_heavy_atom_coords,
+                                                   arom_b_heavy_atom_coords)
         stacking_type = cls.check_stacking_type(ring_normal_angle)
         if stacking_type is None:
             return False, stacking_type
@@ -176,117 +200,103 @@ class PiStackingType(InteractionType):
         return PiStackingTypeRecord(**record_attr)
 
 
-def calc_centroid_offset(arom_a, arom_b):
-    # Project the centers of each ring over each other and get
-    # the offset
+def calc_centroid_offset(arom_a_coords, arom_b_coords):
+    """Project the centers of each ring over each other and get
+    the offset"""
 
-    centroid_a, centroid_b = calc_centroids(arom_a, arom_b)
-    arom_norm_a, arom_norm_b = calc_arom_norms(arom_a, arom_b)
+    # get the centroid coordinates
+    centroid_a, centroid_b = calc_centroids(arom_a_coords, arom_b_coords)
+    # get the norms that are facing each other
+    face_norm_a, face_norm_b = calc_arom_facing_norms(arom_a_coords, arom_b_coords)
 
     # the vector going from centroid a to b
     centroid_vec_a = centroid_b - centroid_a
-    # project this onto the normal of centroid_a
-    norm_a_proj = np.dot(centroid_vec_a, arom_norm_a) /\
-                    (la.norm(centroid_vec_a) * la.norm(arom_norm_a))
-    # get the rejection of the centroid vector to the norm
-    # (i.e. the projection onto the plane vector)
-    plane_a_proj = centroid_vec_a - norm_a_proj
-
-    # repeat for the other way
+    # vector from b to a
     centroid_vec_b = centroid_a - centroid_b
-    norm_b_proj = np.dot(centroid_vec_b, arom_norm_b) /\
-                    (la.norm(centroid_vec_b) * la.norm(arom_norm_b))
-    plane_b_proj = centroid_vec_b - norm_b_proj
+
+    # calculate the rejection of the centroid vector on the normal
+    # face vector, which is the projection on the plane defined by the
+    # normal vector in the direction of the centroid vector
+    norm_a_proj = calc_vector_rejection(centroid_vec_a, face_norm_a)
+    norm_b_proj = calc_vector_rejection(centroid_vec_b, face_norm_b)
 
     # compare the magnitudes of the two
-    centroid_offset = min(la.norm(plane_a_proj), la.norm(plane_b_proj))
+    centroid_offset = min(la.norm(norm_a_proj), la.norm(norm_b_proj))
 
     return centroid_offset
 
+def calc_vector_rejection(vec_a, vec_b):
+    """Reject vec_a onto vec_b"""
 
-def calc_centroids(arom_a, arom_b):
-    # coordinates for atoms of aromatic rings (heavy atoms only)
-    arom_a_coords = np.array([atom.coords for atom in arom_a.atoms])
-    arom_b_coords = np.array([atom.coords for atom in arom_b.atoms])
-    arom_coords = [arom_a_coords, arom_b_coords]
+    projection_vec = calc_vector_projection(vec_a, vec_b)
+    # a_2 = a - a_1
+    return vec_a - projection_vec
 
+def calc_vector_projection(vec_a, vec_b):
+    """Project vec_a onto vec_b."""
+
+    # a_1 = (a dot b_norm) dot b_norm
+    vec_b_norm = vec_b / la.norm(vec_b)
+    return np.dot(np.dot(vec_a, vec_b_norm), vec_b_norm)
+
+def calc_arom_facing_norms(arom_a_coords, arom_b_coords):
+    """Given two aromatic rings get the normal vectors that face the other ring"""
+
+    centroids = calc_centroids(arom_a_coords, arom_b_coords)
+    arom_norms = calc_arom_norms(arom_a_coords, arom_b_coords)
+
+    face_norms = []
+    for i, arom_norm in enumerate(arom_norms):
+        # get the index of the other arom
+        j = 1 if i ==0 else 0
+        norm_up = arom_norm
+        norm_down = -1 * arom_norm
+        # get the norm so that it points to the other ring
+        d_up = cdist([norm_up + centroids[i]], [centroids[j]])
+        d_down = cdist([norm_down + centroids[i]], [centroids[j]])
+        norm = norm_up if d_up < d_down else norm_down
+        face_norms.append(norm)
+
+    return face_norms
+
+def calc_centroids(arom_a_coords, arom_b_coords):
     centroid_a = arom_a_coords.mean(axis=0)
     centroid_b = arom_b_coords.mean(axis=0)
     centroids = [centroid_a, centroid_b]
 
     return centroid_a, centroid_b
 
-def calc_centroid_distance(arom_a, arom_b):
-    centroid_a, centroid_b = calc_centroids(arom_a, arom_b)
+def calc_centroid_distance(arom_a_coords, arom_b_coords):
+    centroid_a, centroid_b = calc_centroids(arom_a_coords, arom_b_coords)
     centroid_distance = cdist([centroid_a], [centroid_b])[0,0]
     return centroid_distance
 
-def calc_arom_norms(arom_a, arom_b):
+def calc_arom_norms(arom_a_coords, arom_b_coords):
     # Calculate and check the angle between the two ring normal vectors
 
-    centroid_a, centroid_b = calc_centroids(arom_a, arom_b)
+    centroids = calc_centroids(arom_a_coords, arom_b_coords)
 
-    # vectors from the centroid to 2 different points on the ring
-    arom_plane_vectors = []
     arom_norms = []
+    for i, arom_coords in enumerate([arom_a_coords, arom_b_coords]):
+        # get the coordinates of two atoms on the ring
+        a0 = arom_coords[0]
+        if len(arom_coords) in [6,5]:
+            a1 = arom_coords[2]
+        else:
+            raise InteractionError("aromatic rings without 5 or 6 atoms not supported")
 
-    # coordinates for atoms of aromatic rings (heavy atoms only)
-    arom_a_coords = np.array([atom.coords for atom in arom_a.atoms])
-    arom_b_coords = np.array([atom.coords for atom in arom_b.atoms])
-    arom_coords = [arom_a_coords, arom_b_coords]
-
-    # now get the norm vectors for each ring
-    ring_a = 0
-    ring_b = 1
-
-    # ring A
-    # choose the atoms
-    atom_coords = arom_coords[ring_a]
-    a0 = atom_coords[0]
-    if len(atom_coords) in [6,5]:
-        a1 = atom_coords[2]
-    else:
-        raise InteractionError("aromatic rings without 5 or 6 atoms not supported")
-
-    # TODO fix the norm_up and down thing
-    a0c = a0 - centroid_a
-    arom_plane_vectors.append(a0c)
-    a1c = a1 - centroid_a
-    norm_up = np.cross(a0c, a1c)
-    norm_down = np.cross(a1c, a0c)
-    # get the norm so that it points to the other ring
-    d_up = cdist([norm_up + centroid_a], [centroid_b])
-    d_down = cdist([norm_down + centroid_a], [centroid_b])
-    norm = norm_up if d_up < d_down else norm_down
-    arom_norms.append(norm)
-
-    # ring b
-    # choose the atoms
-    atom_coords = arom_coords[ring_b]
-    a0 = atom_coords[0]
-    if len(atom_coords) in [6,5]:
-        a1 = atom_coords[2]
-    else:
-        raise InteractionError("aromatic rings without 5 or 6 atoms not supported")
-
-    a0c = a0 - centroid_b
-    arom_plane_vectors.append(a0c)
-    a1c = a1 - centroid_b
-    norm_up = np.cross(a0c, a1c)
-    norm_down = np.cross(a1c, a0c)
-    # get the norm so that it points to the other ring
-    d_up = cdist([norm_up + centroid_b], [centroid_a])
-    d_down = cdist([norm_down + centroid_b], [centroid_a])
-    norm = norm_up if d_up < d_down else norm_down
-    arom_norms.append(norm)
+        # get two plane vectors
+        a0c = a0 - centroids[i]
+        a1c = a1 - centroids[i]
+        norm = np.cross(a0c, a1c)
+        arom_norms.append(norm)
 
     return tuple(arom_norms)
 
-def calc_arom_normal_angle(arom_a, arom_b):
-    ## 2.2) calculate the angle between the normal vectors
+def calc_arom_normal_angle(arom_a_coords, arom_b_coords):
 
     # get the normal vectors
-    arom_norm_a, arom_norm_b = calc_arom_norms(arom_a, arom_b)
+    arom_norm_a, arom_norm_b = calc_arom_norms(arom_a_coords, arom_b_coords)
 
     try:
         # flip one of them because it is opposite the other

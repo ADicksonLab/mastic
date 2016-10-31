@@ -755,6 +755,7 @@ class Association(SelectionsList):
                              commute=False,
                              interaction_classes=None,
                              return_feature_keys=False,
+                             return_failed_hits=False,
                              **find_hits_kwargs):
         """Accepts any number of InteractionType instancees and identifies
         Interactions between the members of the association using the
@@ -794,25 +795,48 @@ class Association(SelectionsList):
         # go through each interaction_type and check for hits
         interactions = {}
         inx_feature_key_pairs = {}
+        inx_failed_hits = {}
         for interaction_type in interaction_types:
 
             member_inx_hits = {}
+            member_failed_hits = {}
             member_feature_key_combos = {}
             # for each pair find the hits in this interaction_type
             for idx, member_combo in enumerate(member_combos):
                 if return_feature_keys:
-                    feature_key_pairs, inxs = interaction_type.find_hits(
+                    if return_failed_hits:
+                        feature_key_pairs, failed_hits, inxs = interaction_type.find_hits(
+                            member_combo,
+                            interaction_classes=interaction_classes,
+                            return_feature_keys=return_feature_keys,
+                            **find_hits_kwargs)
+                        # save the failed hits
+                        member_failed_hits[member_idx_combos[idx]] = failed_hits
+                    else:
+                        feature_key_pairs, inxs = interaction_type.find_hits(
+                            member_combo,
+                            interaction_classes=interaction_classes,
+                            return_feature_keys=return_feature_keys,
+                            **find_hits_kwargs)
+                    # save the feature keys
+                    member_feature_key_combos[member_idx_combos[idx]] = feature_key_pairs
+                elif return_failed_hits:
+                    failed_hits, inxs = interaction_type.find_hits(
                         member_combo,
                         interaction_classes=interaction_classes,
                         return_feature_keys=return_feature_keys,
+                        return_failed_hits=return_failed_hits,
                         **find_hits_kwargs)
-                    member_feature_key_combos[member_idx_combos[idx]] = feature_key_pairs
+                    # save the failed hits
+                    member_failed_hits[member_idx_combos[idx]] = failed_hits
                 else:
                     inxs = interaction_type.find_hits(
                         member_combo,
                         interaction_classes=interaction_classes,
                         return_feature_keys=return_feature_keys,
+                        return_failed_hits=return_failed_hits,
                         **find_hits_kwargs)
+                # save the interaction objects
                 member_inx_hits[member_idx_combos[idx]] = inxs
 
 
@@ -829,7 +853,14 @@ class Association(SelectionsList):
             interactions[interaction_type] = all_inx_hits
             if return_feature_keys:
                 inx_feature_key_pairs[interaction_type] = member_feature_key_combos
-                return inx_feature_key_pairs, interactions
+                if return_failed_hits:
+                    inx_failed_hits[interaction_type] = member_failed_hits
+                    return inx_feature_key_pairs, failed_hits, interactions
+                else:
+                    return inx_feature_key_pairs, interactions
+            elif return_failed_hits:
+                inx_failed_hits[interaction_type] = member_failed_hits
+                return failed_hits, interactions
             else:
                 return interactions
 

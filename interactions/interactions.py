@@ -214,11 +214,20 @@ class InteractionType(object):
     @classmethod
     def find_hits(cls, members,
                   interaction_classes=interaction_classes,
-                  return_feature_keys=False):
+                  return_feature_keys=False,
+                  return_failed_hits=False):
         """Returns all the 'hits' for interactions of features between two
         members (molecules, selections, etc.), where a hit is a
         feature set that satisfies the geometric constraints defined
         in the InteractionType.check function.
+
+        return_feature_keys will return the keys for the features
+        instead of just the objects.
+
+        return_failed_hits will return the parameters for each test in
+        the check method for a potential interaction if at least one
+        test was passed. This allows for debugging of the test
+        functions in check.
 
         """
 
@@ -241,6 +250,9 @@ class InteractionType(object):
         if return_feature_keys:
             # initializing for the keys
             hit_pair_keys = []
+        if return_failed_hits:
+            failed_hits = []
+
         # initializing list for the actual Interaction objects
         inxs = []
 
@@ -257,7 +269,11 @@ class InteractionType(object):
             okay, param_values = cls.check(*features)
 
             # if the feature pair did not pass do not construct an Interaction
-            if not okay:
+            if not okay and return_failed_hits:
+                if any([True for param in param_values if param is not None]):
+                    failed_hits.append(param_values)
+                continue
+            elif not okay:
                 continue
 
             # associate the parameter values with the names for them
@@ -285,7 +301,13 @@ class InteractionType(object):
                 hit_pair_keys.append(feature_keys)
 
         if return_feature_keys:
-            return hit_pair_keys, inxs
+
+            if return_failed_hits:
+                return hit_pair_keys, failed_hits, inxs
+            else:
+                return hit_pair_keys, inxs
+        elif return_failed_hits:
+            return failed_hits, inxs
         else:
             return inxs
 

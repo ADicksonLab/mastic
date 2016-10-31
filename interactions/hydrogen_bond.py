@@ -64,13 +64,16 @@ class HydrogenBondType(InteractionType):
     @classmethod
     def find_hits(cls, members,
                   interaction_classes=None,
-                  return_feature_keys=False):
+                  return_feature_keys=False,
+                  return_failed_hits=False):
 
         # TODO value checks
 
         # scan the pairs for hits and assign interaction classes if given
         return super().find_hits(members,
-                                 interaction_classes=interaction_classes)
+                                 interaction_classes=interaction_classes,
+                                 return_feature_keys=return_feature_keys,
+                                 return_failed_hits=return_failed_hits)
 
     @classmethod
     def check(cls, donor, acceptor):
