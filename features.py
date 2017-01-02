@@ -204,4 +204,17 @@ class Feature(mastsel.SelectionsDict):
     @property
     def record(self):
         # TODO better info if needed
-        return self.feature_type.record
+
+        # define the Record namedtuple
+        record_fields = ['FeatureTypeRecord'] + \
+                         list(self.attributes_data.keys())
+
+        FeatureRecord = col.namedtuple('FeatureRecord', record_fields)
+        # build the values for it for this Type
+        record_attr = {'FeatureTypeRecord' : self.name}
+        record_attr.update(self.attributes_data)
+
+        return FeatureRecord(**record_attr)
+
+
+
