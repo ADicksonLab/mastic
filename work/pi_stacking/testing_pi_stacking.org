@@ -230,11 +230,11 @@ Make the test case coordinates
   test_benzenes['pll_ang'] = benzene3d(centroid=max_stacked_centroid,
                       x_theta=np.radians(mastinxconfig.PISTACKING_ANGLE_DEVIATION))
 
-  # # give a parallel example for different yaw categories
-  # # give an optimal parallel displaced example
-  # test_benzenes['pll_x_disp'] = benzene3d(centroid=[1.0, 0.0, mastinxconfig.PISTACKING_CENTROID_DIST_MAX])
-  # test_benzenes['pll_y_disp'] = benzene3d(centroid=[0.0, 1.0, mastinxconfig.PISTACKING_CENTROID_DIST_MAX])
-  # test_benzenes['pll_xy_disp'] = benzene3d(centroid=[1.0, 1.0, mastinxconfig.PISTACKING_CENTROID_DIST_MAX])
+
+  # give an optimal parallel displaced example
+  test_benzenes['pll_x_disp'] = benzene3d(centroid=[1.0, 0.0, mastinxconfig.PISTACKING_CENTROID_DIST_MAX])
+  test_benzenes['pll_y_disp'] = benzene3d(centroid=[0.0, 1.0, mastinxconfig.PISTACKING_CENTROID_DIST_MAX])
+  test_benzenes['pll_xy_disp'] = benzene3d(centroid=[1.0, 1.0, mastinxconfig.PISTACKING_CENTROID_DIST_MAX])
 
   # give a perpendicular example with centroid at maximum distance
   test_benzenes['perp_max'] = benzene3d(centroid=[0.0, 0.0, mastinxconfig.PISTACKING_CENTROID_DIST_MAX],
@@ -261,13 +261,13 @@ Make the test case coordinates
                                                     y_theta=math.pi*0.5,
                                                     z_theta=math.pi*0.5)
 
-  # # example of close but not projected onto the other benzene, parallel
-  # test_benzenes['pll_displaced'] = benzene3d(centroid=[benzene_bond_length,
-  #                                                      0.0, 5.0])
+  # example of close but not projected onto the other benzene, parallel
+  test_benzenes['pll_displaced'] = benzene3d(centroid=[benzene_bond_length,
+                                                       0.0, 5.0])
 
-  # test_benzenes['pll_off_center'] = benzene3d(centroid=[benzene_bond_length +
-  #                                                       mastinxconfig.PISTACKING_OFFSET_MAX,
-  #                                                       0.0, 5.0])
+  test_benzenes['pll_off_center'] = benzene3d(centroid=[benzene_bond_length +
+                                                        mastinxconfig.PISTACKING_OFFSET_MAX,
+                                                        0.0, 5.0])
 
 #+END_SRC
 
@@ -279,16 +279,6 @@ Write these to PDBs for visualization
 #+END_SRC
 
 
-** Debug geometries between rings
-
-
-#+BEGIN_SRC python :tangle debug_rings.py
-  import mast.interactions.pi_stacking as pinx
-
-  ref = ref_benzene_coords[0:6]
-
-  test_coords = {name : benzene[0:6] for name, benzene in test_benzenes.items()}
-#+END_SRC
 
 ** Profile the different geometries for interactions
 
@@ -351,4 +341,16 @@ First substantiate the systems.
       inxs = all_inxs[PiStackingType]
       test_failed_hits[test_name] = failed_hits
       test_inxs[test_name] = inxs
+#+END_SRC
+
+
+** Debug geometries between rings
+
+
+#+BEGIN_SRC python :tangle debug_rings.py
+  import mast.interactions.pi_stacking as pinx
+
+  ref = ref_benzene_coords[0:6]
+
+  test_coords = {name : benzene[0:6] for name, benzene in test_benzenes.items()}
 #+END_SRC

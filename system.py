@@ -13,6 +13,7 @@ import mast.config.system as mastsysconfig
 
 __all__ = ['overlaps', 'SystemType', 'System']
 
+
 def overlaps(members):
     """Check to see if any iterable of substantiated members' coordinates
     overlap.
@@ -842,6 +843,7 @@ class Association(SelectionsList):
 
             # if the interaction classes were not given we make our own
             if not interaction_classes:
+                raise NotImplementedError
                 # determine the interaction classes for the interactions
                 inx_classes = classify_interaction_classes(inxs)
                 # assign them to the interactions appropriately

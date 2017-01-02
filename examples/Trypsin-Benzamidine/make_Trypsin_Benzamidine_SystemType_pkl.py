@@ -72,6 +72,19 @@ Benzamidine_Trypsin_Association = \
 
 Trypsin_Benzamidine_System.add_association_type(Benzamidine_Trypsin_Association)
 
+selection_map_BB = [(1, None), (1, None)]
+selection_types = [None, None]
+
+rec_lig_attrs = {'info' : 'intraprotein'}
+Trypsin_Trypsin_Association = \
+            mastsys.AssociationType("Trypsin_Trypsin_Association",
+                                    system_type=Trypsin_Benzamidine_System,
+                                    selection_map=selection_map_BB,
+                                    selection_types=selection_types,
+                                    **rec_lig_attrs)
+
+Trypsin_Benzamidine_System.add_association_type(Trypsin_Trypsin_Association)
+
 
 # put them together in the order they are as system members
 member_coords = [BEN_coords, trypsin_coords]

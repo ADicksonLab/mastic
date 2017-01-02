@@ -11,6 +11,12 @@ INTERACTION_ATTRIBUTES = ['name', ]
 # dictionary when finding appropriate features for each member of the
 # interaction
 
+### general properties
+# Determines allowed deviation from planarity in aromatic rings
+AROMATIC_PLANARITY = 5.0 # /AA
+# atoms to consider for ring geometries
+AROMATIC_HEAVY_ATOMS_ELEMENT_SYMBOLS = ['C', 'N']
+
 # HydrogenBondType : hydrogen bonds with explicit hydrogens
 HYDROGEN_BOND_DEGREE = 2
 HYDROGEN_BOND_COMMUTATIVITY = False
@@ -60,29 +66,38 @@ PISTACKING_ANGLE_DEVIATION = 30 # /degrees
 # Maximum offset of the two rings (corresponds to the radius of
 # benzene + 0.5 A)
 PISTACKING_OFFSET_MAX = 2.0 # /AA
-
-PISTACKING_HEAVY_ATOMS_ELEMENT_SYMBOLS = ['C', 'N']
-
+PISTACKING_HEAVY_ATOMS_ELEMENT_SYMBOLS = AROMATIC_HEAVY_ATOMS_ELEMENT_SYMBOLS
 # Maximum distance the closest atom must be in a T-stack
 PISTACKING_T_DIST = 5.0 #/AA
 
 
-HYDROPH_DEGREE = 2
-HYDROPH_GROUPING_ATTRIBUTES = ['rdkit_family', 'rdkit_family']
-HYDROPH_FEATURES = {'rdkit_family' : [['Hydrophobe', 'LumpedHydrophobe'],
-                                      ['Hydrophobe', 'LumpedHydrophobe']],
-                    'rdkit_type' : [[], []]}
 
 PICATION_DEGREE = 2
-PICATION_GROUPING_ATTRIBUTES = ['rdkit_family', 'rdkit_family']
-PICATION_FEATURES = {'rdkit_family' : [['Aromatic'], ['PosIonizable']],
-                     'rdkit_type' : [[], []]}
+PICATION_COMMUTATIVITY = False
+PICATION_PARAM_KEYS = ['centroid_distance', 'centroid_offset']
+PICATION_FEATURE_KEYS = ['arom', 'cation']
+PICATION_RDKIT_FEATURES = {PICATION_FEATURE_KEYS[0] : ['Aromatic', 'Arom6'],
+                           PICATION_FEATURE_KEYS[1] : []}
+PICATION_FEATURES = PICATION_RDKIT_FEATURES
+# Max. distance between charged atom and aromatic ring center
+# (Gallivan and Dougherty, 1999)
+PICATION_CENTROID_DIST_MAX = 6.0 # \AA
+PICATION_OFFSET_MAX = 2.0 # \AA
+# apparently a special case for tertiary amines needs another test
+PICATION_AMINE_NORMAL_ANGLE_MIN = 30.0 # \degrees
+PICATION_TERTIARY_AMINE_FEATURE = None
+PICATION_HEAVY_ATOMS_ELEMENT_SYMBOLS = AROMATIC_HEAVY_ATOMS_ELEMENT_SYMBOLS
 
 SALTBRIDGE_DEGREE = 2
 SALTBRIDGE_GROUPING_ATTRIBUTES = ['rdkit_family', 'rdkit_family']
 SALTBRIDGE_FEATURES = {'rdkit_family' : [['PosIonizable'], ['NegIonizable']],
                        'rdkit_type' : [[], []]}
 
+HYDROPH_DEGREE = 2
+HYDROPH_GROUPING_ATTRIBUTES = ['rdkit_family', 'rdkit_family']
+HYDROPH_FEATURES = {'rdkit_family' : [['Hydrophobe', 'LumpedHydrophobe'],
+                                      ['Hydrophobe', 'LumpedHydrophobe']],
+                    'rdkit_type' : [[], []]}
 
 WATER_BRIDGE_FEATURE_FAMILIES = []
 WATER_BRIDGE_FEATURE_TYPES = []
@@ -100,8 +115,7 @@ HYDROGEN_BOND_DON_ANGLE_MIN = 100 # /AA
 
 
 
-# Determines allowed deviation from planarity in aromatic rings
-AROMATIC_PLANARITY = 5.0 # /AA
+
 
 
 # Some distance thresholds were extended (max. 1.0A) if too
@@ -109,9 +123,6 @@ AROMATIC_PLANARITY = 5.0 # /AA
 # for detection of hydrophobic contacts
 HYDROPH_DIST_MAX = 4.0 # /AA
 
-# Max. distance between charged atom and aromatic ring center
-# (Gallivan and Dougherty, 1999)
-PICATION_DIST_MAX = 6.0 # /AA
 
 # Max. distance between centers of charge for salt bridges (Barlow and
 # Thornton, 1983) + 1.5

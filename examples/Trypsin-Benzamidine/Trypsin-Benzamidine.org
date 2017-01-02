@@ -427,7 +427,7 @@ One of the main motivations for the creation of MAST was the need to
 profile intermolecular interactions such as hydrogen bonds and pi-pi
 interactions in drug-protein simulation data.
 
-*** Simple profiling
+*** COMMENT Simple profiling
 
 Once the system and association types are defined this can be really
 easy. All you really need is to tell the association which types of
@@ -633,6 +633,62 @@ associated with the proper interaction classes.
                                                         interaction_classes=hbond_inx_classes)
 #+END_SRC
 
+*** Different kinds of InteractionTypes
+
+Of course the point of these elaborate constructions is not just to
+look at simple hydrogen bonds. We want to profile more complicated
+sorts of interactions involving multiple atoms and more complex
+geometrical constraints. A common complex interaction is the
+interaction between aromatic groups with pi electron orbitals. It is
+known that the stacking of such aromatic rings is important for
+stabilizing biomolecular structures such as base stacking in nucleic
+acids and in proteins between aromatic amino acid side chains like
+tryptophan, tyrosine, and phenylalanine.
+
+The first step is to identify aromatic groups of atoms, of which there
+is no full-proof way of doing, so we will just rely on what RDKit
+gives us from it's feature detection. RDKit uses a simple 4N + 2 rule,
+however if your so inclined you can always come up with your own way
+of defining aromatic rings if your domain specificity requires it,
+MAST is agnostic to such decisions.
+
+In the interactions module is a submodule, pi_stacking, modelled after
+the way the program PLIP [Salentin,S. et al. 2015 doi:
+10.1093/nar/gkv315] qualifies pi-pi interactions in both the parallel
+and perpendicular poses. To profile for this other type of
+interactions we simply pass the PiStackingType to profile_interactions
+for the association we are interested in.
+
+Because benzamidine has a phenyl group we can profile protein-ligand
+pi-pi interactions as well as internal pi-pi interactions.
+
+First, however lets go through and create an interaction space like
+before. We can use the same assoc_terms as before but that would be
+redundant as there is no difference between involved aromatic rings in
+pi_stacking, i.e. in MAST nomenclature it is a commutative interaction.
+
+#+BEGIN_SRC python
+  from mast.interactions.pi_stacking import PiStackingType, PiStackingInx
+
+  pistack_assoc_terms = Trypsin_Benzamidine_System.association_polynomial(
+      interaction_degree=PiStackingType.degree,
+      return_idxs=True,
+      commutative=True)
+
+  pistack_inx_classes = Trypsin_Benzamidine_System.interaction_space(
+      pistack_assoc_terms, PiStackingType)
+
+#+END_SRC
+
+Now that we have the interaction classes we want to profile them for
+interactions. First we will look at protein-ligand interactions.
+
+#+BEGIN_SRC python
+  pistack_inxs = Trypsin_Benzamidine_System.profile_interactions([PiStackingType],
+                                              interaction_classes=pistack_inx_classes)
+#+END_SRC
+
+
 *** Analyzing profiling results
 
 
@@ -715,6 +771,19 @@ associated with the proper interaction classes.
                                       ,**lig_rec_attrs)
 
   Trypsin_Benzamidine_System.add_association_type(Benzamidine_Trypsin_Association)
+
+  selection_map_BB = [(1, None), (1, None)]
+  selection_types = [None, None]
+
+  rec_lig_attrs = {'info' : 'intraprotein'}
+  Trypsin_Trypsin_Association = \
+              mastsys.AssociationType("Trypsin_Trypsin_Association",
+                                      system_type=Trypsin_Benzamidine_System,
+                                      selection_map=selection_map_BB,
+                                      selection_types=selection_types,
+                                      ,**rec_lig_attrs)
+
+  Trypsin_Benzamidine_System.add_association_type(Trypsin_Trypsin_Association)
 
 
   # put them together in the order they are as system members
@@ -841,8 +910,10 @@ associated with the proper interaction classes.
 #+BEGIN_SRC python :tangle profile_inx_space_Trypsin_Benzamidine_cryst.py
   import os.path as osp
   import pickle
+  import itertools as it
 
   from mast.interactions.hydrogen_bond import HydrogenBondType
+  from mast.interactions.pi_stacking import PiStackingType
 
   # load the system type pickle in
   system_pkl_path = osp.join(".", "Trypsin_Benzamidine_SystemType.pkl")
@@ -869,8 +940,7 @@ associated with the proper interaction classes.
                                        assoc_terms, HydrogenBondType)
 
   # if you want the whole collection of interaction classes in one list
-  from itertools import chain
-  hbond_inx_classes = list(chain(*[inx_classes for inx_classes in
+  hbond_inx_classes = list(it.chain(*[inx_classes for inx_classes in
                                    hbond_inx_classes_assocs.values()]))
 
   # however we are only interested in one association
@@ -880,8 +950,26 @@ associated with the proper interaction classes.
   rec_lig_inx_classes = hbond_inx_classes_assocs[rec_lig_member_idxs]
 
   # profile that association
-  import ipdb; ipdb.set_trace()
   rec_lig_inxs = rec_lig_association.profile_interactions(
       [HydrogenBondType],
       interaction_classes=rec_lig_inx_classes)[HydrogenBondType]
+
+  import ipdb; ipdb.set_trace()
+  # now for pi-stacking, we only want intraprotein and ligand-protein
+  # interactions, and it is commutative so we only need one inter- term
+  pistack_inx_classes_assocs = Trypsin_Benzamidine_SystemType.interaction_space(
+                                       [(1,1), (0,1)], PiStackingType)
+
+  intraprotein_pistack_inxs = Trypsin_Benzamidine_System_cryst.associations[2].profile_interactions(
+      [PiStackingType],
+      interaction_classes=pistack_inx_classes_assocs[(1,1)])
+
+  PL_pistack_inxs = Trypsin_Benzamidine_System_cryst.associations[2].profile_interactions(
+      [PiStackingType],
+      interaction_classes=pistack_inx_classes_assocs[(1,1)])
 #+END_SRC
+
+
+** profiling a trajectory of coordinates
+
+
