@@ -453,7 +453,15 @@ the same coordinate system.
 
     @property
     def record(self):
-        pass
+        # define the Record named tuple
+        record_fields = ['SystemType'] + list(self.attributes_data.keys())
+        SystemRecord = col.namedtuple('SystemRecord', record_fields)
+        # build the values for it for this Type
+        record_attr = {'SystemType' : self.name}
+        record_attr.update(self.attributes_data)
+        # make and return
+        return SystemRecord(**record_attr)
+
 
     def profile_interactions(self):
         pass
@@ -748,7 +756,15 @@ class Association(SelectionsList):
 
     @property
     def record(self):
-        pass
+        record_fields = ['AssociationType'] + \
+                        list(self.attributes_data.keys())
+
+        AssociationRecord = col.namedtuple('AssociationRecord', record_fields)
+
+        record_attr = {'AssociationType' : self.association_type.name}
+        record_attr.update(self.attributes_data)
+
+        return AssociationRecord(**record_attr)
 
     def profile_interactions(self, interaction_types,
                              profile_string=None,

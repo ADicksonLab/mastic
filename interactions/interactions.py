@@ -1,6 +1,7 @@
 """ The interactions module. """
 import itertools as it
 from collections import defaultdict, Counter, namedtuple
+import collections as col
 
 import numpy as np
 import numpy.linalg as la
@@ -100,6 +101,18 @@ class InteractionType(object):
     def __hash__(self):
         return self.name.__hash__()
 
+    @property
+    def record(self):
+        record_fields = ['InteractionType', 'AssociationType'] + \
+                        list(self.attributes_data.keys())
+
+        InteractionTypeRecord = col.namedtuple('InteractionTypeRecord', record_fields)
+
+        record_attr = {'InteractionType' : self.name}
+        record_attr['AssociationType'] = self.association_type.name
+        record_attr.update(self.attributes_data)
+
+        return InteractionTypeRecord(**record_attr)
 
     @property
     def feature_types(self):
@@ -375,6 +388,21 @@ class Interaction(SelectionsList):
     @property
     def interaction_params(self):
         return self._interaction_params
+
+    @property
+    def record(self):
+        record_fields = ['InteractionType', 'InteractionClass'] + \
+                        list(self.interaction_params.keys()) + \
+                        list(self.attributes_data.keys())
+
+        InteractionRecord = col.namedtuple('InteractionRecord', record_fields)
+
+        record_attr = {'InteractionType' : self.interaction_type.name}
+        record_attr['InteractionClass'] = self.interaction_class
+        record_attr.update(self.interaction_params)
+        record_attr.update(self.attributes_data)
+
+        return InteractionRecord(**record_attr)
 
 def match_inxclass(inx, interaction_classes):
     """Given an Interaction object and a list of InteractionType objects
