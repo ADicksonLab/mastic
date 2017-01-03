@@ -83,14 +83,14 @@ class AtomType(object):
 
     @property
     def record(self):
-        # define the Record named tuple
-        record_fields = ['AtomType'] + list(self.attributes_data.keys())
-        AtomTypeRecord = col.namedtuple('AtomTypeRecord', record_fields)
         # build the values for it for this Type
         record_attr = {'AtomType' : self.name}
-        record_attr.update(self.attributes_data)
         # make and return
         return AtomTypeRecord(**record_attr)
+
+# AtomTypeRecord
+_atom_type_record_fields = ['AtomType']
+AtomTypeRecord = col.namedtuple('AtomTypeRecord', _atom_type_record_fields)
 
 class BondType(object):
     """Class for generating specific bond type classes with the factory
@@ -192,10 +192,6 @@ class BondType(object):
 
     @property
     def record(self):
-        # define the Record named tuple
-        record_fields = ['BondType', 'AtomAType', 'AtomBType'] + \
-                        list(self.attributes_data.keys())
-        BondTypeRecord = col.namedtuple('BondTypeRecord', record_fields)
         # build the values for it for this Type
         record_attr = {'BondType' : self.name}
         record_attr['AtomAType'] = self.atom_types[0]
@@ -203,6 +199,10 @@ class BondType(object):
         record_attr.update(self.attributes_data)
         # make and return
         return BondTypeRecord(**record_attr)
+
+# BondTypeRecord
+_bond_type_record_fields = ['BondType', 'AtomAType', 'AtomBType']
+BondTypeRecord = col.namedtuple('BondTypeRecord', _bond_type_record_fields)
 
 class MoleculeType(object):
     """Class for generating specific bond type classes with the factory
@@ -420,9 +420,6 @@ class MoleculeType(object):
 
     @property
     def record(self):
-        # define the Record named tuple
-        record_fields = ['MoleculeType'] + list(self.attributes_data.keys())
-        MoleculeTypeRecord = col.namedtuple('MoleculeTypeRecord', record_fields)
         # build the values for it for this Type
         record_attr = {'MoleculeType' : self.name}
         record_attr.update(self.attributes_data)
@@ -433,6 +430,10 @@ class MoleculeType(object):
     def atom_types_by_attr(self, attr_field, attr_value):
         return [atom_type for atom_type in self.atom_types if
                 atom_type.attributes_data[attr_field] == attr_value]
+
+# MoleculeTypeRecord
+_molecule_type_record_fields = ['MoleculeType']
+MoleculeTypeRecord = col.namedtuple('MoleculeTypeRecord', _molecule_type_record_fields)
 
 class Atom(Point):
     """The coordinate substantiation of an AtomType.
@@ -579,9 +580,6 @@ class Atom(Point):
 
     @property
     def record(self):
-        # define the Record named tuple
-        record_fields = ['AtomType', 'x', 'y', 'z']
-        AtomRecord = col.namedtuple('AtomRecord', record_fields)
         # build the values for it for this Type
         record_attr = {'AtomType' : self.atom_type.name}
         record_attr['x'] = self.coords[0]
@@ -613,6 +611,11 @@ class Atom(Point):
 
     def molecule_within_distance(self, distance, metric='euclidean'):
         pass
+
+
+# AtomRecord
+_atom_record_fields = ['AtomType', 'x', 'y', 'z']
+AtomRecord = col.namedtuple('AtomRecord', _atom_record_fields)
 
 class Bond(IndexedSelection):
     """The coordinate substantiation of a BondType.
@@ -730,14 +733,6 @@ class Bond(IndexedSelection):
 
     @property
     def record(self):
-        # define the Record named tuple
-        record_fields = ['BondType',
-                         'AtomAType', 'atom_A_idx',
-                         'x_A', 'y_A', 'z_A',
-                         'AtomBType', 'atom_B_idx',
-                         'x_B', 'y_B', 'z_B']
-
-        BondRecord = col.namedtuple('BondRecord', record_fields)
 
         # build the values for it for this Type
         atom_idxs = list(self.data.keys())
@@ -756,6 +751,15 @@ class Bond(IndexedSelection):
         record_attr['z_B'] = self.atoms[1].coords[2]
 
         return BondRecord(**record_attr)
+
+
+# BondRecord
+_bond_record_fields = ['BondType',
+                       'AtomAType', 'atom_A_idx',
+                       'x_A', 'y_A', 'z_A',
+                       'AtomBType', 'atom_B_idx',
+                       'x_B', 'y_B', 'z_B']
+BondRecord = col.namedtuple('BondRecord', _bond_record_fields)
 
 class Molecule(SelectionsDict):
     """The coordinate substantiation of a MoleculeType.
@@ -1118,7 +1122,12 @@ class Molecule(SelectionsDict):
 
     @property
     def record(self):
-        pass
+        record_attr = {'MoleculeType' : self.molecule_type.name}
+        return MoleculeRecord(**record_attr)
+
+# BondRecord
+_molecule_record_fields = ['MoleculeType']
+MoleculeRecord = col.namedtuple('BondRecord', _molecule_record_fields)
 
 class MoleculeAtomSelection(IndexedSelection):
     def __init__(self, molecule, sel, flags=None):

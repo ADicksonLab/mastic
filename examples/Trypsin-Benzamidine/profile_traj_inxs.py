@@ -2,9 +2,14 @@ import os.path as osp
 import pickle
 import itertools as it
 import mdtraj as mdj
+import pandas as pd
 
 from mast.interactions.hydrogen_bond import HydrogenBondType
 from mast.interactions.pi_stacking import PiStackingType
+
+import sys
+sys.setrecursionlimit(100000)
+
 
 def profile_frame_inxs(frame_xyz, lig_idxs, receptor_idxs, system_type, inx_type, inx_classes):
     # get the coords for each member and convert to Angstroms
@@ -23,7 +28,8 @@ def profile_frame_inxs(frame_xyz, lig_idxs, receptor_idxs, system_type, inx_type
     inxs.extend(rec_lig_inxs)
 
     print(len(inxs))
-    return inxs
+    records = [inx.record for inx in inxs]
+    return records
 
 
 if __name__ == "__main__":
@@ -74,9 +80,18 @@ if __name__ == "__main__":
 
     print("Done with set up")
     # this is what actually runs the function on the inputs
-    cluster_inxs = list(futures.map(profile_frame_inxs, *inputs))
+    cluster_records = list(futures.map(profile_frame_inxs, *inputs))
 
-    # now persist to disk
-    inx_pickle_path = osp.join(".", "pi_cation_inxs.pkl")
-    with open(inx_pickle_path, 'rb') as wf:
-        pickle.dump(cluster_inxs, wf)
+    # make records out of these and make a dataframe
+    dfs = []
+    for clust_idx, records in enumerate(cluster_records):
+        # make a dataframe from the records
+        df = pd.DataFrame(records)
+        df['cluster_idx'] = clust_idx
+        df.append(df)
+
+    # concatenate the smaller dfs and reset the index
+    hbond_inxs_df = pd.concat(dfs)
+
+    hbond_inx_path = osp.join(tppu_dir, 'hbond_cluster_inxs.csv')
+    hbond_inxs_df.to_csv(hbond_inx_path)

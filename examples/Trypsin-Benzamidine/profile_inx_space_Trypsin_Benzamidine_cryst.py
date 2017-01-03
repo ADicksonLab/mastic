@@ -5,6 +5,9 @@ import itertools as it
 from mast.interactions.hydrogen_bond import HydrogenBondType
 from mast.interactions.pi_stacking import PiStackingType
 
+import sys
+sys.recursion_depth
+
 # load the system type pickle in
 system_pkl_path = osp.join(".", "Trypsin_Benzamidine_SystemType.pkl")
 with open(system_pkl_path, 'rb') as rf:

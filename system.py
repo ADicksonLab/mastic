@@ -288,15 +288,14 @@ class SystemType(object):
 
     @property
     def record(self):
-        # define the Record named tuple
-        record_fields = ['SystemType'] + list(self.attributes_data.keys())
-        SystemTypeRecord = col.namedtuple('SystemTypeRecord', record_fields)
         # build the values for it for this Type
         record_attr = {'SystemType' : self.name}
-        record_attr.update(self.attributes_data)
         # make and return
         return SystemTypeRecord(**record_attr)
 
+# SystemTypeRecord
+_system_type_record_fields = ['SystemType']
+SystemTypeRecord = col.namedtuple('SystemTypeRecord', _system_type_record_fields)
 
 class System(SelectionsList):
     """System that contains non-overlapping molecules, assumed to be in
@@ -451,20 +450,20 @@ the same coordinate system.
         # if none overlap
         return False
 
+    def profile_interactions(self):
+        pass
+
     @property
     def record(self):
-        # define the Record named tuple
-        record_fields = ['SystemType'] + list(self.attributes_data.keys())
-        SystemRecord = col.namedtuple('SystemRecord', record_fields)
         # build the values for it for this Type
         record_attr = {'SystemType' : self.name}
-        record_attr.update(self.attributes_data)
         # make and return
         return SystemRecord(**record_attr)
 
 
-    def profile_interactions(self):
-        pass
+# SystemRecord
+_system_record_fields = ['SystemType']
+SystemRecord = col.namedtuple('SystemRecord', _system_record_fields)
 
 # basically just a named grouping of multiple selections from a system
 # with some methods
@@ -643,21 +642,20 @@ class AssociationType(object):
 
     @property
     def record(self):
-        # define the Record named tuple
-        record_fields = ['AssociationType', 'SystemType', 'member_types',
-                         'member_idxs', 'member_selection_idxs', ] \
-                         + list(self.attributes_data.keys())
-        AssociationTypeRecord = col.namedtuple('AssociationTypeRecord', record_fields)
         # build the values for it for this Type
         record_attr = {'AssociationType' : self.name,
                        'SystemType' : self.system_type,
                        'member_types' : self.member_types,
                        'member_idxs' : self.member_idxs,
                        'member_selection_idxs' : self.member_selection_idxs}
-        record_attr.update(self.attributes_data)
+
         # make and return
         return AssociationTypeRecord(**record_attr)
 
+# AssociationTypeRecord
+_association_type_record_fields = ['AssociationType', 'SystemType', 'member_types',
+                 'member_idxs', 'member_selection_idxs']
+AssociationTypeRecord = col.namedtuple('AssociationTypeRecord', _association_type_record_fields)
 
 
 class Association(SelectionsList):
@@ -753,19 +751,6 @@ class Association(SelectionsList):
 
         """
         return self._interactions
-
-    @property
-    def record(self):
-        record_fields = ['AssociationType'] + \
-                        list(self.attributes_data.keys())
-
-        AssociationRecord = col.namedtuple('AssociationRecord', record_fields)
-
-        record_attr = {'AssociationType' : self.association_type.name}
-        record_attr.update(self.attributes_data)
-
-        return AssociationRecord(**record_attr)
-
     def profile_interactions(self, interaction_types,
                              profile_string=None,
                              intramember_interactions=False,
@@ -881,6 +866,17 @@ class Association(SelectionsList):
                 return failed_hits, interactions
             else:
                 return interactions
+
+
+    @property
+    def record(self):
+        record_attr = {'AssociationType' : self.association_type.name}
+
+        return AssociationRecord(**record_attr)
+
+# AssociationRecord
+_association_record_fields = ['AssociationType']
+AssociationRecord = col.namedtuple('AssociationRecord', _association_record_fields)
 
 def make_interaction_classes(interactions):
     raise NotImplementedError

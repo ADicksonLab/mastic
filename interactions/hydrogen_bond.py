@@ -199,11 +199,6 @@ class HydrogenBondType(InteractionType):
 
     @property
     def record(self):
-        record_fields = ['interaction_class', 'interaction_type',
-                         'association_type', 'assoc_member_pair_idxs',
-                         'donor_feature_type', 'acceptor_feature_type'] + \
-                         list(self.attributes_data.keys())
-        HydrogenBondTypeRecord = namedtuple('HydrogenBondTypeRecord', record_fields)
         record_attr = {'interaction_class' : self.name}
         record_attr['interaction_type'] = self.interaction_name
         record_attr['association_type'] = self.association_type.name
@@ -230,6 +225,12 @@ class HydrogenBondType(InteractionType):
                 wf.write("{0}{1}{2}\n".format(inx.donor.atom_type.pdb_serial_number,
                                               delim,
                                               inx.acceptor.atom_type.pdb_serial_number))
+
+# HydrogenBondTypeRecord
+_hydrogen_bond_type_record_fields = ['interaction_class', 'interaction_type',
+                                     'association_type', 'assoc_member_pair_idxs',
+                                     'donor_feature_type', 'acceptor_feature_type']
+HydrogenBondTypeRecord = namedtuple('HydrogenBondTypeRecord', _hydrogen_bond_type_record_fields)
 
 class HydrogenBondInx(Interaction):
     """Substantiates HydrogenBondType by selecting donor and acceptor
@@ -267,7 +268,7 @@ class HydrogenBondInx(Interaction):
         """The donor Feature in the hydrogen bond."""
         return self._donor
 
-    # TODO implement a way to find the H atoms that satisfy the interaction
+    # TODO implement a way to find all the H atoms that satisfy the interaction
     @property
     def H(self):
         """The donated hydrogen Atom in the hydrogen bond."""
@@ -281,49 +282,52 @@ class HydrogenBondInx(Interaction):
 
     @property
     def record(self):
-        record_fields = ['interaction_class',
-                         'donor_coords', 'acceptor_coords',] +\
-                         self.interaction_type.interaction_param_keys
-                         #'H_coords']
-
-        HydrogenBondInxRecord = namedtuple('HydrogenBondInxRecord', record_fields)
         record_attr = {'interaction_class' : self.interaction_class.name}
         record_attr['donor_coords'] = self.donor.atoms[0].coords
         record_attr['acceptor_coords'] = self.acceptor.atoms[0].coords
-        # TODO
+        # TODO because the H might be ambiguous, see the H property
         # record_attr['H_coords'] = self.H.coords
 
         return HydrogenBondInxRecord(**record_attr, **self.interaction_params)
 
-    def pp(self):
+# HydrogenBondInxRecord
+_hydrogen_bond_inx_record_fields = ['interaction_class',
+                                    'donor_coords', 'acceptor_coords'] + \
+                                    HydrogenBondType.interaction_param_keys
+                                    #'H_coords']
+HydrogenBondInxRecord = namedtuple('HydrogenBondInxRecord', _hydrogen_bond_inx_record_fields)
 
-        string = ("{self_str}\n"
-                  "donor: {donor_el}\n"
-                  "       coords = {donor_coords}\n"
-                  "       pdb_serial = {donor_serial}\n"
-                  "       pdb_residue_name = {donor_resname}\n"
-                  "       pdb_residue_index = {donor_resnum}\n"
-                  "acceptor: {acceptor_el}\n"
-                  "          coords = {acceptor_coords}\n"
-                  "          pdb_serial = {acceptor_serial}\n"
-                  "          pdb_residue_name = {acceptor_resname}\n"
-                  "          pdb_residue_index = {acceptor_resnum}\n"
-                  "distance: {distance}\n"
-                  "angle: {angle}\n").format(
-                      self_str=str(self),
-                      donor_el=self.donor.atom_type.element,
-                      donor_coords=tuple(self.donor.coords),
-                      donor_mol_name=self.donor.molecule.molecule_type.name,
-                      donor_serial=self.donor.atom_type.pdb_serial_number,
-                      donor_resname=self.donor.atom_type.pdb_residue_name,
-                      donor_resnum=self.donor.atom_type.pdb_residue_number,
-                      acceptor_el=self.acceptor.atom_type.element,
-                      acceptor_coords=tuple(self.acceptor.coords),
-                      acceptor_mol_name=self.acceptor.molecule.molecule_type.name,
-                      acceptor_serial=self.acceptor.atom_type.pdb_serial_number,
-                      acceptor_resname=self.acceptor.atom_type.pdb_residue_name,
-                      acceptor_resnum=self.acceptor.atom_type.pdb_residue_number,
-                      distance=self.distance,
-                      angle=self.angle,)
 
-        print(string)
+
+# def pp(self):
+
+#     string = ("{self_str}\n"
+#               "donor: {donor_el}\n"
+#               "       coords = {donor_coords}\n"
+#               "       pdb_serial = {donor_serial}\n"
+#               "       pdb_residue_name = {donor_resname}\n"
+#               "       pdb_residue_index = {donor_resnum}\n"
+#               "acceptor: {acceptor_el}\n"
+#               "          coords = {acceptor_coords}\n"
+#               "          pdb_serial = {acceptor_serial}\n"
+#               "          pdb_residue_name = {acceptor_resname}\n"
+#               "          pdb_residue_index = {acceptor_resnum}\n"
+#               "distance: {distance}\n"
+#               "angle: {angle}\n").format(
+#                   self_str=str(self),
+#                   donor_el=self.donor.atom_type.element,
+#                   donor_coords=tuple(self.donor.coords),
+#                   donor_mol_name=self.donor.molecule.molecule_type.name,
+#                   donor_serial=self.donor.atom_type.pdb_serial_number,
+#                   donor_resname=self.donor.atom_type.pdb_residue_name,
+#                   donor_resnum=self.donor.atom_type.pdb_residue_number,
+#                   acceptor_el=self.acceptor.atom_type.element,
+#                   acceptor_coords=tuple(self.acceptor.coords),
+#                   acceptor_mol_name=self.acceptor.molecule.molecule_type.name,
+#                   acceptor_serial=self.acceptor.atom_type.pdb_serial_number,
+#                   acceptor_resname=self.acceptor.atom_type.pdb_residue_name,
+#                   acceptor_resnum=self.acceptor.atom_type.pdb_residue_number,
+#                   distance=self.distance,
+#                   angle=self.angle,)
+
+#     print(string)

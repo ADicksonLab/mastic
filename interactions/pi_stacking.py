@@ -185,11 +185,6 @@ class PiStackingType(InteractionType):
 
     @property
     def record(self):
-        record_fields = ['interaction_class', 'interaction_type',
-                         'association_type', 'assoc_member_pair_idxs',
-                         'arom_a_feature_type', 'arom_b_feature_type'] + \
-                         list(self.attributes_data.keys())
-        PiStackingTypeRecord = namedtuple('PiStackingTypeRecord', record_fields)
         record_attr = {'interaction_class' : self.name}
         record_attr['interaction_type'] = self.interaction_name
         record_attr['association_type'] = self.association_type.name
@@ -199,6 +194,11 @@ class PiStackingType(InteractionType):
 
         return PiStackingTypeRecord(**record_attr)
 
+# PiStackingTypeRecord
+_pi_stacking_type_record_fields = ['interaction_class', 'interaction_type',
+                 'association_type', 'assoc_member_pair_idxs',
+                 'arom_a_feature_type', 'arom_b_feature_type']
+PiStackingTypeRecord = namedtuple('PiStackingTypeRecord', _pi_stacking_type_record_fields)
 
 def calc_centroid_offset(arom_a_coords, arom_b_coords):
     """Project the centers of each ring over each other and get
@@ -515,14 +515,14 @@ class PiStackingInx(Interaction):
 
     @property
     def record(self):
-        record_fields = ['interaction_class'] + \
-                        self.interaction_type.interaction_param_keys
-
-        PiStackingInxRecord = namedtuple('PiStackingInxRecord', record_fields)
         record_attr = {'interaction_class' : self.interaction_class.name}
 
         return PiStackingInxRecord(**record_attr, **self.interaction_params)
 
+# PiStackingInxRecord
+_pi_stacking_inx_record_fields = ['interaction_class'] + \
+                                 PiStackingType.interaction_param_keys
+PiStackingInxRecord = namedtuple('PiStackingInxRecord', _pi_stacking_inx_record_fields)
 
 #### parallel yaw calculations
             # # There are 3 different parallel possibilities for 6 member rings:

@@ -131,23 +131,22 @@ class FeatureType(object):
 
     @property
     def record(self):
-        # define the Record namedtuple
-        record_fields = ['FeatureType', 'MoleculeType',
-                         'AtomTypes', 'atom_idxs',
-                         'BondTypes', 'bond_idxs'] + \
-                         list(self.attributes_data.keys())
-
-        FeatureTypeRecord = col.namedtuple('FeatureTypeRecord', record_fields)
         # build the values for it for this Type
         record_attr = {'FeatureType' : self.name}
         record_attr['MoleculeType'] = self.molecule_type.name
-        record_attr['AtomTypes'] = self.atom_types
+        record_attr['AtomTypes'] = [atom_type.name for atom_type in self.atom_types]
         record_attr['atom_idxs'] = self.atom_idxs
         record_attr['BondTypes'] = self.bond_types
         record_attr['bond_idxs'] = self.bond_idxs
-        record_attr.update(self.attributes_data)
 
         return FeatureTypeRecord(**record_attr)
+
+# FeatureTypeRecord
+_feature_type_record_fields = ['FeatureType', 'MoleculeType',
+                               'AtomTypes', 'atom_idxs',
+                               'BondTypes', 'bond_idxs']
+
+FeatureTypeRecord = col.namedtuple('FeatureTypeRecord', _feature_type_record_fields)
 
 class Feature(mastsel.SelectionsDict):
     """Feature, which is a collection of Atoms and Bonds selected from a
@@ -203,18 +202,12 @@ class Feature(mastsel.SelectionsDict):
 
     @property
     def record(self):
-        # TODO better info if needed
-
-        # define the Record namedtuple
-        record_fields = ['FeatureType'] + \
-                         list(self.attributes_data.keys())
-
-        FeatureRecord = col.namedtuple('FeatureRecord', record_fields)
         # build the values for it for this Type
         record_attr = {'FeatureType' : self.feature_type.name}
         record_attr.update(self.attributes_data)
 
         return FeatureRecord(**record_attr)
 
-
-
+# FeatureRecord
+_feature_record_fields = ['FeatureType']
+FeatureRecord = col.namedtuple('FeatureRecord', _feature_record_fields)
