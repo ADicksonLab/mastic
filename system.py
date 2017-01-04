@@ -116,7 +116,7 @@ class SystemType(object):
         self.member_types = member_types
         self.member_type_library = set(member_types)
         self._association_types = []
-        self._interaction_space = []
+        self._interaction_space = col.defaultdict(list)
 
     def __eq__(self, other):
         if not isinstance(other, SystemType):
@@ -305,10 +305,11 @@ class SystemType(object):
 
                 # set interaction subspace of the association as the
                 # indices of these inx classes
-                self.association_types[assoc_idx]._interaction_subspace_idxs = inx_idxs
+                self.association_types[assoc_idx]._interaction_subspace_idxs[interaction_type]\
+                    = inx_idxs
 
                 # add them to the interaction_space of the SystemType
-                self._interaction_space.extend(assoc_inx_classes)
+                self._interaction_space[interaction_type].extend(assoc_inx_classes)
 
                 return_inxs.append(inx_idxs)
 
@@ -649,7 +650,7 @@ class AssociationType(object):
         self.system_type = system_type
         self.selection_map = selection_map
         self.selection_types = selection_types
-        self._interaction_subspace_idxs = []
+        self._interaction_subspace_idxs = {}
 
     def __eq__(self, other):
         if not isinstance(other, AssociationType):
@@ -711,8 +712,11 @@ class AssociationType(object):
         # returns the interaction classes in the main system
         # interaction space from the interaction subspace indices in
         # this association
-        return [inx for i, inx in enumerate(self.system_type.interaction_space)
-                 if i in self.interaction_subspace_idxs]
+        inxs = {}
+        for inx_type, inxs in self.system_type.interaction_space:
+            inxs[inx_type] = [inx for i, inx in enumerate(inxs)
+                              if i in self.interaction_subspace_idxs]
+        return inxs
 
     @property
     def record(self):
