@@ -1,13 +1,10 @@
 import os.path as osp
-import pickle
+import numpy as np
 
 from rdkit import Chem
+import mast.tests.data as mastdata
 from mast.interfaces.rdkit import AssignBondOrdersFromTemplate
 from mast.interfaces.rdkit import RDKitMoleculeWrapper
-
-import mast.tests.data as mastdata
-import mast.system as mastsys
-
 
 TPPU_MOL_path = osp.join(".", "TPPU.mol")
 TPPU_MOL_rdkit = Chem.MolFromMolFile(TPPU_MOL_path, sanitize=True)
@@ -24,20 +21,6 @@ seh_rdkit_wrapper = RDKitMoleculeWrapper(seh_rdkit, mol_name="sEH")
 TPPU_coords = TPPU_rdkit_wrapper.get_conformer_coords(0)
 seh_coords = seh_rdkit_wrapper.get_conformer_coords(0)
 
-TPPU_Molecule = TPPU_rdkit_wrapper.make_molecule_type(find_features=True)
-
-seh_Molecule = seh_rdkit_wrapper.make_molecule_type(find_features=True)
-
-seh_pkl_path = osp.join(".", "sEHMoleculeType.pkl")
-with open(seh_pkl_path, 'wb') as wf:
-    pickle.dump(seh_Molecule, wf)
-
-member_types = [TPPU_Molecule, seh_Molecule]
-system_attrs = {'molecule_source' : 'rdkit'}
-sEH_TPPU_SystemType = mastsys.SystemType("sEH_TPPU_System",
-                                         member_types=member_types,
-                                         **system_attrs)
-
-system_pkl_path = osp.join(".", "sEH_TPPU_SystemType.pkl")
-with open(system_pkl_path, 'wb') as wf:
-    pickle.dump(sEH_TPPU_SystemType, wf)
+# write the coordinates out to a binary file
+np.save("TPPU_coords.npy", TPPU_coords)
+np.save("sEH_coords.npy", seh_coords)

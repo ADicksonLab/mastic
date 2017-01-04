@@ -1,45 +1,38 @@
 import os.path as osp
 import pickle
+import numpy as np
 
 from mast.interactions.hydrogen_bond import HydrogenBondType
 
 # load the system type pickle in
-system_pkl_path = osp.join(".", "sEH_TPPU_SystemType.pkl"b)
+system_pkl_path = osp.join(".", "sEH_TPPU_SystemType.pkl")
 with open(system_pkl_path, 'rb') as rf:
-    seh_tppu_SystemType = pickle.load(rf)
+    sEH_TPPU_SystemType = pickle.load(rf)
 
-# load the crystal structure substantiated system
-system_cryst_pkl_path = osp.join(".", "sEH_TPPU_System_cryst.pkl")
-with open(system_cryst_pkl_path, 'rb') as pkl_rf:
-    seh_tppu_System_cryst = pickle.load(pkl_rf)
-
-# use the association polynomial function of the system
-assoc_terms = seh_tppu_SystemType.association_polynomial(
-    # input the degree of the interaction
-    interaction_degree=HydrogenBondType.degree,
-    # return the indices of the system members instead of the members
-    # themselves
-    return_idxs=True,
-    # whether or not the interaction is symmetric or not
-    commutative=False)
+# we generate interaction space for the system for all combinations of
+# members for a degree 2 interaction (e.g. hydrogen bonds)
+assoc_terms = sEH_TPPU_SystemType.association_polynomial(
+    degree=2,
+    permute=True,
+    replace=True,
+    return_idxs=True)
 
 # this gives them to you organized by which association they fall under
-hbond_inx_classes_assocs = seh_tppu_SystemType.interaction_space(
-                                     assoc_terms, HydrogenBondType)
+hbond_inx_class_idxs = sEH_TPPU_SystemType.generate_interaction_space(
+    assoc_terms, HydrogenBondType)
 
-# if you want the whole collection of interaction classes in one list
-from itertools import chain
-hbond_inx_classes = list(chain(*[inx_classes for inx_classes in
-                                 hbond_inx_classes_assocs.values()]))
+# load the coordinates for the members
+member_coords = [np.load('TPPU_coords.npy'), np.load("sEH_coords.npy")]
 
-# however we are only interested in one association
-rec_lig_association = seh_tppu_System_cryst.associations[1]
-rec_lig_association_type = rec_lig_association.association_type
-rec_lig_member_idxs = rec_lig_association_type.member_idxs
-rec_lig_inx_classes = hbond_inx_classes_assocs[rec_lig_member_idxs]
+# substantiate the system
+system = sEH_TPPU_SystemType.to_system(member_coords)
 
-# profile that association
-import ipdb; ipdb.set_trace()
-rec_lig_inxs = rec_lig_association.profile_interactions(
-    [HydrogenBondType],
-    interaction_classes=rec_lig_inx_classes)[HydrogenBondType]
+# profile the associations you are interested in
+lig_rec_idx = assoc_terms.index((0,1))
+rec_lig_idx = assoc_terms.index((1,0))
+
+lig_rec_inxs = system.associations[lig_rec_idx].profile_interactions(
+    [HydrogenBondType])[HydrogenBondType]
+
+rec_lig_inxs = system.associations[rec_lig_idx].profile_interactions(
+    [HydrogenBondType])[HydrogenBondType]

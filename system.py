@@ -116,6 +116,7 @@ class SystemType(object):
         self.member_types = member_types
         self.member_type_library = set(member_types)
         self._association_types = []
+        self._interaction_space = []
 
     def __eq__(self, other):
         if not isinstance(other, SystemType):
@@ -177,9 +178,27 @@ class SystemType(object):
         import pandas as pd
         return pd.DataFrame(self.atom_type_records)
 
+    @property
+    def interaction_space(self):
+        return self._interaction_space
+
     def association_polynomial(self, member_idxs=None,
-                               interaction_degree=1,
-                               return_idxs=False, commutative=True):
+                               degree=2,
+                               permute=True,
+                               replace=True,
+                               return_idxs=False,):
+        """Generate tuples representing the possible associations in the
+        system for the given settings.
+
+        member_idxs :: consider only a subset of system members
+        degree :: the number of members to be included in the association
+        return_idxs :: return only the indices of the members instead of the members themselves
+        repeat
+
+        """
+
+        assert not (not permute and replace), \
+            "Cannot replace members without permuting them."
 
         # if returning the actual members get the members requested
         if return_idxs:
@@ -194,16 +213,16 @@ class SystemType(object):
 
         # get the terms of the degree specified
         if return_idxs:
-            if commutative:
-                degree_terms = list(it.combinations_with_replacement(member_idxs, interaction_degree))
+            if not permute:
+                degree_terms = list(it.combinations_with_replacement(member_idxs, degree))
             else:
-                degree_terms = list(it.product(member_idxs, repeat=interaction_degree))
+                degree_terms = list(it.product(member_idxs, repeat=degree))
         # otherwise make a list of the actual member objects
         else:
-            if commutative:
-                degree_terms = tuple(it.combinations_with_replacement(members, interaction_degree))
+            if not permute:
+                degree_terms = tuple(it.combinations_with_replacement(members, degree))
             else:
-                degree_terms = list(it.product(members, repeat=interaction_degree))
+                degree_terms = list(it.product(members, repeat=degree))
 
         return degree_terms
 
@@ -233,26 +252,68 @@ class SystemType(object):
 
         # return assoc_poly
 
-    def unit_association(self, member_idxs):
-        unit_association_name = self.name + "-" + ":".join(str(i) for i in member_idxs)
+    def unit_association(self, member_idxs, return_assoc=False):
+        """Create an AssociationType between members of the SystemType given only
+        the indices of the members. AssociationTypes made this way are
+        called unit associations due to their basic nature.
+
+        return_assoc :: default False, if False adds the association
+        to the association_types list and returns the index; if True
+        returns the association without adding it to the list.
+
+        """
+
+        # generate a somewhat useful name for the AssociationType
+        unit_association_name = "{0}-{1}".format(self.name,
+                                                 ":".join(str(i) for i in member_idxs))
         assoc_type = AssociationType(unit_association_name,
                                      system_type=self,
                                      selection_map=[(i, None) for i in member_idxs],
                                      selection_types=[None for i in member_idxs])
-        return assoc_type
 
-    def interaction_space(self, assoc_terms, interaction_type):
-        unit_assocs = []
-        inx_classes = {}
+        if return_assoc:
+            return assoc_type
+        else:
+            # get the index this association type will be in the association_types list
+            idx = len(self.association_types)
+            # add the association type to the list
+            self.association_types.append(assoc_type)
+
+            return idx
+
+    def generate_interaction_space(self, assoc_terms, interaction_type,
+                                   return_inx_classes=False):
+
+        return_inxs = []
         for assoc_term in assoc_terms:
-            assoc_type = self.unit_association(assoc_term)
-            unit_assocs.append(assoc_type)
+            # get the actual association type from the association
+            # indices in the assoc_term
+            assoc_idx = self.unit_association(assoc_term)
 
-            assoc_inx_classes = interaction_type.interaction_classes(assoc_type)
-            inx_classes[assoc_term] = assoc_inx_classes
-            # inx_classes.extend(assoc_inx_classes)
+            # using the unit AssociationType created create the inx classes
+            assoc_inx_classes = interaction_type.interaction_classes(
+                self.association_types[assoc_idx])
 
-        return inx_classes
+            # if we just want the interaction classes
+            if return_inx_classes:
+                return_inxs.append(assoc_inx_classes)
+            else:
+                # index them within the SystemTypes interaction space
+                first_idx = len(self.interaction_space)
+                last_idx = first_idx + len(assoc_inx_classes)
+                inx_idxs = list(range(first_idx, last_idx))
+
+                # set interaction subspace of the association as the
+                # indices of these inx classes
+                self.association_types[assoc_idx]._interaction_subspace_idxs = inx_idxs
+
+                # add them to the interaction_space of the SystemType
+                self._interaction_space.extend(assoc_inx_classes)
+
+                return_inxs.append(inx_idxs)
+
+        # return the objects (inxs or idxs) that were saved
+        return return_inxs
 
     def make_member_association_type(self, member_idxs, association_type=None):
         """Match an AssociationType to members of the SystemType"""
@@ -588,6 +649,7 @@ class AssociationType(object):
         self.system_type = system_type
         self.selection_map = selection_map
         self.selection_types = selection_types
+        self._interaction_subspace_idxs = []
 
     def __eq__(self, other):
         if not isinstance(other, AssociationType):
@@ -639,6 +701,18 @@ class AssociationType(object):
                                                     self.member_selection_idxs[i])
                 selections.append(selection)
         return selections
+
+    @property
+    def interaction_subspace_idxs(self):
+        return self._interaction_subspace_idxs
+
+    @property
+    def interaction_subspace(self):
+        # returns the interaction classes in the main system
+        # interaction space from the interaction subspace indices in
+        # this association
+        return [inx for i, inx in enumerate(self.system_type.interaction_space)
+                 if i in self.interaction_subspace_idxs]
 
     @property
     def record(self):
@@ -752,12 +826,10 @@ class Association(SelectionsList):
         """
         return self._interactions
     def profile_interactions(self, interaction_types,
-                             profile_string=None,
-                             intramember_interactions=False,
-                             commute=False,
                              interaction_classes=None,
                              return_feature_keys=False,
                              return_failed_hits=False,
+                             profile_string=None,
                              **find_hits_kwargs):
         """Accepts any number of InteractionType instancees and identifies
         Interactions between the members of the association using the
@@ -772,27 +844,18 @@ class Association(SelectionsList):
         assert all([issubclass(itype, InteractionType) for itype in interaction_types]), \
                    "All interaction_types must be a subclass of InteractionType"
 
-        # if intramember_interactions is False only get interactions between members
-        member_combos = []
-        member_idx_combos = []
-        if commute:
-            member_combos.extend(it.combinations(self.members, self.n_members))
-            # the key to each pairing is a tuple of the members indices
-            member_idx_combos.extend(it.combinations(range(self.n_members), self.n_members))
 
-        # otherwise only compute interactions for the ordering given
-        # in the association
-        else:
-            member_combos.append(tuple(self.members))
-            member_idx_combos.append(tuple(self.association_type.member_idxs))
-
-        # if intramember interactions is True make pairs of each
-        # member to itself
-        if intramember_interactions:
-            # make pairings of members to themselves
-            member_combos.extend([(member, member) for member in self.members])
-            # the key to each pairing is a tuple of the members indices
-            member_idx_combos.extend([(memb_idx, memb_idx) for memb_idx in range(self.n_members)])
+        # if no interaction_classes given we want to use the
+        # interaction classes from the AssociationType interaction
+        # subspace
+        if interaction_classes is None or True:
+            assert self.association_type.interaction_subspace, \
+                "The interaction subspace on the AssociationType must be defined. Use"\
+                "False for kwarg interaction_classes to generate ad hoc Interactions."
+            interaction_classes = self.association_type.interaction_subspace
+        elif interaction_classes is False:
+            raise ValueError("STUB: Not implemented, set interaction_classes to None or list of"\
+                             "InteractionType objects")
 
         # go through each interaction_type and check for hits
         interactions = {}
@@ -800,73 +863,70 @@ class Association(SelectionsList):
         inx_failed_hits = {}
         for interaction_type in interaction_types:
 
-            member_inx_hits = {}
-            member_failed_hits = {}
-            member_feature_key_combos = {}
-            # for each pair find the hits in this interaction_type
-            for idx, member_combo in enumerate(member_combos):
-                if return_feature_keys:
-                    if return_failed_hits:
-                        feature_key_pairs, failed_hits, inxs = interaction_type.find_hits(
-                            member_combo,
-                            interaction_classes=interaction_classes,
-                            return_feature_keys=return_feature_keys,
-                            **find_hits_kwargs)
-                        # save the failed hits
-                        member_failed_hits[member_idx_combos[idx]] = failed_hits
-                    else:
-                        feature_key_pairs, inxs = interaction_type.find_hits(
-                            member_combo,
-                            interaction_classes=interaction_classes,
-                            return_feature_keys=return_feature_keys,
-                            **find_hits_kwargs)
-                    # save the feature keys
-                    member_feature_key_combos[member_idx_combos[idx]] = feature_key_pairs
-                elif return_failed_hits:
-                    failed_hits, inxs = interaction_type.find_hits(
-                        member_combo,
+            # if we are return the feature keys
+            if return_feature_keys:
+                if return_failed_hits:
+                    feature_key_pairs, failed_hits, inxs = interaction_type.find_hits(
+                        self.members,
                         interaction_classes=interaction_classes,
                         return_feature_keys=return_feature_keys,
-                        return_failed_hits=return_failed_hits,
                         **find_hits_kwargs)
                     # save the failed hits
-                    member_failed_hits[member_idx_combos[idx]] = failed_hits
+                    inx_failed_hits[interaction_type] = failed_hits
                 else:
-                    inxs = interaction_type.find_hits(
-                        member_combo,
+                    feature_key_pairs, inxs = interaction_type.find_hits(
+                        self.members,
                         interaction_classes=interaction_classes,
                         return_feature_keys=return_feature_keys,
-                        return_failed_hits=return_failed_hits,
                         **find_hits_kwargs)
-                # save the interaction objects
-                member_inx_hits[member_idx_combos[idx]] = inxs
+                # save the feature keys
+                inx_feature_key_pairs[interaction_type] = feature_key_pairs
 
-
-            # if the interaction classes were not given we make our own
-            if not interaction_classes:
-                raise NotImplementedError
-                # determine the interaction classes for the interactions
-                inx_classes = classify_interaction_classes(inxs)
-                # assign them to the interactions appropriately
-                assign_interaction_classes(inxs, inx_classes)
-
-            # flatten the member_inx_hits dict
-            all_inx_hits = reduce(op.add, [inxs for inxs in member_inx_hits.values()])
-            # add them to the interaction type entry
-            interactions[interaction_type] = all_inx_hits
-            if return_feature_keys:
-                inx_feature_key_pairs[interaction_type] = member_feature_key_combos
-                if return_failed_hits:
-                    inx_failed_hits[interaction_type] = member_failed_hits
-                    return inx_feature_key_pairs, failed_hits, interactions
-                else:
-                    return inx_feature_key_pairs, interactions
+            # or if we are to return the failed hits
             elif return_failed_hits:
-                inx_failed_hits[interaction_type] = member_failed_hits
+                failed_hits, inxs = interaction_type.find_hits(
+                    self.members,
+                    interaction_classes=interaction_classes,
+                    return_feature_keys=return_feature_keys,
+                    return_failed_hits=return_failed_hits,
+                    **find_hits_kwargs)
+                # save the failed hits
+                inx_failed_hits[interaction_type] = failed_hits
+
+            #### or else just give me the damn interactions
+            else:
+                inxs = interaction_type.find_hits(
+                    self.members,
+                    interaction_classes=interaction_classes,
+                    return_feature_keys=return_feature_keys,
+                    return_failed_hits=return_failed_hits,
+                    **find_hits_kwargs)
+
+            interactions[interaction_type] = inxs
+
+
+            ###### Not implemented yet
+            # # if the interaction classes were not given we make our own
+            # if not interaction_classes:
+            #     raise NotImplementedError
+            #     # determine the interaction classes for the interactions
+            #     inx_classes = classify_interaction_classes(inxs)
+            #     # assign them to the interactions appropriately
+            #     assign_interaction_classes(inxs, inx_classes)
+
+
+            # return the correct thing
+            if return_feature_keys and return_failed_hits:
+                return feature_key_pairs, failed_hits, interactions
+
+            elif return_feature_keys:
+                return feature_key_pairs, interactions
+
+            elif return_failed_hits:
                 return failed_hits, interactions
+
             else:
                 return interactions
-
 
     @property
     def record(self):
