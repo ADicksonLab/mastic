@@ -713,7 +713,7 @@ class AssociationType(object):
         # interaction space from the interaction subspace indices in
         # this association
         inxs = {}
-        for inx_type, inxs in self.system_type.interaction_space:
+        for inx_type, inxs in self.system_type.interaction_space.items():
             inxs[inx_type] = [inx for i, inx in enumerate(inxs)
                               if i in self.interaction_subspace_idxs]
         return inxs
