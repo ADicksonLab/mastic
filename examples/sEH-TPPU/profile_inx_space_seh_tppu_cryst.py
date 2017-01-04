@@ -3,6 +3,7 @@ import pickle
 import numpy as np
 
 from mast.interactions.hydrogen_bond import HydrogenBondType
+import mast.profile as mastprof
 
 # load the system type pickle in
 system_pkl_path = osp.join(".", "sEH_TPPU_SystemType.pkl")
@@ -31,6 +32,7 @@ system = sEH_TPPU_SystemType.to_system(member_coords)
 lig_rec_idx = assoc_terms.index((0,1))
 rec_lig_idx = assoc_terms.index((1,0))
 
+import ipdb; ipdb.set_trace()
 lig_rec_inxs = system.associations[lig_rec_idx].profile_interactions(
     [HydrogenBondType])[HydrogenBondType]
 

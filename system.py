@@ -712,11 +712,11 @@ class AssociationType(object):
         # returns the interaction classes in the main system
         # interaction space from the interaction subspace indices in
         # this association
-        inxs = {}
+        interactions = {}
         for inx_type, inxs in self.system_type.interaction_space.items():
-            inxs[inx_type] = [inx for i, inx in enumerate(inxs)
-                              if i in self.interaction_subspace_idxs]
-        return inxs
+            interactions[inx_type] = [inx for i, inx in enumerate(inxs)
+                              if i in self.interaction_subspace_idxs[inx_type]]
+        return interactions
 
     @property
     def record(self):
@@ -872,7 +872,7 @@ class Association(SelectionsList):
                 if return_failed_hits:
                     feature_key_pairs, failed_hits, inxs = interaction_type.find_hits(
                         self.members,
-                        interaction_classes=interaction_classes,
+                        interaction_classes=interaction_classes[interaction_type],
                         return_feature_keys=return_feature_keys,
                         **find_hits_kwargs)
                     # save the failed hits
@@ -880,7 +880,7 @@ class Association(SelectionsList):
                 else:
                     feature_key_pairs, inxs = interaction_type.find_hits(
                         self.members,
-                        interaction_classes=interaction_classes,
+                        interaction_classes=interaction_classes[interaction_type],
                         return_feature_keys=return_feature_keys,
                         **find_hits_kwargs)
                 # save the feature keys
@@ -890,7 +890,7 @@ class Association(SelectionsList):
             elif return_failed_hits:
                 failed_hits, inxs = interaction_type.find_hits(
                     self.members,
-                    interaction_classes=interaction_classes,
+                    interaction_classes=interaction_classes[interaction_type],
                     return_feature_keys=return_feature_keys,
                     return_failed_hits=return_failed_hits,
                     **find_hits_kwargs)
@@ -901,7 +901,7 @@ class Association(SelectionsList):
             else:
                 inxs = interaction_type.find_hits(
                     self.members,
-                    interaction_classes=interaction_classes,
+                    interaction_classes=interaction_classes[interaction_type],
                     return_feature_keys=return_feature_keys,
                     return_failed_hits=return_failed_hits,
                     **find_hits_kwargs)

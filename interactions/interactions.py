@@ -415,32 +415,36 @@ def match_inxclass(inx, interaction_classes):
     found = False
     match = None
     # get the matching interaction class, throws error if no match
-    try:
-        while not found:
+    while not found:
+
+        # end the loop if no more interaction classes left
+        try:
             inx_class = next(interaction_classes_it)
-            feature_pair = tuple([feature_type for feature_type
-                            in inx_class.feature_types])
-            # get the feature types to compare to the
-            # feature pair in the inx class
-            feature_types_tup = tuple([feature.feature_type for feature in
-                                       inx.features])
-            # if the interaction is not commutative the
-            # order must be the same as the interaction class
-            if not inx_class.commutative:
-                if feature_pair == feature_types_tup:
+        except StopIteration:
+            print("No matching interaction class given")
+            break
+
+        feature_pair = tuple([feature_type for feature_type
+                        in inx_class.feature_types])
+        # get the feature types to compare to the
+        # feature pair in the inx class
+        feature_types_tup = tuple([feature.feature_type for feature in
+                                   inx.features])
+        # if the interaction is not commutative the
+        # order must be the same as the interaction class
+        if not inx_class.commutative:
+            if feature_pair == feature_types_tup:
+                match = inx_class
+                found = True
+        # if the interaction is not commutative the
+        # order might not be the same as the order in
+        # the interaction class so we permute the
+        # current inx feature types to check if any match
+        else:
+            for feature_pair_perm in it.permutations(feature_pair):
+                if feature_pair_perm == feature_types_tup:
                     match = inx_class
                     found = True
-            # if the interaction is not commutative the
-            # order might not be the same as the order in
-            # the interaction class so we permute the
-            # current inx feature types to check if any match
-            else:
-                for feature_pair_perm in it.permutations(feature_pair):
-                    if feature_pair_perm == feature_types_tup:
-                        match = inx_class
-                        found = True
-    except StopIteration:
-        print("No matching interaction class given")
 
     return match
 

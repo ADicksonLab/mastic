@@ -25,9 +25,11 @@ class SystemTypeProfile(col.defaultdict):
     def profiles(self):
         return list(self.values())
 
-class SystemProfile(object):
+class SystemProfile(col.defaultdict):
 
     def __init__(self, interaction_type, inx_class_idxs, **param_values):
+        super().__init__(list)
+
         self._interaction_type = interaction_type
         self._inx_class_idxs = inx_class_idxs
         self._param_values = param_values
@@ -45,3 +47,8 @@ class SystemProfile(object):
     @property
     def param_values(self):
         return self._param_values
+
+
+class AssociationProfile(object):
+
+    def __init__(self, interaction)
