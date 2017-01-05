@@ -213,6 +213,8 @@ class InteractionType(object):
 
 
     @classmethod
+    def new_find_hits(cls, members)
+    @classmethod
     def find_hits(cls, members,
                   interaction_classes=interaction_classes,
                   return_feature_keys=False,

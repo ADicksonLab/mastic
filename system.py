@@ -829,6 +829,51 @@ class Association(SelectionsList):
 
         """
         return self._interactions
+
+    def new_profile_interactions(self,
+                                 interaction_classes=None,
+                                 returns='records'):
+
+        # if no interaction classes are passed in just use the
+        # associations subspace
+        if interaction_classes is None:
+            interaction_classes = self.association_type.interaction_subspace
+
+        inxs = []
+        for inx_class in interaction_classes:
+            # get the features for this interaction class from this association
+            features = []
+            for i, feature_type in inx_class.feature_types:
+                # find the index of the feature in the member, order of features determines
+                feat_idx = list(self.association_type.member_types[i].values())\
+                           .index(feature_type)
+                feature = list(self.members[i].features.values())[feat_idx]
+                features.append(feature)
+
+            okay, param_values = inx_class.check(features)
+
+            if not okay:
+                # move onto next inx_class
+                continue
+
+            # associate the parameter values with the names for them
+            param_values = {param_name : param_val for param_name,
+                            param_val in zip(inx_class.interaction_param_keys, param_values)}
+
+            inx = inx_class.interaction_constructor(*features,
+                                                    interaction_class=inx_class,
+                                                    check=False,
+                                                    **param_values)
+
+            inxs.append(inx)
+
+        if returns == 'inxs' or returns == 'interactions':
+            return inxs
+        elif returns == 'records':
+            records = [inx.record for inx in inxs]
+            return records
+
+
     def profile_interactions(self, interaction_types,
                              interaction_classes=None,
                              return_feature_keys=False,
@@ -866,6 +911,7 @@ class Association(SelectionsList):
         inx_feature_key_pairs = {}
         inx_failed_hits = {}
         for interaction_type in interaction_types:
+
 
             # if we are return the feature keys
             if return_feature_keys:
