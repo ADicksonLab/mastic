@@ -19,7 +19,7 @@ assoc_terms = sEH_TPPU_SystemType.association_polynomial(
     return_idxs=True)
 
 # this gives them to you organized by which association they fall under
-hbond_inx_class_idxs = sEH_TPPU_SystemType.generate_interaction_space(
+hbond_inx_class_idxs = sEH_TPPU_SystemType.generate_unit_interaction_space(
     assoc_terms, HydrogenBondType)
 
 # load the coordinates for the members
@@ -32,9 +32,8 @@ system = sEH_TPPU_SystemType.to_system(member_coords)
 lig_rec_idx = assoc_terms.index((0,1))
 rec_lig_idx = assoc_terms.index((1,0))
 
-import ipdb; ipdb.set_trace()
-lig_rec_inxs = system.associations[lig_rec_idx].profile_interactions(
-    [HydrogenBondType])[HydrogenBondType]
+lig_rec_inx_records = system.associations[lig_rec_idx].profile_interactions(
+    returns='records')
 
 rec_lig_inxs = system.associations[rec_lig_idx].profile_interactions(
-    [HydrogenBondType])[HydrogenBondType]
+    returns='records')

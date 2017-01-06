@@ -4,7 +4,8 @@ import itertools as it
 
 from mast.molecule import Atom, Bond, Molecule, AtomType, BondType, MoleculeType
 import mast.selection as mastsel
-from mast.interaction_space import InteractionSpace
+from mast.interaction_space import InteractionSpace, InteractionSubSpace
+import mast.profile as mastprof
 
 import mast.config.system as mastsysconfig
 
@@ -118,7 +119,7 @@ class SystemType(object):
         self.interaction_space = InteractionSpace(self, [])
 
         # convenience attributes that are created and memoized when first created
-        self._assoc_member_idxs = None
+
         self._unit_assoc_member_idxs = None
 
     def __eq__(self, other):
@@ -251,14 +252,17 @@ class SystemType(object):
 
         # return assoc_poly
 
-    def unit_association(self, member_idxs, return_assoc=False):
-        """Create an AssociationType between members of the SystemType given only
-        the indices of the members. AssociationTypes made this way are
-        called unit associations due to their basic nature.
+    @property
+    def unit_association_types(self):
+        return {self.assoc_member_idxs[i] : self.association_types[i]
+                for i in self._unit_assoc_idxs}
 
-        return_assoc :: default False, if False adds the association
-        to the association_types list and returns the index; if True
-        returns the association without adding it to the list.
+    def make_unit_association_type(self, member_idxs):
+        """Create an AssociationType between members of the SystemType given
+        only the indices of the members. AssociationTypes made this
+        way are called unit associations due to their basic
+        nature. Created objects are automatically assigned to the
+        SystemType and the index of them in the SystemType are returned.
 
         """
 
@@ -270,38 +274,40 @@ class SystemType(object):
                                      selection_map=[(i, None) for i in member_idxs],
                                      selection_types=[None for i in member_idxs])
 
-        if return_assoc:
-            return assoc_type
-        else:
-            # get the index this association type will be in the association_types list
-            idx = len(self.association_types)
-            # add the association type to the list
-            self.association_types.append(assoc_type)
+        # get the index this association type will be in the association_types list
+        idx = len(self.association_types)
+        # add the association type to the list
+        self.association_types.append(assoc_type)
+        # add the idx to the list of _unit_assoc_idxs so we can
+        # easily access them later
+        self._unit_assoc_idxs.append(idx)
 
-            # add the idx to the list of _unit_assoc_idxs so we can
-            # easily access them later
-            self._unit_assoc_idxs.append(idx)
+        return idx
 
-            return idx
-
-    def generate_interaction_space(self, assoc_terms, interaction_type,
+    def generate_unit_interaction_space(self, assoc_terms, interaction_type,
                                    return_inx_classes=False):
 
         return_vals = []
         for assoc_term in assoc_terms:
-            # get the actual association type from the association
-            # indices in the assoc_term
-            assoc_idx = self.unit_association(assoc_term)
+            # make the actual association type from the association
+            # indices in the assoc_term if not already existing
+            try:
+                self.unit_association_types[assoc_term]
+            except KeyError:
+                assoc_idx = self.make_unit_association_type(assoc_term)
 
-            # using the unit AssociationType created create the inx classes
+            # using the unit AssociationType create the inx classes
+            # from the InteractionType class method
             assoc_inx_classes = interaction_type.interaction_classes(
                 self.association_types[assoc_idx])
 
             # if we just want the interaction classes
             if return_inx_classes:
-                return_vals.append(assoc_inx_classes)
+                return_vals.extend(assoc_inx_classes)
+
             # we want to add them to this SystemType's
-            # InteractionSpace and return idxs of them
+            # InteractionSpace, the AssociationTypes subspace and
+            # return idxs of them
             else:
                 # index them within the SystemTypes interaction space
                 first_idx = len(self.interaction_space)
@@ -311,7 +317,13 @@ class SystemType(object):
                 # add them to the interaction_space of the SystemType
                 self.interaction_space.extend(assoc_inx_classes)
 
-                return_vals.append(inx_idxs)
+                # add them to the interaction_subspace of this
+                # association_type
+                assoc_type = self.association_types[assoc_idx]
+                assoc_type.interaction_subspace.extend(assoc_inx_classes)
+                assoc_type._interaction_subspace_idxs.extend(inx_idxs)
+
+                return_vals.extend(inx_idxs)
 
         # return the objects (inxs or idxs) that were saved
         return return_vals
@@ -332,31 +344,18 @@ class SystemType(object):
 
         """
 
-        if not self._assoc_member_idxs:
-            self._assoc_member_idxs = [assoc_type.member_idxs for
-                                       assoc_type in self.association_types]
+        return [assoc_type.member_idxs for
+                assoc_type in self.association_types]
 
-        return self._assoc_member_idxs
+    # @property
+    # def unit_assoc_member_idxs(self):
+    #     """Returns a list of tuples for each unit AssociationType where each
+    #     element of the tuple is the member the AssociationType
+    #     involves, these are unique.
 
-    @property
-    def unit_association_types(self):
-        return {self.assoc_member_idxs[i] : self.association_types[i]
-                for i in self._unit_assoc_idxs}
+    #     """
 
-    @property
-    def unit_assoc_member_idxs(self):
-        """Returns a list of tuples for each unit AssociationType where each
-        element of the tuple is the member the AssociationType
-        involves, these are unique.
-
-        """
-
-        if not self._unit_assoc_member_idxs:
-            self._unit_assoc_member_idxs = [member_idxs for member_idxs in
-                                            self.unit_association_types.keys()]
-
-        return self._unit_assoc_member_idxs
-
+    #     return [member_idxs for member_idxs in self.unit_association_types.keys()]
 
     def add_association_type(self, association_type):
         # check to make sure that it's selection types are in this
@@ -687,6 +686,7 @@ class AssociationType(object):
         self.selection_map = selection_map
         self.selection_types = selection_types
         self._interaction_subspace_idxs = []
+        self._interaction_subspace = InteractionSubSpace(self, [])
 
     def __eq__(self, other):
         if not isinstance(other, AssociationType):
@@ -745,14 +745,7 @@ class AssociationType(object):
 
     @property
     def interaction_subspace(self):
-        # returns the interaction classes in the main system
-        # interaction space from the interaction subspace indices in
-        # this association
-        interactions = {}
-        for inx_type, inxs in self.system_type.interaction_space.items():
-            interactions[inx_type] = [inx for i, inx in enumerate(inxs)
-                              if i in self.interaction_subspace_idxs[inx_type]]
-        return interactions
+        return self._interaction_subspace
 
     @property
     def record(self):
@@ -872,14 +865,14 @@ class Association(mastsel.SelectionsList):
         for inx_class in self.association_type.interaction_subspace:
             # get the features for this interaction class from this association
             features = []
-            for i, feature_type in inx_class.feature_types:
+            for i, feature_type in enumerate(inx_class.feature_types):
                 # find the index of the feature in the member, order of features determines
-                feat_idx = list(self.association_type.member_types[i].values())\
+                feat_idx = list(self.association_type.member_types[i].feature_types.values())\
                            .index(feature_type)
                 feature = list(self.members[i].features.values())[feat_idx]
                 features.append(feature)
 
-            okay, param_values = inx_class.check(features)
+            okay, param_values = inx_class.check(*features)
 
             if not okay:
                 # move onto next inx_class

@@ -39,42 +39,37 @@ class InteractionSpace(col.UserList):
     def by_inx_type(self, interaction_type):
         """Returns the indices of interaction classes matching the interaction_type"""
 
-        if not self._inx_type_idxs:
-            self._inx_type_idxs = [i for i, inx_class in enumerate(self) if
-                                   inx_class.interaction_type == interaction_type]
-
-        return self._inx_type_idxs
+        return [i for i, inx_class in enumerate(self) if
+                inx_class.interaction_type == interaction_type]
 
     def by_association(self, association_type):
         """Returns the indices of interaction classes matching the association_type"""
 
-        if not self._assoc_idxs:
-            self._assoc_idxs = [i for i, inx_class in enumerate(self) if
-                                inx_class.association_type == association_type]
-        return self._assoc_idxs
+        return [i for i, inx_class in enumerate(self) if
+                inx_class.association_type == association_type]
 
-# class AssociationInteractionSpace(col.UserList):
-#     """An indexed list of InteractionType objects (interaction classes),
-#     which are accessible by their InteractionType."""
+class InteractionSubSpace(col.UserList):
+    """An indexed list of InteractionType objects (interaction classes),
+    which are accessible by their InteractionType."""
 
-#     def __init__(self, association_type, interaction_classes):
-#         # check that all of the interaction classes come from the same system
-#         assert all([inx_class.association_type in association_type for
-#                     inx_class in interaction_classes]), \
-#                     "All interaction classes must come from the association_type"
+    def __init__(self, association_type, interaction_classes):
+        # check that all of the interaction classes come from the same system
+        assert all([inx_class.association_type in association_type for
+                    inx_class in interaction_classes]), \
+                    "All interaction classes must come from the association_type"
 
-#         # add the interaction classes into this object
-#         super().__init__(interaction_classes)
-#         self._association_type = association_type
+        # add the interaction classes into this object
+        super().__init__(interaction_classes)
+        self._association_type = association_type
 
-#     @property
-#     def association_type(self):
-#         return self._association_type
+    @property
+    def association_type(self):
+        return self._association_type
 
-#     def by_inx_type(self, interaction_type):
-#         """Returns the indices of interaction classes matching the interaction_type"""
-#         return [i for i, inx_class in enumerate(self) if
-#                 inx_class.interaction_type == interaction_type]
+    def by_inx_type(self, interaction_type):
+        """Returns the indices of interaction classes matching the interaction_type"""
+        return [i for i, inx_class in enumerate(self) if
+                inx_class.interaction_type == interaction_type]
 
 
 if __name__ == "__main__":
