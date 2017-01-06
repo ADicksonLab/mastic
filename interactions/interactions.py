@@ -1,20 +1,16 @@
 """ The interactions module. """
 import itertools as it
-from collections import defaultdict, Counter, namedtuple
 import collections as col
 
-import numpy as np
-import numpy.linalg as la
-
 from mast.selection import SelectionsList
-from mast.system import System
-import mast.selection as mastsel
-import mast.molecule as mastmol
 import mast.features as mastfeat
-import mast.system as mastsys
 
-import mast.config.interactions as mastinxconfig
-import mast.config.features as mastfeatconfig
+# from mast.system import System
+# import mast.selection as mastsel
+# import mast.molecule as mastmol
+# import mast.system as mastsys
+# import mast.config.interactions as mastinxconfig
+# import mast.config.features as mastfeatconfig
 
 __all__ = ['Interaction', 'InteractionType', "InteractionError"]
 
@@ -213,7 +209,8 @@ class InteractionType(object):
 
 
     @classmethod
-    def new_find_hits(cls, members)
+    def new_find_hits(cls, members):
+        pass
     @classmethod
     def find_hits(cls, members,
                   interaction_classes=interaction_classes,
@@ -383,9 +380,9 @@ class Interaction(SelectionsList):
         assert isinstance(interaction_class, self.interaction_type), \
             "interaction_classes must be subclasses of this Interaction's" \
             "interaction_type, not {}".format(interaction_class)
-        assert Counter(self.feature_types) == Counter(interaction_class.feature_types), \
+        assert col.Counter(self.feature_types) == col.Counter(interaction_class.feature_types), \
             "the interaction_class must have the same number and types of features" \
-            "as this Interaction, not {}".format(Counter(interaction_class.feature_types))
+            "as this Interaction, not {}".format(col.Counter(interaction_class.feature_types))
         self._interaction_class = interaction_class
 
     @property

@@ -1,15 +1,13 @@
 """ The system module. """
 import collections as col
 import itertools as it
-from functools import reduce
-import operator as op
 
-from mast.selection import SelectionsList, IndexedSelection
 from mast.molecule import Atom, Bond, Molecule, AtomType, BondType, MoleculeType
 import mast.selection as mastsel
-
+from mast.interaction_space import InteractionSpace
 
 import mast.config.system as mastsysconfig
+
 
 __all__ = ['overlaps', 'SystemType', 'System']
 
@@ -116,7 +114,12 @@ class SystemType(object):
         self.member_types = member_types
         self.member_type_library = set(member_types)
         self._association_types = []
-        self._interaction_space = col.defaultdict(list)
+        self._unit_assoc_idxs = []
+        self.interaction_space = InteractionSpace(self, [])
+
+        # convenience attributes that are created and memoized when first created
+        self._assoc_member_idxs = None
+        self._unit_assoc_member_idxs = None
 
     def __eq__(self, other):
         if not isinstance(other, SystemType):
@@ -178,10 +181,6 @@ class SystemType(object):
         import pandas as pd
         return pd.DataFrame(self.atom_type_records)
 
-    @property
-    def interaction_space(self):
-        return self._interaction_space
-
     def association_polynomial(self, member_idxs=None,
                                degree=2,
                                permute=True,
@@ -214,15 +213,15 @@ class SystemType(object):
         # get the terms of the degree specified
         if return_idxs:
             if not permute:
-                degree_terms = list(it.combinations_with_replacement(member_idxs, degree))
+                degree_terms = tuple(it.combinations_with_replacement(member_idxs, degree))
             else:
-                degree_terms = list(it.product(member_idxs, repeat=degree))
-        # otherwise make a list of the actual member objects
+                degree_terms = tuple(it.product(member_idxs, repeat=degree))
+        # otherwise make a tuple of the actual member objects
         else:
             if not permute:
                 degree_terms = tuple(it.combinations_with_replacement(members, degree))
             else:
-                degree_terms = list(it.product(members, repeat=degree))
+                degree_terms = tuple(it.product(members, repeat=degree))
 
         return degree_terms
 
@@ -279,12 +278,16 @@ class SystemType(object):
             # add the association type to the list
             self.association_types.append(assoc_type)
 
+            # add the idx to the list of _unit_assoc_idxs so we can
+            # easily access them later
+            self._unit_assoc_idxs.append(idx)
+
             return idx
 
     def generate_interaction_space(self, assoc_terms, interaction_type,
                                    return_inx_classes=False):
 
-        return_inxs = []
+        return_vals = []
         for assoc_term in assoc_terms:
             # get the actual association type from the association
             # indices in the assoc_term
@@ -296,25 +299,22 @@ class SystemType(object):
 
             # if we just want the interaction classes
             if return_inx_classes:
-                return_inxs.append(assoc_inx_classes)
+                return_vals.append(assoc_inx_classes)
+            # we want to add them to this SystemType's
+            # InteractionSpace and return idxs of them
             else:
                 # index them within the SystemTypes interaction space
                 first_idx = len(self.interaction_space)
                 last_idx = first_idx + len(assoc_inx_classes)
                 inx_idxs = list(range(first_idx, last_idx))
 
-                # set interaction subspace of the association as the
-                # indices of these inx classes
-                self.association_types[assoc_idx]._interaction_subspace_idxs[interaction_type]\
-                    = inx_idxs
-
                 # add them to the interaction_space of the SystemType
-                self._interaction_space[interaction_type].extend(assoc_inx_classes)
+                self.interaction_space.extend(assoc_inx_classes)
 
-                return_inxs.append(inx_idxs)
+                return_vals.append(inx_idxs)
 
         # return the objects (inxs or idxs) that were saved
-        return return_inxs
+        return return_vals
 
     def make_member_association_type(self, member_idxs, association_type=None):
         """Match an AssociationType to members of the SystemType"""
@@ -323,6 +323,40 @@ class SystemType(object):
     @property
     def association_types(self):
         return self._association_types
+
+    @property
+    def assoc_member_idxs(self):
+        """Returns a list of tuples for each AssociationType where each
+        element of the tuple is the member the AssociationType
+        involves, thus these are not unique.
+
+        """
+
+        if not self._assoc_member_idxs:
+            self._assoc_member_idxs = [assoc_type.member_idxs for
+                                       assoc_type in self.association_types]
+
+        return self._assoc_member_idxs
+
+    @property
+    def unit_association_types(self):
+        return {self.assoc_member_idxs[i] : self.association_types[i]
+                for i in self._unit_assoc_idxs}
+
+    @property
+    def unit_assoc_member_idxs(self):
+        """Returns a list of tuples for each unit AssociationType where each
+        element of the tuple is the member the AssociationType
+        involves, these are unique.
+
+        """
+
+        if not self._unit_assoc_member_idxs:
+            self._unit_assoc_member_idxs = [member_idxs for member_idxs in
+                                            self.unit_association_types.keys()]
+
+        return self._unit_assoc_member_idxs
+
 
     def add_association_type(self, association_type):
         # check to make sure that it's selection types are in this
@@ -359,9 +393,10 @@ class SystemType(object):
 _system_type_record_fields = ['SystemType']
 SystemTypeRecord = col.namedtuple('SystemTypeRecord', _system_type_record_fields)
 
-class System(SelectionsList):
+class System(mastsel.SelectionsList):
+
     """System that contains non-overlapping molecules, assumed to be in
-the same coordinate system.
+        the same coordinate system.
 
     molecules : the molecules in the system
 
@@ -476,7 +511,7 @@ the same coordinate system.
 
         """
         mol_indices = [i for i, member in enumerate(self) if issubclass(type(member), Molecule)]
-        return IndexedSelection(self, mol_indices)
+        return mastsel.IndexedSelection(self, mol_indices)
 
     # YAGNI?
     def atoms_sel(self):
@@ -485,7 +520,7 @@ the same coordinate system.
 
         """
         atom_indices = [i for i, member in enumerate(self) if issubclass(type(member), Atom)]
-        return IndexedSelection(self, atom_indices)
+        return mastsel.IndexedSelection(self, atom_indices)
 
     @property
     def associations(self):
@@ -503,7 +538,7 @@ the same coordinate system.
         for mol in self.molecules:
             mol.make_feature_selections()
 
-    def overlaps(members):
+    def overlaps(self, members):
         """Checks whether the members given overlap anything in this system."""
         for member in members:
             for sys_member in self.members:
@@ -522,13 +557,14 @@ the same coordinate system.
         # make and return
         return SystemRecord(**record_attr)
 
-
 # SystemRecord
 _system_record_fields = ['SystemType']
 SystemRecord = col.namedtuple('SystemRecord', _system_record_fields)
 
 # basically just a named grouping of multiple selections from a system
 # with some methods
+
+
 class AssociationType(object):
     """Class for defining a relationship between two selections in a
     SystemType allowing for convenient introspection and calculations
@@ -574,9 +610,9 @@ class AssociationType(object):
     attributes = mastsysconfig.ASSOCIATION_ATTRIBUTES
 
     def __init__(self, association_type_name,
-                system_type=None,
-                selection_map=None, selection_types=None,
-                **association_attrs):
+                 system_type=None,
+                 selection_map=None, selection_types=None,
+                 **association_attrs):
         """Static method for generating association types dynamically given a type
         name (which will be the class name) and a domain specific dictionary
         of association attributes.
@@ -594,7 +630,7 @@ class AssociationType(object):
         # check that system_type is given and correct
         assert system_type, "system_type must be given"
         assert isinstance(system_type, SystemType), \
-            "system_type must be a instance of SystemType, not {}}".format(
+            "system_type must be a instance of SystemType, not {}".format(
                 system_type)
 
         # check that there are the same number of selection_map
@@ -650,7 +686,7 @@ class AssociationType(object):
         self.system_type = system_type
         self.selection_map = selection_map
         self.selection_types = selection_types
-        self._interaction_subspace_idxs = {}
+        self._interaction_subspace_idxs = []
 
     def __eq__(self, other):
         if not isinstance(other, AssociationType):
@@ -736,7 +772,7 @@ _association_type_record_fields = ['AssociationType', 'SystemType', 'member_type
 AssociationTypeRecord = col.namedtuple('AssociationTypeRecord', _association_type_record_fields)
 
 
-class Association(SelectionsList):
+class Association(mastsel.SelectionsList):
 
     def __init__(self, system=None, association_type=None, association_name=None):
         # TODO check to make sure that all the atoms are in the same system
@@ -830,17 +866,10 @@ class Association(SelectionsList):
         """
         return self._interactions
 
-    def new_profile_interactions(self,
-                                 interaction_classes=None,
-                                 returns='records'):
-
-        # if no interaction classes are passed in just use the
-        # associations subspace
-        if interaction_classes is None:
-            interaction_classes = self.association_type.interaction_subspace
+    def profile_interactions(self, returns='profile'):
 
         inxs = []
-        for inx_class in interaction_classes:
+        for inx_class in self.association_type.interaction_subspace:
             # get the features for this interaction class from this association
             features = []
             for i, feature_type in inx_class.feature_types:
@@ -872,14 +901,16 @@ class Association(SelectionsList):
         elif returns == 'records':
             records = [inx.record for inx in inxs]
             return records
+        elif returns == 'profile':
+            return AssociationProfile(interaction_space, inxs)
 
 
-    def profile_interactions(self, interaction_types,
-                             interaction_classes=None,
-                             return_feature_keys=False,
-                             return_failed_hits=False,
-                             profile_string=None,
-                             **find_hits_kwargs):
+    def old_profile_interactions(self, interaction_types,
+                                 interaction_classes=None,
+                                 return_feature_keys=False,
+                                 return_failed_hits=False,
+                                 profile_string=None,
+                                 **find_hits_kwargs):
         """Accepts any number of InteractionType instancees and identifies
         Interactions between the members of the association using the
         InteractionType.find_hits function.
