@@ -28,12 +28,8 @@ member_coords = [np.load('TPPU_coords.npy'), np.load("sEH_coords.npy")]
 # substantiate the system
 system = sEH_TPPU_SystemType.to_system(member_coords)
 
-# profile the associations you are interested in
-lig_rec_idx = assoc_terms.index((0,1))
-rec_lig_idx = assoc_terms.index((1,0))
+system_profile = mastprof.SystemProfile(system)
 
-lig_rec_inx_records = system.associations[lig_rec_idx].profile_interactions(
-    returns='records')
-
-rec_lig_inxs = system.associations[rec_lig_idx].profile_interactions(
-    returns='records')
+# just profile the inter-member interactions
+system_profile.profile_association((0, 1))
+system_profile.profile_association((1, 0))

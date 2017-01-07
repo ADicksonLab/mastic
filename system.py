@@ -256,6 +256,9 @@ class SystemType(object):
     def unit_association_types(self):
         return {self.assoc_member_idxs[i] : self.association_types[i]
                 for i in self._unit_assoc_idxs}
+    @property
+    def unit_association_type_idxs(self):
+        return {self.assoc_member_idxs[i] : i for i in self._unit_assoc_idxs}
 
     def make_unit_association_type(self, member_idxs):
         """Create an AssociationType between members of the SystemType given
@@ -347,15 +350,6 @@ class SystemType(object):
         return [assoc_type.member_idxs for
                 assoc_type in self.association_types]
 
-    # @property
-    # def unit_assoc_member_idxs(self):
-    #     """Returns a list of tuples for each unit AssociationType where each
-    #     element of the tuple is the member the AssociationType
-    #     involves, these are unique.
-
-    #     """
-
-    #     return [member_idxs for member_idxs in self.unit_association_types.keys()]
 
     def add_association_type(self, association_type):
         # check to make sure that it's selection types are in this
@@ -859,10 +853,11 @@ class Association(mastsel.SelectionsList):
         """
         return self._interactions
 
-    def profile_interactions(self, returns='profile'):
+    def profile_interactions(self, returns='hits'):
 
         inxs = []
-        for inx_class in self.association_type.interaction_subspace:
+        hits = []
+        for inx_class_idx, inx_class in enumerate(self.association_type.interaction_subspace):
             # get the features for this interaction class from this association
             features = []
             for i, feature_type in enumerate(inx_class.feature_types):
@@ -886,16 +881,17 @@ class Association(mastsel.SelectionsList):
                                                     interaction_class=inx_class,
                                                     check=False,
                                                     **param_values)
-
             inxs.append(inx)
+            hits.append(inx_class_idx)
 
         if returns == 'inxs' or returns == 'interactions':
             return inxs
         elif returns == 'records':
             records = [inx.record for inx in inxs]
             return records
-        elif returns == 'profile':
-            return AssociationProfile(interaction_space, inxs)
+        elif returns == 'hits':
+            records = [inx.record for inx in inxs]
+            return hits, records
 
 
     def old_profile_interactions(self, interaction_types,

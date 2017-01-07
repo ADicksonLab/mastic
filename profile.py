@@ -1,76 +1,76 @@
 """ Module for storing interaction profiles of Systems and SystemTypes. """
 
 import collections as col
+import itertools as it
 
 class ProfileError(Exception):
     pass
 
-class SystemTypeProfile(col.defaultdict):
 
-    def __init__(self, system_type, system_profiles):
-        # initialize the default dict as a list always
-        super().__init__(list)
+class SystemProfile(object):
 
-        self._system_type = system_type
-        # store the values for the profile according to their InteractionType
-        for profile in system_profiles:
-            self[profile.interaction_type].append(profile)
+    def __init__(self, system):
+        self._system = system
+        self._assoc_profiles = col.OrderedDict()
+
+    def profile_associations(self):
+        for assoc_term in self.system.system_type.assoc_terms:
+            self.profile_association(assoc_term)
+
+    def profile_association(self, assoc_term):
+        assoc_idx = self.system.system_type.unit_association_type_idxs[assoc_term]
+        association = self.system.associations[assoc_idx]
+        assoc_profile = AssociationProfile(association)
+        assoc_profile.profile_interactions()
+        self._assoc_profiles[assoc_term] = assoc_profile
 
     @property
-    def system_type(self):
-        return self._system_type
+    def system(self):
+        return self._system
 
     @property
-    def interaction_types(self):
-        return list(self.keys())
+    def association_profiles(self):
+        return self._assoc_profiles
 
     @property
-    def profiles(self):
-        return list(self.values())
+    def hits(self):
+        return list(it.chain(*[prof.hits for prof in self.association_profiles.values()]))
 
-class SystemProfileDataset(object):
-    def __init__(self, system_type, system_profiles):
-        self._system_type = system_type
-        self._profiles = system_profiles
+    @property
+    def records(self):
+        return list(it.chain(*[prof.records for prof in self.association_profiles.values()]))
 
-class SystemProfile(col.UserList):
+    @property
+    def hits_df(self):
+        import pandas as pd
+        df = pd.DataFrame(self.records)
+        df['hit_idx'] = self.hits
+        return df
 
-    def __init__(self, interaction_space, inxs):
+class AssociationProfile(object):
 
-        # none of the inxs can be for outside the space, this could be
-        # silently ignored but probably indicates another problem if so
-        assert all([True if inx.interaction_class in interaction_space else False
-                    for inx in inxs]), \
-                    "All inxs must be of interaction classes in the interaction space."
+    def __init__(self, association):
 
-        hits = []
-        inx_records = []
-        for inx in inxs:
-            idx = interaction_space.index(inx.interaction_class)
+        self._association = association
+        self._hits = []
+        self._hit_records = []
 
-            # there can only be one hit at most for each interaction class
-            if idx in hits:
-                raise ProfileError("can't have two interactions of the same interaction"
-                                   "class in a single System")
-            hits.append(idx)
-            inx_records.append(inx.record)
-
-        self._hits = hits
-        self._hit_records = inx_records
+    def profile_interactions(self):
+        hits, records = self._association.profile_interactions()
+        self._hits.extend(hits)
+        self._hit_records.extend(records)
 
     @property
     def hits(self):
         return self._hits
 
     @property
-    def hit_records(self):
+    def records(self):
         return self._hit_records
 
     @property
     def hits_df(self):
         import pandas as pd
-        return pd.DataFrame(self.hit_records)
-
-class AssociationProfile(object):
-    def __init__(self, interaction):
-        pass
+        df = pd.DataFrame(self.records)
+        df['hit_idx'] = self.hits
+        return df
