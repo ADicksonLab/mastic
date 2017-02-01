@@ -10,6 +10,5 @@ setup(
         'Numpy',
         'Pandas',
         'Scipy',
-        'RDKit',
     ],
 )
