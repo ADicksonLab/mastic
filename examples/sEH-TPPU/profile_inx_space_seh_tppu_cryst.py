@@ -32,4 +32,4 @@ system_profile = mastprof.SystemProfile(system)
 
 # just profile the inter-member interactions
 system_profile.profile_association((0, 1))
-system_profile.profile_association((1, 0))
+system_profile.profile_association((0, 1))

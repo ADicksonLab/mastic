@@ -198,5 +198,5 @@ I messed this up for other stuff this could be easily rearranged and fixed thoug
 
   # just profile the inter-member interactions
   system_profile.profile_association((0, 1))
-  system_profile.profile_association((1, 0))
+  system_profile.profile_association((0, 1))
 #+END_SRC

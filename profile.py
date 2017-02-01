@@ -14,7 +14,7 @@ class SystemProfile(object):
         self._assoc_profiles = col.OrderedDict()
 
     def profile_associations(self):
-        for assoc_term in self.system.system_type.assoc_terms:
+        for assoc_term in self.system.system_type.assoc_member_idxs:
             self.profile_association(assoc_term)
 
     def profile_association(self, assoc_term):

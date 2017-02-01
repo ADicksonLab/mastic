@@ -207,10 +207,6 @@ class InteractionType(object):
         # if they all passed, success!
         return True, tuple(param_values)
 
-
-    @classmethod
-    def new_find_hits(cls, members):
-        pass
     @classmethod
     def find_hits(cls, members,
                   interaction_classes=interaction_classes,
