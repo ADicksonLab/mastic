@@ -126,23 +126,23 @@ class HydrogenBondType(InteractionType):
         h_atoms_angles = []
         # if it doesn't the loop will end and a false okay and the bad
         # angles will be returned
-        try:
-            while okay_angle is None:
+        while okay_angle is None:
+            try:
                 h_atom = next(h_atoms_iter)
+            # none are found to meet the constraint
+            except StopIteration:
+                return False, tuple(h_atoms_angles)
 
-                # calculate the angle for this hydrogen
-                angle = cls.calc_angle(donor_atom, acceptor_atom, h_atom)
+            # calculate the angle for this hydrogen
+            angle = cls.calc_angle(donor_atom, acceptor_atom, h_atom)
 
-                # save the angle
-                h_atoms_angles.append(angle)
+            # save the angle
+            h_atoms_angles.append(angle)
 
-                # check if the angle meets the constraints
-                if cls.check_angle(angle) is False:
-                    okay_angle = angle
-
-        # none are found to meet the constraint
-        except StopIteration:
-            return False, tuple(h_atoms_angles)
+            # check if the angle meets the constraints
+            if cls.check_angle(angle) is True:
+                import ipdb; ipdb.set_trace()
+                okay_angle = angle
 
         # if it succeeds in finding a good angle return the first one
         return True, okay_angle
