@@ -141,7 +141,6 @@ class HydrogenBondType(InteractionType):
 
             # check if the angle meets the constraints
             if cls.check_angle(angle) is True:
-                import ipdb; ipdb.set_trace()
                 okay_angle = angle
 
         # if it succeeds in finding a good angle return the first one
