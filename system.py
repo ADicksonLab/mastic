@@ -4,7 +4,6 @@ import itertools as it
 
 from mast.molecule import Atom, Bond, Molecule, AtomType, BondType, MoleculeType
 import mast.selection as mastsel
-from mast.interaction_space import InteractionSpace, InteractionSubSpace
 import mast.profile as mastprof
 
 import mast.config.system as mastsysconfig
@@ -116,7 +115,6 @@ class SystemType(object):
         self.member_type_library = set(member_types)
         self._association_types = []
         self._unit_assoc_idxs = []
-        self.interaction_space = InteractionSpace(self, [])
 
         # convenience attributes that are created and memoized when first created
 
@@ -287,49 +285,9 @@ class SystemType(object):
 
         return idx
 
-    def generate_unit_interaction_space(self, assoc_terms, interaction_type,
-                                   return_inx_classes=False):
-
-        return_vals = []
-        for assoc_term in assoc_terms:
-            # make the actual association type from the association
-            # indices in the assoc_term if not already existing
-            try:
-                self.unit_association_types[assoc_term]
-            except KeyError:
-                assoc_idx = self.make_unit_association_type(assoc_term)
-
-            # using the unit AssociationType create the inx classes
-            # from the InteractionType class method
-            assoc_inx_classes = interaction_type.interaction_classes(
-                self.association_types[assoc_idx])
-
-            # if we just want the interaction classes
-            if return_inx_classes:
-                return_vals.extend(assoc_inx_classes)
-
-            # we want to add them to this SystemType's
-            # InteractionSpace, the AssociationTypes subspace and
-            # return idxs of them
-            else:
-                # index them within the SystemTypes interaction space
-                first_idx = len(self.interaction_space)
-                last_idx = first_idx + len(assoc_inx_classes)
-                inx_idxs = list(range(first_idx, last_idx))
-
-                # add them to the interaction_space of the SystemType
-                self.interaction_space.extend(assoc_inx_classes)
-
-                # add them to the interaction_subspace of this
-                # association_type
-                assoc_type = self.association_types[assoc_idx]
-                assoc_type.interaction_subspace.extend(assoc_inx_classes)
-                assoc_type._interaction_subspace_idxs.extend(inx_idxs)
-
-                return_vals.extend(inx_idxs)
-
-        # return the objects (inxs or idxs) that were saved
-        return return_vals
+    # TODO
+    # def generate_unit_interaction_space(self, assoc_terms, interaction_type):
+    #     return InteractionSpace(unit_associations)
 
     def make_member_association_type(self, member_idxs, association_type=None):
         """Match an AssociationType to members of the SystemType"""
@@ -679,8 +637,7 @@ class AssociationType(object):
         self.system_type = system_type
         self.selection_map = selection_map
         self.selection_types = selection_types
-        self._interaction_subspace_idxs = []
-        self._interaction_subspace = InteractionSubSpace(self, [])
+
 
     def __eq__(self, other):
         if not isinstance(other, AssociationType):
@@ -732,14 +689,6 @@ class AssociationType(object):
                                                     self.member_selection_idxs[i])
                 selections.append(selection)
         return selections
-
-    @property
-    def interaction_subspace_idxs(self):
-        return self._interaction_subspace_idxs
-
-    @property
-    def interaction_subspace(self):
-        return self._interaction_subspace
 
     @property
     def record(self):

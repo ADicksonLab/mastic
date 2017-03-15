@@ -4,26 +4,35 @@ class InteractionSpace(col.UserList):
     """An indexed list of InteractionType objects (interaction classes),
     which are accessible by their InteractionType."""
 
-    def __init__(self, system_type, interaction_classes):
-        # check that all of the interaction classes come from the same system
-        assert all([inx_class.association_type in
-                    system_type.association_types for inx_class in
-                    interaction_classes]), \
-                    "All interaction classes must come from the system_type"
+    def __init__(self, system_type):
 
-        # add the interaction classes into this object
-        super().__init__(interaction_classes)
+        super().__init__()
         self._system_type = system_type
 
-        # things that will be found and memoized when first called
-        self._inx_type_idxs = None
-        self._assoc_idxs = None
+        # the order of the association+interaction_type mapping tuple key
+        self._association_idx = 0
+        self._interaction_type_idx = 1
+        # the map
+        self._subspace_map = {}
 
     @property
     def system_type(self):
         return self._system_type
 
-    def add_inx_classes(self, inx_classes, return_idxs=False):
+    @property
+    def subspace_map(self):
+        return self._subspace_map
+
+    def add_association_subspace(self, association_type, interaction_type, return_idxs=False):
+        inx_classes = interaction_type.interaction_classes(association_type)
+        new_idxs = self._add_inx_classes(inx_classes)
+
+        self._subspace_map[(association_type, interaction_type)] = new_idxs
+
+        if return_idxs:
+            return new_idxs
+
+    def _add_inx_classes(self, inx_classes):
         # get the index of the next would-be addition to the list
         inx_idx = len(self)
 
@@ -33,43 +42,26 @@ class InteractionSpace(col.UserList):
             self.append(inx_class)
             new_idxs.append(inx_idx + i)
 
-        if return_idxs:
-            return new_idxs
+        return new_idxs
 
     def by_inx_type(self, interaction_type):
         """Returns the indices of interaction classes matching the interaction_type"""
 
-        return [i for i, inx_class in enumerate(self) if
-                inx_class.interaction_type == interaction_type]
+        return_idxs = []
+        for assoc_inxtype_tup, idxs in self._subspace_map.items():
+            if interaction_type == assoc_inxtype_tup[self._interaction_type_idx]:
+                return_idxs.extend(idxs)
+
+        return return_idxs
 
     def by_association(self, association_type):
         """Returns the indices of interaction classes matching the association_type"""
+        return_idxs = []
+        for assoc_inxtype_tup, idxs in self._subspace_map.items():
+            if association_type == assoc_inxtype_tup[self._association_idx]:
+                return_idxs.extend(idxs)
 
-        return [i for i, inx_class in enumerate(self) if
-                inx_class.association_type == association_type]
-
-class InteractionSubSpace(col.UserList):
-    """An indexed list of InteractionType objects (interaction classes),
-    which are accessible by their InteractionType."""
-
-    def __init__(self, association_type, interaction_classes):
-        # check that all of the interaction classes come from the same system
-        assert all([inx_class.association_type in association_type for
-                    inx_class in interaction_classes]), \
-                    "All interaction classes must come from the association_type"
-
-        # add the interaction classes into this object
-        super().__init__(interaction_classes)
-        self._association_type = association_type
-
-    @property
-    def association_type(self):
-        return self._association_type
-
-    def by_inx_type(self, interaction_type):
-        """Returns the indices of interaction classes matching the interaction_type"""
-        return [i for i, inx_class in enumerate(self) if
-                inx_class.interaction_type == interaction_type]
+        return return_idxs
 
 
 if __name__ == "__main__":
