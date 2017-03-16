@@ -23,6 +23,10 @@ class InteractionSpace(col.UserList):
     def subspace_map(self):
         return self._subspace_map
 
+    def to_dataframe(self):
+        import pandas as pd
+        return pd.DataFrame([inx_class.record for inx_class in self])
+
     def add_association_subspace(self, association_type, interaction_type, return_idxs=False):
         inx_classes = interaction_type.interaction_classes(association_type)
         new_idxs = self._add_inx_classes(inx_classes)
