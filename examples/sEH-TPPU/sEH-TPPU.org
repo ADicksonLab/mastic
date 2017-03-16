@@ -182,12 +182,14 @@ I messed this up for other stuff this could be easily rearranged and fixed thoug
 
   # we want associations for all combinations of members for a degree 2
   # interaction (e.g. hydrogen bonds)
-  assoc_terms = sEH_TPPU_SystemType.association_polynomial(
-      degree=2,
-      permute=True,
-      replace=True,
-      return_idxs=True)
+  # so we could use this method I've commented out or just define it ourselves
+  # assoc_terms = sEH_TPPU_SystemType.association_polynomial(
+  #     degree=2,
+  #     permute=True,
+  #     replace=True,
+  #     return_idxs=True)
 
+  assoc_terms = [(0,1), (1,0)]
   # make the unit associations, interaction classes, and add to interaction space
   for assoc_term in assoc_terms:
       # make the unit AssociationTypes
