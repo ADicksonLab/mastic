@@ -122,7 +122,9 @@ class InxSpaceProfile(object):
 
     def hit_inx_df(self):
         import pandas as pd
-        return pd.DataFrame(self.hit_inx_records())
+        hit_df = pd.DataFrame(self.hit_inx_records())
+        hit_df['hit_idx'] = self.hit_idxs
+        return hit_df
 
     # TODO have a problem where a hit idx is assigned two inxs if they
     # are the opposite of each other in the association
