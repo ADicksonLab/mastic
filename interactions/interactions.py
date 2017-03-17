@@ -333,21 +333,15 @@ class Interaction(SelectionsList):
 
     """
     def __init__(self, features=None, system=None,
-                 interaction_type=None, interaction_class=None,
+                 interaction_class=None,
                  **param_values):
-
-        assert interaction_type, "interaction_type must be given"
-        assert issubclass(interaction_type, InteractionType), \
-            "interaction_type must be a subclass of " \
-            "mast.interactions.InteractionType, not {}".format(
-                interaction_type)
 
         for feature in features:
             assert feature.system is system, \
                 "feature's system must be all the same"
 
         super().__init__(selection_list=features)
-        self._interaction_type = interaction_type
+        self._interaction_type = type(interaction_class)
         self._interaction_class = interaction_class
         self._interaction_params = param_values
         # add the param values as individual attributes

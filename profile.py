@@ -14,10 +14,8 @@ def get_inx_class_features(inx_class, system):
         member_idx = inx_class.association_type.member_idxs[i]
         feat_idx = list(inx_class.association_type.member_types[i].feature_types.values())\
                    .index(feature_type)
-        try:
-            feature = list(system.members[member_idx].features.values())[feat_idx]
-        except IndexError:
-            import ipdb; ipdb.set_trace()
+        feature = list(system.members[member_idx].features.values())[feat_idx]
+
 
         feature = list(system.members[member_idx].features.values())[feat_idx]
         features.append(feature)
@@ -25,6 +23,7 @@ def get_inx_class_features(inx_class, system):
     return features
 
 def profile_inx_class(inx_class, system):
+
     # get the features for this inx class
     features = get_inx_class_features(inx_class, system)
 
@@ -36,7 +35,6 @@ def profile_inx_class(inx_class, system):
         return None
 
     # if it passes we want to actually construct the interaction object
-
     # associate the parameter values with the names for them
     param_values = {param_name : param_val for param_name,
                     param_val in zip(inx_class.interaction_param_keys, param_values)}
@@ -120,9 +118,9 @@ class InxSpaceProfile(object):
         return [0 if inx is None else 1 for inx in sel_inxs]
 
     def inx_type_hit_records(self, interaction_type):
-
         hit_records = []
         hit_idx_key = 'hit_idx'
+
         # we will want to make a new record for hits, so we get an
         # example record from the interaction
         inx_idxs = self.hits_by_inx_type(interaction_type)
@@ -137,10 +135,10 @@ class InxSpaceProfile(object):
         hit_record_type = col.namedtuple(hit_record_name, record_fields)
 
         # get the hits for this interaction type
-        for hit_idx in self.hits_by_inx_type(interaction_type):
+        for hit_idx in inx_idxs:
             inx = self.inxs[hit_idx]
             # convert to a dictionary
-            inx_dict_rec = inx_record._asdict()
+            inx_dict_rec = inx.record._asdict()
             # add the hit index
             inx_dict_rec[hit_idx_key] = hit_idx
             # make the new record
@@ -149,9 +147,36 @@ class InxSpaceProfile(object):
 
         return hit_records
 
-    def hit_records(self):
-        """Returns a dictionary of the hit records for interaction type."""
-        pass
+    def association_hit_records(self, association_type):
+        """Returns a dictionary of the hit records for AssociationType."""
+        hit_records = []
+        hit_idx_key = 'hit_idx'
+
+        # we will want to make a new record for hits, so we get an
+        # example record from the interaction
+        inx_idxs = self.hits_by_association(association_type)
+        inx_record = self.inxs[inx_idxs[0]].record
+
+        # add new hit_idx field
+        record_fields = list(inx_record._fields)
+        record_fields.append(hit_idx_key)
+        # modify the name
+        hit_record_name = "Hit" + type(inx_record).__name__
+        # make the new namedtuple
+        hit_record_type = col.namedtuple(hit_record_name, record_fields)
+
+        # get the hits for this interaction type
+        for hit_idx in inx_idxs:
+            inx = self.inxs[hit_idx]
+            # convert to a dictionary
+            inx_dict_rec = inx.record._asdict()
+            # add the hit index
+            inx_dict_rec[hit_idx_key] = hit_idx
+            # make the new record
+            hit_record = hit_record_type(**inx_dict_rec)
+            hit_records.append(hit_record)
+
+        return hit_records
 
     def inx_type_hits_df(self, interaction_type):
         import pandas as pd
@@ -179,10 +204,13 @@ class InxSpaceProfile(object):
         """Returns the indices of interactions matching the interaction_type"""
 
         return_idxs = []
+        # for each subspace
         for assoc_inxtype_tup, idxs in self._subspace_map.items():
+            # if the subspace involves the interaction type
             if interaction_type == assoc_inxtype_tup[self._interaction_type_idx]:
-                hit_idxs = [idx for idx in idxs if idx in self.hit_idxs]
-                return_idxs.extend(hit_idxs)
+                # then we get the hit_idxs that match the ones in this subspace
+                subspace_hit_idxs = [idx for idx in idxs if idx in self.hit_idxs]
+                return_idxs.extend(subspace_hit_idxs)
 
         return return_idxs
 

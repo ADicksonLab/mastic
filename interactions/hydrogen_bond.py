@@ -255,7 +255,6 @@ class HydrogenBondInx(Interaction):
         # success, finish creating interaction
         atom_system = donor.system
         super().__init__(features=[donor, acceptor],
-                         interaction_type=self.interaction_type,
                          system=atom_system,
                          interaction_class=interaction_class,
                          **param_values)
