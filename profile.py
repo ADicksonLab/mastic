@@ -117,70 +117,80 @@ class InxSpaceProfile(object):
         sel_inxs = [inx for i, inx in enumerate(self._inxs) if i in idxs]
         return [0 if inx is None else 1 for inx in sel_inxs]
 
-    def inx_type_hit_records(self, interaction_type):
-        hit_records = []
-        hit_idx_key = 'hit_idx'
+    def hit_inx_records(self):
+        return [inx.record for inx in self.hit_inxs]
 
-        # we will want to make a new record for hits, so we get an
-        # example record from the interaction
-        inx_idxs = self.hits_by_inx_type(interaction_type)
-        inx_record = self.inxs[inx_idxs[0]].record
-
-        # add new hit_idx field
-        record_fields = list(inx_record._fields)
-        record_fields.append(hit_idx_key)
-        # modify the name
-        hit_record_name = "Hit" + type(inx_record).__name__
-        # make the new namedtuple
-        hit_record_type = col.namedtuple(hit_record_name, record_fields)
-
-        # get the hits for this interaction type
-        for hit_idx in inx_idxs:
-            inx = self.inxs[hit_idx]
-            # convert to a dictionary
-            inx_dict_rec = inx.record._asdict()
-            # add the hit index
-            inx_dict_rec[hit_idx_key] = hit_idx
-            # make the new record
-            hit_record = hit_record_type(**inx_dict_rec)
-            hit_records.append(hit_record)
-
-        return hit_records
-
-    def association_hit_records(self, association_type):
-        """Returns a dictionary of the hit records for AssociationType."""
-        hit_records = []
-        hit_idx_key = 'hit_idx'
-
-        # we will want to make a new record for hits, so we get an
-        # example record from the interaction
-        inx_idxs = self.hits_by_association(association_type)
-        inx_record = self.inxs[inx_idxs[0]].record
-
-        # add new hit_idx field
-        record_fields = list(inx_record._fields)
-        record_fields.append(hit_idx_key)
-        # modify the name
-        hit_record_name = "Hit" + type(inx_record).__name__
-        # make the new namedtuple
-        hit_record_type = col.namedtuple(hit_record_name, record_fields)
-
-        # get the hits for this interaction type
-        for hit_idx in inx_idxs:
-            inx = self.inxs[hit_idx]
-            # convert to a dictionary
-            inx_dict_rec = inx.record._asdict()
-            # add the hit index
-            inx_dict_rec[hit_idx_key] = hit_idx
-            # make the new record
-            hit_record = hit_record_type(**inx_dict_rec)
-            hit_records.append(hit_record)
-
-        return hit_records
-
-    def inx_type_hits_df(self, interaction_type):
+    def hit_inx_df(self):
         import pandas as pd
-        return pd.DataFrame(self.inx_type_hit_records(interaction_type))
+        return pd.DataFrame(self.hit_inx_records())
+
+    # TODO have a problem where a hit idx is assigned two inxs if they
+    # are the opposite of each other in the association
+
+    # def inx_type_hit_records(self, interaction_type):
+    #     hit_records = []
+    #     hit_idx_key = 'hit_idx'
+
+    #     # we will want to make a new record for hits, so we get an
+    #     # example record from the interaction
+    #     inx_idxs = self.hits_by_inx_type(interaction_type)
+    #     inx_record = self.inxs[inx_idxs[0]].record
+
+    #     # add new hit_idx field
+    #     record_fields = list(inx_record._fields)
+    #     record_fields.append(hit_idx_key)
+    #     # modify the name
+    #     hit_record_name = "Hit" + type(inx_record).__name__
+    #     # make the new namedtuple
+    #     hit_record_type = col.namedtuple(hit_record_name, record_fields)
+
+    #     # get the hits for this interaction type
+    #     for hit_idx in inx_idxs:
+    #         inx = self.inxs[hit_idx]
+    #         # convert to a dictionary
+    #         inx_dict_rec = inx.record._asdict()
+    #         # add the hit index
+    #         inx_dict_rec[hit_idx_key] = hit_idx
+    #         # make the new record
+    #         hit_record = hit_record_type(**inx_dict_rec)
+    #         hit_records.append(hit_record)
+
+    #     return hit_records
+
+    # def association_hit_records(self, association_type):
+    #     """Returns a dictionary of the hit records for AssociationType."""
+    #     hit_records = []
+    #     hit_idx_key = 'hit_idx'
+
+    #     # we will want to make a new record for hits, so we get an
+    #     # example record from the interaction
+    #     inx_idxs = self.hits_by_association(association_type)
+    #     inx_record = self.inxs[inx_idxs[0]].record
+
+    #     # add new hit_idx field
+    #     record_fields = list(inx_record._fields)
+    #     record_fields.append(hit_idx_key)
+    #     # modify the name
+    #     hit_record_name = "Hit" + type(inx_record).__name__
+    #     # make the new namedtuple
+    #     hit_record_type = col.namedtuple(hit_record_name, record_fields)
+
+    #     # get the hits for this interaction type
+    #     for hit_idx in inx_idxs:
+    #         inx = self.inxs[hit_idx]
+    #         # convert to a dictionary
+    #         inx_dict_rec = inx.record._asdict()
+    #         # add the hit index
+    #         inx_dict_rec[hit_idx_key] = hit_idx
+    #         # make the new record
+    #         hit_record = hit_record_type(**inx_dict_rec)
+    #         hit_records.append(hit_record)
+
+    #     return hit_records
+
+    # def inx_type_hits_df(self, interaction_type):
+    #     import pandas as pd
+    #     return pd.DataFrame(self.inx_type_hit_records(interaction_type))
 
     @property
     def system(self):
