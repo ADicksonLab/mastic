@@ -70,25 +70,25 @@ class InxSpaceProfile(object):
         self._system = system
         self._inx_space = inx_space
 
-        self._association_idx = 0
-        self._interaction_type_idx = 1
-        self._subspace_map = {}
         self._inxs = []
 
-        # do profiling for each subspaces interaction classes
-        for subspace_tup, inx_class_idxs in self._inx_space.subspace_map.items():
-            inx_classes = [self._inx_space[idx] for idx in inx_class_idxs]
-            inx_hits = profile_inx_classes(inx_classes, self._system)
+        # profile by interaction class order
+        self._inxs = profile_inx_classes(self._inx_space, self._system)
 
-            # add these to the list of interactions keeping track of
-            # their indices
-            inx_idx = len(self._inxs)
-            new_idxs = []
-            for i, inx in enumerate(inx_hits):
-                self._inxs.append(inx)
-                new_idxs.append(inx_idx + i)
+        # # do profiling for each subspaces interaction classes
+        # for subspace_tup, inx_class_idxs in self._inx_space.subspace_map.items():
+        #     inx_classes = [self._inx_space[idx] for idx in inx_class_idxs]
+        #     inx_hits = profile_inx_classes(inx_classes, self._system)
 
-            self._subspace_map[subspace_tup] = new_idxs
+        #     # add these to the list of interactions keeping track of
+        #     # their indices
+        #     inx_idx = len(self._inxs)
+        #     new_idxs = []
+        #     for i, inx in enumerate(inx_hits):
+        #         self._inxs.append(inx)
+        #         new_idxs.append(inx_idx + i)
+
+        #     self._subspace_map[subspace_tup] = new_idxs
 
     @property
     def n_inx_classes(self):
@@ -110,13 +110,6 @@ class InxSpaceProfile(object):
     def vector(self):
         return [0 if inx is None else 1 for inx in self._inxs]
 
-    @property
-    def subspace_vector(self, association_type, interaction_type):
-        key = (association_type, interaction_type)
-        idxs = self._subspace_map[key]
-        sel_inxs = [inx for i, inx in enumerate(self._inxs) if i in idxs]
-        return [0 if inx is None else 1 for inx in sel_inxs]
-
     def hit_inx_records(self):
         return [inx.record for inx in self.hit_inxs]
 
@@ -125,6 +118,32 @@ class InxSpaceProfile(object):
         hit_df = pd.DataFrame(self.hit_inx_records())
         hit_df['hit_idx'] = self.hit_idxs
         return hit_df
+
+    @property
+    def system(self):
+        return self._system
+
+    @property
+    def interaction_space(self):
+        return self._inx_space
+    inx_space = interaction_space
+
+    @property
+    def interactions(self):
+        return self._inxs
+    inxs = interactions
+
+    @property
+    def subspace_map(self):
+        return self._inx_space._subspace_map
+
+
+    # @property
+    # def subspace_vector(self, association_type, interaction_type):
+    #     key = (association_type, interaction_type)
+    #     idxs = self._subspace_map[key]
+    #     sel_inxs = [inx for i, inx in enumerate(self._inxs) if i in idxs]
+    #     return [0 if inx is None else 1 for inx in sel_inxs]
 
     # TODO have a problem where a hit idx is assigned two inxs if they
     # are the opposite of each other in the association
@@ -194,44 +213,27 @@ class InxSpaceProfile(object):
     #     import pandas as pd
     #     return pd.DataFrame(self.inx_type_hit_records(interaction_type))
 
-    @property
-    def system(self):
-        return self._system
 
-    @property
-    def interaction_space(self):
-        return self._inx_space
-    inx_space = interaction_space
+    # def hits_by_inx_type(self, interaction_type):
+    #     """Returns the indices of interactions matching the interaction_type"""
 
-    @property
-    def interactions(self):
-        return self._inxs
-    inxs = interactions
+    #     return_idxs = []
+    #     # for each subspace
+    #     for assoc_inxtype_tup, idxs in self._subspace_map.items():
+    #         # if the subspace involves the interaction type
+    #         if interaction_type == assoc_inxtype_tup[self._interaction_type_idx]:
+    #             # then we get the hit_idxs that match the ones in this subspace
+    #             subspace_hit_idxs = [idx for idx in idxs if idx in self.hit_idxs]
+    #             return_idxs.extend(subspace_hit_idxs)
 
-    @property
-    def subspace_map(self):
-        return self._subspace_map
+    #     return return_idxs
 
-    def hits_by_inx_type(self, interaction_type):
-        """Returns the indices of interactions matching the interaction_type"""
+    # def hits_by_association(self, association_type):
+    #     """Returns the indices of interactions matching the association_type"""
+    #     return_idxs = []
+    #     for assoc_inxtype_tup, idxs in self._subspace_map.items():
+    #         if association_type == assoc_inxtype_tup[self._association_idx]:
+    #             hit_idxs = [idx for idx in idxs if idx in self.hit_idxs]
+    #             return_idxs.extend(hit_idxs)
 
-        return_idxs = []
-        # for each subspace
-        for assoc_inxtype_tup, idxs in self._subspace_map.items():
-            # if the subspace involves the interaction type
-            if interaction_type == assoc_inxtype_tup[self._interaction_type_idx]:
-                # then we get the hit_idxs that match the ones in this subspace
-                subspace_hit_idxs = [idx for idx in idxs if idx in self.hit_idxs]
-                return_idxs.extend(subspace_hit_idxs)
-
-        return return_idxs
-
-    def hits_by_association(self, association_type):
-        """Returns the indices of interactions matching the association_type"""
-        return_idxs = []
-        for assoc_inxtype_tup, idxs in self._subspace_map.items():
-            if association_type == assoc_inxtype_tup[self._association_idx]:
-                hit_idxs = [idx for idx in idxs if idx in self.hit_idxs]
-                return_idxs.extend(hit_idxs)
-
-        return return_idxs
+    #     return return_idxs
