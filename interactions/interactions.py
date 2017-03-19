@@ -120,7 +120,11 @@ class InteractionType(object):
         iterable
 
         """
+
+        ###
         inx_class_name_template = cls.inx_class_name_template
+
+
         # for each member collect the features relevant to this
         # interaction type, in the feature_order, so initialize an
         # empty list for each

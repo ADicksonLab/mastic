@@ -48,13 +48,26 @@ def profile_inx_class(inx_class, system):
 
 def profile_inx_classes(inx_classes, system):
     inxs = []
+    hit_idxs = []
     # gather the substantiated features and check it
-    for inx_class in inx_classes:
+    for i, inx_class in enumerate(inx_classes):
         inx = profile_inx_class(inx_class, system)
+
+
+        if inx is not None:
+            hit_idxs.append(i)
+
+            # DEBUG
+            assert inx.interaction_class.name == inx_class.name, \
+                "The interaction_class from the inx_class {0} does not match"\
+                " the created Interaction {1} in hit {2}".format(inx_class.name,
+                                                                 inx.interaction_class.name,
+                                                                 i)
         # will add a None where the test fails to preserve position
         inxs.append(inx)
 
-    return inxs
+
+    return hit_idxs, inxs
 
 class InxSpaceProfiler(object):
 
@@ -70,29 +83,12 @@ class InxSpaceProfile(object):
         self._system = system
         self._inx_space = inx_space
 
-        self._inxs = []
-
         # profile by interaction class order
-        self._inxs = profile_inx_classes(self._inx_space, self._system)
-
-        # # do profiling for each subspaces interaction classes
-        # for subspace_tup, inx_class_idxs in self._inx_space.subspace_map.items():
-        #     inx_classes = [self._inx_space[idx] for idx in inx_class_idxs]
-        #     inx_hits = profile_inx_classes(inx_classes, self._system)
-
-        #     # add these to the list of interactions keeping track of
-        #     # their indices
-        #     inx_idx = len(self._inxs)
-        #     new_idxs = []
-        #     for i, inx in enumerate(inx_hits):
-        #         self._inxs.append(inx)
-        #         new_idxs.append(inx_idx + i)
-
-        #     self._subspace_map[subspace_tup] = new_idxs
+        self._hit_idxs, self._inxs = profile_inx_classes(self._inx_space, self._system)
 
     @property
     def n_inx_classes(self):
-        return len(self._inxs)
+        return len(self._inx_space)
 
     @property
     def inxs(self):
@@ -100,7 +96,8 @@ class InxSpaceProfile(object):
 
     @property
     def hit_idxs(self):
-        return [i for i, inx in enumerate(self._inxs) if inx is not None]
+        return self._hit_idxs
+        #return [i for i, inx in enumerate(self._inxs) if inx is not None]
 
     @property
     def hit_inxs(self):
