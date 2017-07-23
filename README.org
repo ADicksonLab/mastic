@@ -1,9 +1,21 @@
+* [[https://en.wikipedia.org/wiki/Mastic][Mastic]]: The stuff that keeps stuff together.
+
+Latest DOI:
 https://zenodo.org/badge/latestdoi/18884/salotz/mast
 
 Mastic is currently in beta.
+
 * Installation
 Currently there is no package available for mastic, but you can clone
-one of the releases and manually install it. 
+one of the releases and manually install it.
+
+#+BEGIN_SRC bash
+  git clone https://github.com/salotz/mastic
+  cd mastic
+
+  # install it as editable so you can make your own interaction classes!
+  pip install --user -e .
+#+END_SRC
 
 Dependencies:
 - numpy
