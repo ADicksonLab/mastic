@@ -4,32 +4,32 @@ from rdkit import Chem
 from rdkit.Chem import AllChem
 import os.path as osp
 
-import mast.selection as mastsel
-import mast.molecule as mastmol
-import mast.system as mastsys
-import mast.interactions as mastinx
-from mast.interactions.hydrogen_bond import HydrogenBondType
+import mastic.selection as masticsel
+import mastic.molecule as masticmol
+import mastic.system as masticsys
+import mastic.interactions as masticinx
+from mastic.interactions.hydrogen_bond import HydrogenBondType
 
-from mast.interfaces.rdkit import RDKitMoleculeWrapper
+from mastic.interfaces.rdkit import RDKitMoleculeWrapper
 
-import mast.config.interactions as mastinxconfig
+import mastic.config.interactions as masticinxconfig
 
-import mast.tests.data as mastdata
+import mastic.tests.data as masticdata
 
 # without Hs straight from pdb
-BEN_rdkit = Chem.MolFromPDBBlock(mastdata.BEN_3ptb, removeHs=False, sanitize=True)
-trypsin_rdkit = Chem.MolFromPDBBlock(mastdata.trypsin_3ptb, removeHs=False, sanitize=True)
+BEN_rdkit = Chem.MolFromPDBBlock(masticdata.BEN_3ptb, removeHs=False, sanitize=True)
+trypsin_rdkit = Chem.MolFromPDBBlock(masticdata.trypsin_3ptb, removeHs=False, sanitize=True)
 
 # with hydrogens added files
-BEN_Hs_rdkit = Chem.MolFromPDBBlock(mastdata.BEN_Hs_3ptb, removeHs=False, sanitize=True)
-trypsin_Hs_rdkit = Chem.MolFromPDBBlock(mastdata.trypsin_Hs_3ptb, removeHs=False, sanitize=True)
+BEN_Hs_rdkit = Chem.MolFromPDBBlock(masticdata.BEN_Hs_3ptb, removeHs=False, sanitize=True)
+trypsin_Hs_rdkit = Chem.MolFromPDBBlock(masticdata.trypsin_Hs_3ptb, removeHs=False, sanitize=True)
 
 # the MoleculeType pickle paths
-trypsin_pkl_path = mastdata.trypsin_mastmol_path
-ben_pkl_path = mastdata.BEN_mastmol_path
+trypsin_pkl_path = masticdata.trypsin_masticmol_path
+ben_pkl_path = masticdata.BEN_masticmol_path
 
-trypsin_Hs_pkl_path = mastdata.trypsin_Hs_mastmol_path
-ben_Hs_pkl_path = mastdata.BEN_Hs_mastmol_path
+trypsin_Hs_pkl_path = masticdata.trypsin_Hs_masticmol_path
+ben_Hs_pkl_path = masticdata.BEN_Hs_masticmol_path
 
 
 
@@ -72,7 +72,7 @@ trypsin_mol = Trypsin_Molecule.to_molecule(trypsin_coords)
 member_types = [BEN_Molecule, Trypsin_Molecule]
 system_attrs = {'name' : 'trypsin-benzamidine-complex'}
 
-Trypsin_Benzamidine_System = mastsys.SystemType("Trypsin_Benzamidine_System",
+Trypsin_Benzamidine_System = masticsys.SystemType("Trypsin_Benzamidine_System",
                                                           member_types=member_types,
                                                           **system_attrs)
 
@@ -83,7 +83,7 @@ rec_lig_attrs = {'name' : 'trypsin-benzamidine-complex'}
 selection_map = {0 : None, 1 : None}
 selection_types = [None, None]
 Trypsin_Benzamidine_Association = \
-            mastsys.AssociationType("Trypsin_Benzamidine_Association",
+            masticsys.AssociationType("Trypsin_Benzamidine_Association",
                                             system_type=Trypsin_Benzamidine_System,
                                             selection_map=selection_map,
                                             selection_types=selection_types,
@@ -97,7 +97,7 @@ Trypsin_Benzamidine_System.add_association_type(Trypsin_Benzamidine_Association)
 # Association that can be profiled
 trypsys = Trypsin_Benzamidine_System.to_system(member_coords)
 
-# from mast.molecule import Molecules
+# from mastic.molecule import Molecules
 print("testing Hbond interaction between molecules in the receptor ligand association")
 tryp_ben_assoc = trypsys.associations[0]
 

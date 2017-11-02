@@ -1,6 +1,6 @@
 import numpy as np
 
-from mast.selection import *
+from mastic.selection import *
 
 # test GenericSelection
 gensel = GenericSelection([SelectionMember(None)])

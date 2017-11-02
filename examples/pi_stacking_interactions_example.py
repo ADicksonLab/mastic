@@ -4,29 +4,29 @@ from rdkit import Chem
 from rdkit.Chem import AllChem, rdMolAlign
 import os.path as osp
 
-import mast.selection as mastsel
-import mast.molecule as mastmol
-import mast.system as mastsys
-import mast.interactions as mastinx
-from mast.interactions.pi_stacking import PiStackingType
-from mast.interfaces.rdkit import RDKitMoleculeWrapper, AssignBondOrdersFromTemplate
-import mast.config.interactions as mastinxconfig
-import mast.tests.data as mastdata
+import mastic.selection as masticsel
+import mastic.molecule as masticmol
+import mastic.system as masticsys
+import mastic.interactions as masticinx
+from mastic.interactions.pi_stacking import PiStackingType
+from mastic.interfaces.rdkit import RDKitMoleculeWrapper, AssignBondOrdersFromTemplate
+import mastic.config.interactions as masticinxconfig
+import mastic.tests.data as masticdata
 
 # to get the aromaticity for the Molecule_Type we need to load the
 # .mol file and then we will associate this with the coordinates of
 # the PDB file
 
 # load the necessary files with rdkit
-BEN_MOL_rdkit = Chem.MolFromMolBlock(mastdata.benzamidine_MOL, sanitize=True)
-BEN_PDB_rdkit = Chem.MolFromPDBBlock(mastdata.BEN_Hs_3ptb, removeHs=False, sanitize=True)
-trypsin_rdkit = Chem.MolFromPDBBlock(mastdata.trypsin_3ptb, removeHs=False, sanitize=True)
+BEN_MOL_rdkit = Chem.MolFromMolBlock(masticdata.benzamidine_MOL, sanitize=True)
+BEN_PDB_rdkit = Chem.MolFromPDBBlock(masticdata.BEN_Hs_3ptb, removeHs=False, sanitize=True)
+trypsin_rdkit = Chem.MolFromPDBBlock(masticdata.trypsin_3ptb, removeHs=False, sanitize=True)
 
 # assign the bond orders from the .mol template for benzamidine
 print("assigning bond orders")
 BEN_rdkit = AssignBondOrdersFromTemplate(BEN_MOL_rdkit, BEN_PDB_rdkit)
 
-# put it in the mast.interfaces.rdkit wrapper
+# put it in the mastic.interfaces.rdkit wrapper
 print("making wrappers")
 BEN_rdkit_wrapper = RDKitMoleculeWrapper(BEN_rdkit, mol_name="BEN")
 trypsin_rdkit_wrapper = RDKitMoleculeWrapper(trypsin_rdkit, mol_name="Trypsin")
@@ -40,7 +40,7 @@ member_coords = [BEN_coords, trypsin_coords]
 print("making MoleculeType")
 BEN_Molecule = BEN_rdkit_wrapper.make_molecule_type(find_features=True)
 # Trypsin_Molecule = trypsin_rdkit_wrapper.make_molecule_type(find_features=True)
-Trypsin_Molecule = mastdata.Trypsin_Hs_Molecule
+Trypsin_Molecule = masticdata.Trypsin_Hs_Molecule
 # substantiate a Molecule (don't need this)
 # BEN_mol = BEN_Molecule.to_molecule(BEN_coords)
 # trypsin_mol = Trypsin_Molecule.to_molecule(trypsin_coords)
@@ -50,7 +50,7 @@ print("making the SystemType")
 member_types = [BEN_Molecule, Trypsin_Molecule]
 system_attrs = {'name' : 'trypsin-benzamidine-complex'}
 
-Trypsin_Benzamidine_System = mastsys.SystemType("Trypsin_Benzamidine_System",
+Trypsin_Benzamidine_System = masticsys.SystemType("Trypsin_Benzamidine_System",
                                                 member_types=member_types,
                                                 **system_attrs)
 
@@ -62,7 +62,7 @@ rec_lig_attrs = {'name' : 'trypsin-benzamidine-complex'}
 selection_map = {0 : None, 1 : None}
 selection_types = [None, None]
 Trypsin_Benzamidine_Association = \
-            mastsys.AssociationType("Trypsin_Benzamidine_Association",
+            masticsys.AssociationType("Trypsin_Benzamidine_Association",
                                     system_type=Trypsin_Benzamidine_System,
                                     selection_map=selection_map,
                                     selection_types=selection_types,

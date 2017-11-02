@@ -1,9 +1,9 @@
 import os.path as osp
 
-from mast.system import System, SystemType, AssociationType, Association
+from mastic.system import System, SystemType, AssociationType, Association
 
 from rdkit import Chem
-from mast.interfaces.rdkit import RDKitMoleculeWrapper
+from mastic.interfaces.rdkit import RDKitMoleculeWrapper
 
 trypsin_dir = osp.expanduser("~/Dropbox/lab/trypsin")
 ben_pdb_path = osp.join(trypsin_dir, "BEN_Hs.pdb")

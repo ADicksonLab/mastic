@@ -3,9 +3,9 @@ import collections as col
 
 import numpy as np
 
-import mast.molecule as mastmol
-import mast.features as mastfeat
-import mast.config.features as mastfeatconfig
+import mastic.molecule as masticmol
+import mastic.features as masticfeat
+import mastic.config.features as masticfeatconfig
 
 from rdkit import RDConfig
 from rdkit import Chem
@@ -14,7 +14,7 @@ from rdkit.Chem import ChemicalFeatures
 
 class RDKitMoleculeWrapper(object):
     """Wrapper class providing convenience access and conversion of
-    rdkit's molecule representations to mast molecular representations.
+    rdkit's molecule representations to mastic molecular representations.
 
     Examples
     --------
@@ -22,8 +22,8 @@ class RDKitMoleculeWrapper(object):
     Load a small molecule from the test data using rdkit:
 
     >>> from rdkit import Chem
-    >>> from mast.interfaces.rdkit import RDKitMoleculeWrapper
-    >>> from mast.tests.data import BEN_path
+    >>> from mastic.interfaces.rdkit import RDKitMoleculeWrapper
+    >>> from mastic.tests.data import BEN_path
     >>> sml_rdkit = Chem.MolFromPDBFile(BEN_path, remove_Hs=False)
 
     Construct the wrapper:
@@ -31,7 +31,7 @@ class RDKitMoleculeWrapper(object):
 
     Now we can easily (and pythonically) access attributes.
 
-    Most importantly we can convert to mast.MoleculeType:
+    Most importantly we can convert to mastic.MoleculeType:
 
     >>> BENType = sml_wrapped.make_molecule_type()
 
@@ -198,29 +198,29 @@ class RDKitMoleculeWrapper(object):
         return molecule_dict
 
     def make_atom_type(self, atom_idx, atom_type_name):
-        """Converts a single atom to a mast.AtomType."""
+        """Converts a single atom to a mastic.AtomType."""
         atom_data = self.atom_data(atom_idx)
-        return mastmol.AtomType(atom_type_name, **atom_data)
+        return masticmol.AtomType(atom_type_name, **atom_data)
 
     def make_atom_types(self):
-        """Converts all atoms in the molecule to mast.AtomTypes."""
+        """Converts all atoms in the molecule to mastic.AtomTypes."""
         atoms_data = self.atoms_data()
         atom_types = []
         for atom_data in atoms_data:
             atom_type_name = "{1}Atom{0}Type".format(atom_data['name'], self.mol_name)
-            atom_type = mastmol.AtomType(atom_type_name, **atom_data)
+            atom_type = masticmol.AtomType(atom_type_name, **atom_data)
             atom_types.append(atom_type)
         return atom_types
 
     def make_bond_type(self, bond_idx, bond_type_name, bond_atom_types):
-        """Converts a single bond to a mast.BondType."""
+        """Converts a single bond to a mastic.BondType."""
         bond_data = self.bond_data(bond_idx)
-        return mastmol.BondType(bond_type_name,
+        return masticmol.BondType(bond_type_name,
                                         atom_types=bond_atom_types,
                                         **bond_data)
 
     def make_bond_types(self, atom_types=None):
-        """Converts all bonds in the molecule to mast.BondTypes."""
+        """Converts all bonds in the molecule to mastic.BondTypes."""
         # get atom types
         if atom_types is None:
             atom_types = self.make_atom_types()
@@ -230,15 +230,15 @@ class RDKitMoleculeWrapper(object):
             bond_type_name = "{1}Bond{0}Type".format(bond_data['name'], self.mol_name)
             bond_atom_types = (atom_types[bond_data['rdkit_atom_idxs'][0]],
                           atom_types[bond_data['rdkit_atom_idxs'][1]])
-            bond_type = mastmol.BondType(bond_type_name,
+            bond_type = masticmol.BondType(bond_type_name,
                                                  atom_types=bond_atom_types,
                                                  **bond_data)
             bond_types.append(bond_type)
         return bond_types
 
     def make_molecule_type(self, find_features=False):
-        """Converts the molecule to a mast.MoleculeType.
-        First converts all atoms and bonds to mast Types.
+        """Converts the molecule to a mastic.MoleculeType.
+        First converts all atoms and bonds to mastic Types.
 
         Optionally the rdkit find_features function can be called with
         default settings using the flag.
@@ -255,7 +255,7 @@ class RDKitMoleculeWrapper(object):
         molecule_data.update({"name" : self.mol_name})
 
         molecule_type_name = "{}Type".format(self.mol_name)
-        molecule_type = mastmol.MoleculeType(molecule_type_name,
+        molecule_type = masticmol.MoleculeType(molecule_type_name,
                                              atom_types=atom_types,
                                              bond_types=bond_types, bond_map=bond_map,
                                              **molecule_data)
@@ -265,13 +265,13 @@ class RDKitMoleculeWrapper(object):
                 atom_idxs = feat_dict['atom_ids']
                 feature_attrs = {}
                 feature_classifiers = [feat_dict['family'], feat_dict['type']]
-                feature_attrs[mastfeatconfig.FEATURE_CLASSIFIER_KEY] = feature_classifiers
+                feature_attrs[masticfeatconfig.FEATURE_CLASSIFIER_KEY] = feature_classifiers
                 feature_attrs['rdkit_position'] = feat_dict['position']
                 feature_attrs['rdkit_family'] = feat_dict['family']
                 feature_attrs['rdkit_family'] = feat_dict['type']
 
-                feature_type_name = mastfeatconfig.FEATURE_TYPE_TEMPLATE.format(self.mol_name, idx)
-                feature_type = mastfeat.FeatureType(feature_type_name,
+                feature_type_name = masticfeatconfig.FEATURE_TYPE_TEMPLATE.format(self.mol_name, idx)
+                feature_type = masticfeat.FeatureType(feature_type_name,
                                                     molecule_type=molecule_type,
                                                     atom_idxs=atom_idxs,
                                                     **feature_attrs)

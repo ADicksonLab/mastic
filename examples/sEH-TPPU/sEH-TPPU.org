@@ -7,11 +7,11 @@
   import pickle
 
   from rdkit import Chem
-  from mast.interfaces.rdkit import AssignBondOrdersFromTemplate
-  from mast.interfaces.rdkit import RDKitMoleculeWrapper
+  from mastic.interfaces.rdkit import AssignBondOrdersFromTemplate
+  from mastic.interfaces.rdkit import RDKitMoleculeWrapper
 
-  import mast.tests.data as mastdata
-  import mast.system as mastsys
+  import mastic.tests.data as masticdata
+  import mastic.system as masticsys
 
 
   TPPU_MOL_path = osp.join(".", "TPPU.mol")
@@ -39,7 +39,7 @@
 
   member_types = [TPPU_Molecule, seh_Molecule]
   system_attrs = {'molecule_source' : 'rdkit'}
-  sEH_TPPU_SystemType = mastsys.SystemType("sEH_TPPU_System",
+  sEH_TPPU_SystemType = masticsys.SystemType("sEH_TPPU_System",
                                            member_types=member_types,
                                            ,**system_attrs)
 
@@ -56,9 +56,9 @@ I messed this up for other stuff this could be easily rearranged and fixed thoug
   import numpy as np
 
   from rdkit import Chem
-  import mast.tests.data as mastdata
-  from mast.interfaces.rdkit import AssignBondOrdersFromTemplate
-  from mast.interfaces.rdkit import RDKitMoleculeWrapper
+  import mastic.tests.data as masticdata
+  from mastic.interfaces.rdkit import AssignBondOrdersFromTemplate
+  from mastic.interfaces.rdkit import RDKitMoleculeWrapper
 
   TPPU_MOL_path = osp.join(".", "TPPU.mol")
   TPPU_MOL_rdkit = Chem.MolFromMolFile(TPPU_MOL_path, sanitize=True)
@@ -86,7 +86,7 @@ I messed this up for other stuff this could be easily rearranged and fixed thoug
   import pickle
   import sys
 
-  import mast.system as mastsys
+  import mastic.system as masticsys
 
   # must set this to pickle substantiated systems sometimes
   sys.setrecursionlimit(100000)
@@ -118,7 +118,7 @@ I messed this up for other stuff this could be easily rearranged and fixed thoug
 
                                in binding_site_atoms]
 
-  import mast.molecule as mastmol
+  import mastic.molecule as masticmol
 
   # the selection map tells the association the index of the member and
   # the indices of the atoms to include as one component of the
@@ -132,10 +132,10 @@ I messed this up for other stuff this could be easily rearranged and fixed thoug
   # also had no indices selected and it should use the whole system
   # member. The MoleculeAtomSelection allows for selection of atoms in a
   # Molecule or MoelculeType.
-  selection_types = [mastmol.MoleculeAtomSelection, None]
+  selection_types = [masticmol.MoleculeAtomSelection, None]
 
   # instantiate the association
-  sehBS_tppu_assoc = mastsys.AssociationType("sEHBS-TPPU",
+  sehBS_tppu_assoc = masticsys.AssociationType("sEHBS-TPPU",
                                            system_type=sEH_TPPU_SystemType,
                                            selection_map=selection_map,
                                            selection_types=selection_types)
@@ -151,7 +151,7 @@ I messed this up for other stuff this could be easily rearranged and fixed thoug
   import os.path as osp
   import pickle
 
-  from mast.interactions.hydrogen_bond import HydrogenBondType
+  from mastic.interactions.hydrogen_bond import HydrogenBondType
 
   system_cryst_pkl_path = osp.join(".", "sEH_TPPU_System_cryst.pkl")
   with open(system_cryst_pkl_path, 'rb') as pkl_rf:
@@ -168,9 +168,9 @@ I messed this up for other stuff this could be easily rearranged and fixed thoug
   import pickle
   import numpy as np
 
-  from mast.interactions.hydrogen_bond import HydrogenBondType
-  import mast.profile as mastprof
-  from mast.interaction_space import InteractionSpace
+  from mastic.interactions.hydrogen_bond import HydrogenBondType
+  import mastic.profile as masticprof
+  from mastic.interaction_space import InteractionSpace
 
   # load the system type pickle in
   system_pkl_path = osp.join(".", "sEH_TPPU_SystemType.pkl")
@@ -201,7 +201,7 @@ I messed this up for other stuff this could be easily rearranged and fixed thoug
       inx_space.add_association_subspace(association_type, HydrogenBondType)
 
   # make a Profiler for the inx space
-  profiler = mastprof.InxSpaceProfiler(inx_space)
+  profiler = masticprof.InxSpaceProfiler(inx_space)
 
 
   # load the coordinates for the members
@@ -220,8 +220,8 @@ I messed this up for other stuff this could be easily rearranged and fixed thoug
   import pickle
   import numpy as np
 
-  from mast.interactions.hydrogen_bond import HydrogenBondType
-  import mast.profile as mastprof
+  from mastic.interactions.hydrogen_bond import HydrogenBondType
+  import mastic.profile as masticprof
 
   # load the system type pickle in
   system_pkl_path = osp.join(".", "sEH_TPPU_SystemType.pkl")
@@ -246,7 +246,7 @@ I messed this up for other stuff this could be easily rearranged and fixed thoug
   # substantiate the system
   system = sEH_TPPU_SystemType.to_system(member_coords)
 
-  system_profile = mastprof.SystemProfile(system)
+  system_profile = masticprof.SystemProfile(system)
 
   # just profile the inter-member interactions
   system_profile.profile_association((0, 1))

@@ -4,11 +4,11 @@ import os.path as osp
 from itertools import product
 
 
-from mast.selection import CoordArray, CoordArraySelection, \
+from mastic.selection import CoordArray, CoordArraySelection, \
     Point, IndexedSelection, SelectionsDict, SelectionsList, \
     Selection
 
-import mast.config.molecule as mastmolconfig
+import mastic.config.molecule as masticmolconfig
 
 __all__ = ['AtomType', 'BondType', 'MoleculeType',]
 
@@ -23,7 +23,7 @@ class AtomType(object):
     'C'
 
     """
-    attributes = mastmolconfig.ATOM_ATTRIBUTES
+    attributes = masticmolconfig.ATOM_ATTRIBUTES
 
     def __init__(self, atom_type_name, **atom_attrs):
         # keep track of which attributes the input did not provide
@@ -110,7 +110,7 @@ class BondType(object):
     Then put them together:
     >>> COBondType = BondType.factory("COBondType", atom_types=CO_atoms, **CO_attributes)
     """
-    attributes = mastmolconfig.BOND_ATTRIBUTES
+    attributes = masticmolconfig.BOND_ATTRIBUTES
     """Domain specific properties of the BondType"""
 
     def __init__(self, bond_type_name, atom_types=None, **bond_attrs):
@@ -118,7 +118,7 @@ class BondType(object):
         name (which will be the class name) and a domain specific dictionary
         of bond attributes.
 
-        See mast.config.molecule for standard BondType attributes.
+        See mastic.config.molecule for standard BondType attributes.
         See class docstring for examples.
         """
 
@@ -235,7 +235,7 @@ class MoleculeType(object):
     Put it together:
     >>> COType = MoleculeType.factory("COType", atom_types=atom_types, bond_types=bond_types, bond_map=bond_map, **CO_attributes)
     """
-    attributes = mastmolconfig.MOLECULE_ATTRIBUTES
+    attributes = masticmolconfig.MOLECULE_ATTRIBUTES
     """Domain specific properties of the MoleculeType"""
 
     def __init__(self, mol_type_name, atom_types=None,
@@ -246,7 +246,7 @@ class MoleculeType(object):
         name (which will be the class name) and a domain specific dictionary
         of molecule attributes.
 
-        See mast.config.molecule for standard MoleculeType attributes.
+        See mastic.config.molecule for standard MoleculeType attributes.
         See class docstring for examples.
         """
 
@@ -353,9 +353,9 @@ class MoleculeType(object):
         return self._feature_types
 
     def add_feature_type(self, key, feature_type):
-        from mast.features import FeatureType
+        from mastic.features import FeatureType
         assert isinstance(feature_type, FeatureType), \
-            "feature must be a subclass of a mast.features.FeatureType class, not {}".format(
+            "feature must be a subclass of a mastic.features.FeatureType class, not {}".format(
                 feature_type)
         assert feature_type.molecule_type is self, \
             "The molecule of the feature must be this molecule, not {}".format(
@@ -454,12 +454,12 @@ class Atom(Point):
     Construct an Atom from it:
 
     >>> Atom(coords=coords, atom_type=CarbonAtomType)
-    <class 'mast.molecule.Atom'>
+    <class 'mastic.molecule.Atom'>
 
     or
 
     >>> CarbonAtomType.to_atom(coords)
-    <class 'mast.molecule.Atom'>
+    <class 'mastic.molecule.Atom'>
     """
 
     def __init__(self, coords=None, atom_array=None, array_idx=None, atom_type=None, flags=None):
@@ -467,7 +467,7 @@ class Atom(Point):
         if coords is None:
             coords = np.array([np.nan, np.nan, np.nan])
         else:
-            assert coords.shape[-1] == mastmolconfig.DIM_NUM_3D, \
+            assert coords.shape[-1] == masticmolconfig.DIM_NUM_3D, \
                 "coords must have 3-dimensions, not {}".format(
                     coords.shape[-1])
 
@@ -477,7 +477,7 @@ class Atom(Point):
             "atom_type must be a subclass of AtomType, not {}".format(atom_type)
 
         if atom_array:
-            assert atom_array.shape[-1] == mastmolconfig.DIM_NUM_3D, \
+            assert atom_array.shape[-1] == masticmolconfig.DIM_NUM_3D, \
                 "atom_array must have 3-dimensions, not {}".format(
                     atom_array.shape[-1])
 
@@ -520,7 +520,7 @@ class Atom(Point):
     @property
     def system(self):
         """The System this Atom is in else None."""
-        from mast.system import System
+        from mastic.system import System
         if not self.isin_system:
             return None
         else:
@@ -718,7 +718,7 @@ class Bond(IndexedSelection):
     @property
     def system(self):
         """The System this Bond is in else None."""
-        from mast.system import System
+        from mastic.system import System
         if self.isin_system is False:
             return None
         else:
@@ -767,7 +767,7 @@ class Molecule(SelectionsDict):
     and may be part of coordinate systems.
 
     The easiest way to obtain a Molecule object is to use the
-    mast.molecule.MoleculeType.to_molecule(coords) function.
+    mastic.molecule.MoleculeType.to_molecule(coords) function.
 
     Examples
     --------
@@ -792,7 +792,7 @@ class Molecule(SelectionsDict):
     >>> coords = np.array([C_coords, O_coords])
 
     >>> COType.to_molecule(coords)
-    <class 'mast.molecule.Molecule'>
+    <class 'mastic.molecule.Molecule'>
 
 
     """
@@ -894,7 +894,7 @@ class Molecule(SelectionsDict):
     @property
     def system(self):
         """The System this Molecule is in else None."""
-        from mast.system import System
+        from mastic.system import System
         if self.isin_system is False:
             return None
         else:
@@ -1096,7 +1096,7 @@ class Molecule(SelectionsDict):
         attribute.
 
         """
-        from mast.interactions import InteractionType
+        from mastic.interactions import InteractionType
         assert all([isinstance(itype, InteractionType) for itype in interaction_types]), \
                    "All interaction_types must be a subclass of InteractionType"
         # go through each interaction_type and check for hits

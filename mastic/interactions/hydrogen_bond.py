@@ -9,9 +9,9 @@ import numpy as np
 import numpy.linalg as la
 from scipy.spatial.distance import cdist
 
-import mast.config.interactions as mastinxconfig
-import mast.config.features as mastfeatconfig
-from mast.interactions.interactions import InteractionType, Interaction, InteractionError
+import mastic.config.interactions as masticinxconfig
+import mastic.config.features as masticfeatconfig
+from mastic.interactions.interactions import InteractionType, Interaction, InteractionError
 
 
 class HydrogenBondType(InteractionType):
@@ -23,17 +23,17 @@ class HydrogenBondType(InteractionType):
     ## class attributes that need to exist
     attributes = {}
     interaction_name = "HydrogenBond"
-    feature_keys = mastinxconfig.HYDROGEN_BOND_FEATURE_KEYS
-    feature_classifiers = mastinxconfig.HYDROGEN_BOND_FEATURES
+    feature_keys = masticinxconfig.HYDROGEN_BOND_FEATURE_KEYS
+    feature_classifiers = masticinxconfig.HYDROGEN_BOND_FEATURES
     # degree is the number of features that participate in an interaction
-    degree = mastinxconfig.HYDROGEN_BOND_DEGREE
-    commutative = mastinxconfig.HYDROGEN_BOND_COMMUTATIVITY
-    interaction_param_keys = mastinxconfig.HYDROGEN_BOND_PARAM_KEYS
+    degree = masticinxconfig.HYDROGEN_BOND_DEGREE
+    commutative = masticinxconfig.HYDROGEN_BOND_COMMUTATIVITY
+    interaction_param_keys = masticinxconfig.HYDROGEN_BOND_PARAM_KEYS
 
     ## specific to this class parameters but make defaults easier and
     ## for writing other similar InteractionTypes
-    distance_cutoff = mastinxconfig.HYDROGEN_BOND_DIST_MAX
-    angle_cutoff = mastinxconfig.HYDROGEN_BOND_DON_ANGLE_MIN
+    distance_cutoff = masticinxconfig.HYDROGEN_BOND_DIST_MAX
+    angle_cutoff = masticinxconfig.HYDROGEN_BOND_DON_ANGLE_MIN
 
     ## convenience class attributes particular to this class
     donor_key = feature_keys[0]

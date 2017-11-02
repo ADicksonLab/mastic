@@ -2,11 +2,11 @@ import os.path as osp
 import pickle
 
 from rdkit import Chem
-from mast.interfaces.rdkit import AssignBondOrdersFromTemplate
-from mast.interfaces.rdkit import RDKitMoleculeWrapper
+from mastic.interfaces.rdkit import AssignBondOrdersFromTemplate
+from mastic.interfaces.rdkit import RDKitMoleculeWrapper
 
-import mast.tests.data as mastdata
-import mast.system as mastsys
+import mastic.tests.data as masticdata
+import mastic.system as masticsys
 
 
 TPPU_MOL_path = osp.join(".", "TPPU.mol")
@@ -34,7 +34,7 @@ with open(seh_pkl_path, 'wb') as wf:
 
 member_types = [TPPU_Molecule, seh_Molecule]
 system_attrs = {'molecule_source' : 'rdkit'}
-sEH_TPPU_SystemType = mastsys.SystemType("sEH_TPPU_System",
+sEH_TPPU_SystemType = masticsys.SystemType("sEH_TPPU_System",
                                          member_types=member_types,
                                          **system_attrs)
 

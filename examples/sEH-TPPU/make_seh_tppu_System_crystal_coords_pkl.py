@@ -10,7 +10,7 @@ with open(system_pkl_path, 'rb') as rf:
     seh_tppu_System = pickle.load(rf)
 
 from rdkit import Chem
-import mast.tests.data as mastdata
+import mastic.tests.data as masticdata
 
 TPPU_MOL_path = osp.join(".", "TPPU.mol")
 TPPU_MOL_rdkit = Chem.MolFromMolFile(TPPU_MOL_path, sanitize=True)
@@ -19,11 +19,11 @@ TPPU_PDB_rdkit = Chem.MolFromPDBFile(TPPU_PDB_path, removeHs=False, sanitize=Fal
 seh_PDB_path = osp.join(".", "sEH.pdb")
 seh_rdkit = Chem.MolFromPDBFile(seh_PDB_path, removeHs=False, sanitize=False)
 
-from mast.interfaces.rdkit import AssignBondOrdersFromTemplate
+from mastic.interfaces.rdkit import AssignBondOrdersFromTemplate
 
 TPPU_rdkit = AssignBondOrdersFromTemplate(TPPU_MOL_rdkit, TPPU_PDB_rdkit)
 
-from mast.interfaces.rdkit import RDKitMoleculeWrapper
+from mastic.interfaces.rdkit import RDKitMoleculeWrapper
 
 TPPU_rdkit_wrapper = RDKitMoleculeWrapper(TPPU_rdkit, mol_name="TPPU")
 seh_rdkit_wrapper = RDKitMoleculeWrapper(seh_rdkit, mol_name="sEH")

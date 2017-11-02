@@ -2,9 +2,9 @@ import os.path as osp
 import numpy as np
 
 from rdkit import Chem
-import mast.tests.data as mastdata
-from mast.interfaces.rdkit import AssignBondOrdersFromTemplate
-from mast.interfaces.rdkit import RDKitMoleculeWrapper
+import mastic.tests.data as masticdata
+from mastic.interfaces.rdkit import AssignBondOrdersFromTemplate
+from mastic.interfaces.rdkit import RDKitMoleculeWrapper
 
 TPPU_MOL_path = osp.join(".", "TPPU.mol")
 TPPU_MOL_rdkit = Chem.MolFromMolFile(TPPU_MOL_path, sanitize=True)

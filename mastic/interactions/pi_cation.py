@@ -11,8 +11,8 @@ import numpy as np
 import numpy.linalg as la
 from scipy.spatial.distance import cdist, euclidean
 
-import mast.config.interactions as mastinxconfig
-from mast.interactions.interactions import InteractionType, Interaction, InteractionError
+import mastic.config.interactions as masticinxconfig
+from mastic.interactions.interactions import InteractionType, Interaction, InteractionError
 
 class PiCationType(InteractionType):
     """Defines an InteractionType class for hydrogen bonds between members
@@ -22,18 +22,18 @@ class PiCationType(InteractionType):
 
     attributes = {}
     interaction_name = "PiCation"
-    feature_keys = mastinxconfig.PICATION_FEATURE_KEYS
-    feature_classifiers = mastinxconfig.PICATION_FEATURES
-    degree = mastinxconfig.PICATION_COMMUTATIVITY
-    commutative = mastinxconfig.PICATION_COMMUTATIVITY
-    interaction_param_keys = mastinxconfig.PICATION_PARAM_KEYS
+    feature_keys = masticinxconfig.PICATION_FEATURE_KEYS
+    feature_classifiers = masticinxconfig.PICATION_FEATURES
+    degree = masticinxconfig.PICATION_COMMUTATIVITY
+    commutative = masticinxconfig.PICATION_COMMUTATIVITY
+    interaction_param_keys = masticinxconfig.PICATION_PARAM_KEYS
 
     # parameters set from the config file
-    centroid_max_distance = mastinxconfig.PICATION_CENTROID_DIST_MAX
-    centroid_offset_max = mastinxconfig.PICATION_OFFSET_MAX
-    amine_normal_angle_min = mastinxconfig.PICATION_AMINE_NORMAL_ANGLE_MIN
-    tertiary_amine_feature_classifiers = mastinxconfig.PICATION_TERTIARY_AMINE_FEATURE
-    heavy_atoms = mastinxconfig.PICATION_HEAVY_ATOMS_ELEMENT_SYMBOLS
+    centroid_max_distance = masticinxconfig.PICATION_CENTROID_DIST_MAX
+    centroid_offset_max = masticinxconfig.PICATION_OFFSET_MAX
+    amine_normal_angle_min = masticinxconfig.PICATION_AMINE_NORMAL_ANGLE_MIN
+    tertiary_amine_feature_classifiers = masticinxconfig.PICATION_TERTIARY_AMINE_FEATURE
+    heavy_atoms = masticinxconfig.PICATION_HEAVY_ATOMS_ELEMENT_SYMBOLS
 
     def __init__(self, pi_stacking_type_name,
                  feature_types=None,

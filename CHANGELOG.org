@@ -24,7 +24,7 @@ populated with readers and wrappers from other libraries.
 Currently, RDKit is used as both a reader of PDB data and as a
 generator of atom and bond information, as well as the knowledge
 system for identifying features. Conceivably any library extension
-could perform these actions so I wanted to make the separation of mast
+could perform these actions so I wanted to make the separation of mastic
 and RDKit clear and able to be changed easily in the future.
 
 To accomplish this for feature detection I implemented another
@@ -33,7 +33,7 @@ interface to any external representation of molecular features that
 may want to be profiled.
 
 With this architecture it makes it fairly easy to add wrappers to
-other representations and cast them to mast representations. However
+other representations and cast them to mastic representations. However
 some more fiddling with the configurations will be necessary and needs
 will be addressed when another interface is needed and objectives are
 clearer.
@@ -41,7 +41,7 @@ clearer.
 That said there is also a new configs module with submodules for each
 main module (molecule, features, etc.). This is basically just a list
 of the attributes that rdkit provides. The idea here is to create a
-canonical list of attributes that mast recognizes, that possibly will
+canonical list of attributes that mastic recognizes, that possibly will
 be used in other methods not particular to an interface module, and to
 keep the namespace clean and not confusing between different
 terminology of different libraries. Users are free to add other
@@ -91,7 +91,7 @@ selection for that atom.
 Furthermore the SelectionsType class is gone in favor of a simpler
 "write-it yourself" approach to each Type. Because, they were so
 diverse in implementation and ultimately there won't be that many (6-8
-for base mast, 10-12 for protein extensions etc.) and I didn't see a
+for base mastic, 10-12 for protein extensions etc.) and I didn't see a
 need to automate creation of XType classes. However, this requires a
 bit of boilerplate but I think that is better at this point.
 

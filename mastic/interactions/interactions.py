@@ -2,15 +2,15 @@
 import itertools as it
 import collections as col
 
-from mast.selection import SelectionsList
-import mast.features as mastfeat
+from mastic.selection import SelectionsList
+import mastic.features as masticfeat
 
-# from mast.system import System
-# import mast.selection as mastsel
-# import mast.molecule as mastmol
-# import mast.system as mastsys
-# import mast.config.interactions as mastinxconfig
-# import mast.config.features as mastfeatconfig
+# from mastic.system import System
+# import mastic.selection as masticsel
+# import mastic.molecule as masticmol
+# import mastic.system as masticsys
+# import mastic.config.interactions as masticinxconfig
+# import mastic.config.features as masticfeatconfig
 
 __all__ = ['Interaction', 'InteractionType', "InteractionError"]
 
@@ -53,7 +53,7 @@ class InteractionType(object):
 
         assert feature_types, "feature_types must be given."
         for feature_type in feature_types:
-            assert isinstance(feature_type, mastfeat.FeatureType), \
+            assert isinstance(feature_type, masticfeat.FeatureType), \
                 "All feature_type members must be a subclass of FeatureType, " \
                 "not, {}".format(feature_type)
         # keep track of which attributes the input did not provide

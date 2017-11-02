@@ -7,12 +7,12 @@ class NoHHydrogenBondType(InteractionType):
     def __init__(self):
         pass
 
-    _feature_families = mastinxconfig.HBOND_FEATURE_FAMILIES
+    _feature_families = masticinxconfig.HBOND_FEATURE_FAMILIES
     feature_families = _feature_families
     _donor_key = 'Donor'
     _acceptor_key = 'Acceptor'
     _grouping_attribute = 'rdkit_family'
-    _feature_types = mastinxconfig.HBOND_FEATURE_TYPES
+    _feature_types = masticinxconfig.HBOND_FEATURE_TYPES
     feature_type = _feature_types
 
     def __repr__(self):

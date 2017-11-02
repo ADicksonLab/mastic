@@ -2,8 +2,8 @@ import os.path as osp
 import pickle
 import itertools as it
 
-from mast.interactions.hydrogen_bond import HydrogenBondType
-from mast.interactions.pi_stacking import PiStackingType
+from mastic.interactions.hydrogen_bond import HydrogenBondType
+from mastic.interactions.pi_stacking import PiStackingType
 
 import sys
 sys.recursion_depth

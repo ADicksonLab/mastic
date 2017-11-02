@@ -10,7 +10,7 @@ ben = MolFromPDBFile(ben_pdb_path, removeHs=False, sanitize=False)
 # set the path so we can import my module
 import sys
 sys.path.append("/home/salotz/Dropbox/devel")
-from mast.molecule import RDKitMoleculeType
+from mastic.molecule import RDKitMoleculeType
 
 print("loading RDKit molecules")
 trypsin_type = RDKitMoleculeType(trypsin, mol_name="trypsin")
@@ -41,13 +41,13 @@ ben_coords = ben_coords * 10
 trypsin_coords = trypsin_coords * 10
 
 print("making the system")
-from mast.system import SystemType, System
+from mastic.system import SystemType, System
 
 sys_type = SystemType({'name' : 'trypsin-benzamidine-complex',
                           'trypsin_type' : trypsin_type,
                           'benzamidine_type' : ben_type})
 
-from mast.interactions import AssociationType, SystemAssociation, HydrogenBondType
+from mastic.interactions import AssociationType, SystemAssociation, HydrogenBondType
 
 rec_lig_attr = {'ligand_type' : ben_type,
                 'receptor_type' : trypsin_type,
@@ -106,10 +106,10 @@ def frame_profile(frame_idx, serial_data_path, pickle_path,
     else:
         print(0, "intermolecular hydrogen bonds")
 
-from mast.molecule import Molecule
-import mast.interactions as minx
-from mast.interactions import HydrogenBondType
-import mast.selection as mastsel
+from mastic.molecule import Molecule
+import mastic.interactions as minx
+from mastic.interactions import HydrogenBondType
+import mastic.selection as masticsel
 import pickle
 import sys
 import os

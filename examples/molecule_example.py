@@ -3,13 +3,13 @@ import numpy as np
 from rdkit import Chem
 import os.path as osp
 
-from mast.selection import CoordArray, IndexedSelection, Selection, \
+from mastic.selection import CoordArray, IndexedSelection, Selection, \
     GenericSelection
 
-from mast.molecule import Bond, Molecule, Atom, \
+from mastic.molecule import Bond, Molecule, Atom, \
     MoleculeType, AtomType, BondType
-from mast.interfaces.rdkit import RDKitMoleculeWrapper
-import mast.config.molecule as mastmolconfig
+from mastic.interfaces.rdkit import RDKitMoleculeWrapper
+import mastic.config.molecule as masticmolconfig
 
 
 ### Making AtomTypes, BondTypes, and MoleculeTypes
@@ -145,7 +145,7 @@ print("atom_types in mol")
 print(mol.atom_types)
 
 
-print("Making a mast.Molecule from the RDKitMoleculeWrapper data")
+print("Making a mastic.Molecule from the RDKitMoleculeWrapper data")
 pka_mol = PKA3Type.to_molecule(pka_coords)
 # pka_mol = Molecule(mol_type=pka_type, coords=pka_coords)
 print(pka_mol)

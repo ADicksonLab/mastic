@@ -24,7 +24,7 @@ class SelectionMember(object):
     SelectionMember simply wraps an object:
 
     >>> SelectionMember('a')
-    <class 'mast.selection.SelectionMember'>
+    <class 'mastic.selection.SelectionMember'>
 
     Which you can access:
 
@@ -225,7 +225,7 @@ class SelectionMember(object):
         When a properly implemented selection is made:
         >>> idxsel = IndexedSelection([a], sel=[0])
         >>> a.registry
-        [(0, <class 'mast.selection.IndexedSelection'>)]
+        [(0, <class 'mastic.selection.IndexedSelection'>)]
 
         >>> a.registry[0][1][a.registry[0][0]] is a
         True
@@ -236,7 +236,7 @@ class SelectionMember(object):
         >>> len(a.registry)
         1
         >>> IndexedSelection([a], sel=[0])
-        <class 'mast.selection.IndexedSelection'>
+        <class 'mastic.selection.IndexedSelection'>
         >>> len(a.registry)
         2
 
@@ -271,11 +271,11 @@ class GenericSelection(SelectionMember):
     >>> container = [SelectionMember('a'), SelectionMember('b')]
     >>> gensel = GenericSelection(container)
     >>> gensel
-    <class 'mast.selection.GenericSelection'>
+    <class 'mastic.selection.GenericSelection'>
 
     The container can be accessed:
     >>> gensel.container
-    [<class 'mast.selection.SelectionMember'>, <class 'mast.selection.SelectionMember'>]
+    [<class 'mastic.selection.SelectionMember'>, <class 'mastic.selection.SelectionMember'>]
 
     See IndexedSelection, and CoordArraySelection for classes with the
     selection mechanism implemented.
@@ -374,19 +374,19 @@ class IndexedSelection(GenericSelection, col.UserDict):
     >>> container = [SelectionMember(str) for str in ['a','b','c']]
     >>> idxsel = IndexedSelection(container, sel=[0,2])
     >>> idxsel
-    <class 'mast.selection.IndexedSelection'>
+    <class 'mastic.selection.IndexedSelection'>
 
     Access via dictionary syntax:
 
     >>> idxsel[0]
-    <class 'mast.selection.SelectionMember'>
+    <class 'mastic.selection.SelectionMember'>
     >>> idxsel[0].member
     'a'
 
     The registry for the SelectionMember knows it is selected:
 
     >>> idxsel[0].registry
-    [(0, <class 'mast.selection.IndexedSelection'>)]
+    [(0, <class 'mastic.selection.IndexedSelection'>)]
 
     """
     def __init__(self, container, sel, flags=None):
@@ -418,7 +418,7 @@ class CoordArray(SelectionMember):
     >>> arr = np.array([[0,0,0], [1,1,1], [2,2,2]])
     >>> coords = CoordArray(arr)
     >>> coords
-    <class 'mast.selection.CoordArray'>
+    <class 'mastic.selection.CoordArray'>
     >>> coords.coords
     array([[0, 0, 0],
            [1, 1, 1],
@@ -486,7 +486,7 @@ class CoordArraySelection(GenericSelection):
     >>> coords = CoordArray(arr)
     >>> coordsel = CoordArraySelection(coords, [0,2])
     >>> coordsel
-    <class 'mast.selection.CoordArraySelection'>
+    <class 'mastic.selection.CoordArraySelection'>
     >>> coordsel[0]
     array([0, 0, 0])
     >>> coordsel[1]
@@ -553,7 +553,7 @@ class Point(CoordArraySelection):
 
     >>> point1 = Point(point_coord)
     >>> point1
-    <class 'mast.selection.Point'>
+    <class 'mastic.selection.Point'>
     >>> point1.container.coords
     array([[0, 1, 0]])
 
@@ -576,7 +576,7 @@ class Point(CoordArraySelection):
            [0, 1, 0]])
 
     >>> coords.registry
-    [(3, <class 'mast.selection.Point'>)]
+    [(3, <class 'mastic.selection.Point'>)]
 
     """
 

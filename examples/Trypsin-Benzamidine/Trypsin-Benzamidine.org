@@ -14,29 +14,29 @@ be done by many libraries.
 Creating a molecular topology is a bit more complicated especially
 when the input file format (the Protein DataBank) does not require
 explicit connection information. Thus, many readers which infer
-connectivity correctly from PDBs are available and the MAST library
+connectivity correctly from PDBs are available and the MASTIC library
 delegates that task to one of those libraries.
 
 An even more difficult problem is the identification of chemical
 groups and other relevant features from molecular topologies. Again
-MAST does not perform this function in favor allowing this kind of
+MASTIC does not perform this function in favor allowing this kind of
 information to be produced by more specialized libraries and converted
-to MAST data structures.
+to MASTIC data structures.
 
 A library that accomplishes the parsing of topologies and
 identification of chemical features (as well as coordinates in a
 limited manner) is RDKit which is mainly programmed in C++ with Python
 bindings.
 
-Thus for the early implementations of MAST RDKit was used to produce
+Thus for the early implementations of MASTIC RDKit was used to produce
 the needed inputs for constructing systems, and has a submodule in the
 interfaces module that includes a wrapper for converting RDKit objects
-to MAST objects and extracting the useful information RDKit discovers
+to MASTIC objects and extracting the useful information RDKit discovers
 about chemicals.
 
 *** Preparing chemical data with RDKit
 
-We start with strings for the files saved in MAST for examples.
+We start with strings for the files saved in MASTIC for examples.
 
 We are loading in two files for Benzamidine in order to get the
 correct identification of chemical features. First the .mol format
@@ -50,11 +50,11 @@ for identifying hydrogen bonds.
 
 #+BEGIN_SRC python 
   from rdkit import Chem
-  import mast.tests.data as mastdata
+  import mastic.tests.data as masticdata
 
-  BEN_MOL_rdkit = Chem.MolFromMolBlock(mastdata.benzamidine_MOL, sanitize=True)
-  BEN_PDB_rdkit = Chem.MolFromPDBBlock(mastdata.BEN_Hs_3ptb, removeHs=False, sanitize=True)
-  trypsin_rdkit = Chem.MolFromPDBBlock(mastdata.trypsin_3ptb, removeHs=False, sanitize=True)
+  BEN_MOL_rdkit = Chem.MolFromMolBlock(masticdata.benzamidine_MOL, sanitize=True)
+  BEN_PDB_rdkit = Chem.MolFromPDBBlock(masticdata.BEN_Hs_3ptb, removeHs=False, sanitize=True)
+  trypsin_rdkit = Chem.MolFromPDBBlock(masticdata.trypsin_3ptb, removeHs=False, sanitize=True)
 #+END_SRC
 
 If you have files you want to read use the rdkit.Chem.MolFromPDBFile
@@ -69,7 +69,7 @@ of this function in the rdkit interface submodule which we will use in
 this tutorial.
 
 #+BEGIN_SRC python 
-  from mast.interfaces.rdkit import AssignBondOrdersFromTemplate
+  from mastic.interfaces.rdkit import AssignBondOrdersFromTemplate
 
   BEN_rdkit = AssignBondOrdersFromTemplate(BEN_MOL_rdkit, BEN_PDB_rdkit)
 #+END_SRC
@@ -78,7 +78,7 @@ this tutorial.
 *** Extracting data from RDKit objects
 
 Now that we have rich representations of molecules in RDKit form we
-want to convert these to MAST representations.
+want to convert these to MASTIC representations.
 
 The first step is to make a wrapper object for each molecule. This has
 been designed to extract a lot of important information in an
@@ -88,7 +88,7 @@ Here we also name these structures, this will later go into making the
 class name for the MoleculeTypes so choose carefully.
 
 #+BEGIN_SRC python 
-  from mast.interfaces.rdkit import RDKitMoleculeWrapper
+  from mastic.interfaces.rdkit import RDKitMoleculeWrapper
 
   BEN_rdkit_wrapper = RDKitMoleculeWrapper(BEN_rdkit, mol_name="BEN")
   trypsin_rdkit_wrapper = RDKitMoleculeWrapper(trypsin_rdkit, mol_name="Trypsin")
@@ -104,14 +104,14 @@ choose to:
 #+END_SRC
 
 And importantly we have the method that converts the RDKit Molecule to
-a mast.molecule.MoleculeType.
+a mastic.molecule.MoleculeType.
 
-A mast MoleculeType is used define the topology of a molecule. It
+A mastic MoleculeType is used define the topology of a molecule. It
 consists of AtomTypes, BondTypes, and potentially other BondTypes (not
 yet implemented). AtomTypes are objects that represent different
 atoms, which are able to be defined differently for different domain
 specific needs such as atom types in molecular dynamics force
-fields. Different from force field atom types, in MAST each atom in a
+fields. Different from force field atom types, in MASTIC each atom in a
 molecular topology has its own AtomType so as to distinguish them from
 each other in the molecular graph. The same is true for BondTypes and
 each are identified by a unique index and name.
@@ -198,11 +198,11 @@ single AtomTypes, and potentially many other non-physical or
 multiphysics entities.
 
 #+BEGIN_SRC python 
-  import mast.system as mastsys
+  import mastic.system as masticsys
 
   member_types = [BEN_Molecule, Trypsin_Molecule]
   system_attrs = {'molecule_source' : 'rdkit'}
-  Trypsin_Benzamidine_System = mastsys.SystemType("Trypsin_Benzamidine_System",
+  Trypsin_Benzamidine_System = masticsys.SystemType("Trypsin_Benzamidine_System",
                                                   member_types=member_types,
                                                   ,**system_attrs)
 #+END_SRC
@@ -244,7 +244,7 @@ whole.
 
   rec_lig_attrs = {'info' : 'receptor-ligand'}
   Trypsin_Benzamidine_Association = \
-              mastsys.AssociationType("Trypsin_Benzamidine_Association",
+              masticsys.AssociationType("Trypsin_Benzamidine_Association",
                                       system_type=Trypsin_Benzamidine_System,
                                       selection_map=selection_map,
                                       selection_types=selection_types,
@@ -272,7 +272,7 @@ For instance if we only want to profile the interactions of the ligand
 and some set of atoms we designate as the binding site we define a new
 AssociationType.
 
-For this example I will use some capabilities of MAST which combines
+For this example I will use some capabilities of MASTIC which combines
 the coordinates with the Type information. We will use the coordinates
 that we got from the crystal structure to define a "binding site"
 using a distance cutoff. Once we know the AtomTypes that make up the
@@ -280,7 +280,7 @@ crystal structure binding site we can tell these to the
 AssociationType.
 
 Before we start adding coordinates I will introduce some nonstandard
-nomenclature that is useful for identifying MAST objects. Up until now
+nomenclature that is useful for identifying MASTIC objects. Up until now
 we have only created XXXType objects with no coordinate data. We call
 the objects which have associated with them both a Type and
 coordinates a *substantiation* of the Type. This is so chosen because
@@ -315,7 +315,7 @@ the system as well as how you can do a lot of introspection about the
 system and it's properties.
 
 Now that we have a substantiated System we can calculate distances
-between atoms. We will use some MAST functions to do so and find the
+between atoms. We will use some MASTIC functions to do so and find the
 atoms on Trypsin that are close to Benzamidine.
 
 #+BEGIN_SRC python 
@@ -344,7 +344,7 @@ clean in the atom namespace allowing for much more pleasurable
 exploratory analysis.
 
 #+BEGIN_SRC python 
-  import mast.molecule as mastmol
+  import mastic.molecule as masticmol
 
   # the selection map tells the association the index of the member and
   # the indices of the atoms to include as one component of the
@@ -358,10 +358,10 @@ exploratory analysis.
   # also had no indices selected and it should use the whole system
   # member. The MoleculeAtomSelection allows for selection of atoms in a
   # Molecule or MoelculeType.
-  selection_types = [mastmol.MoleculeAtomSelection, None]
+  selection_types = [masticmol.MoleculeAtomSelection, None]
 
   # instantiate the association
-  TrypsinBS_Benzamidine_assoc = mastsys.AssociationType("TrypsinBS-Benzamidine",
+  TrypsinBS_Benzamidine_assoc = masticsys.AssociationType("TrypsinBS-Benzamidine",
                                            system_type=Trypsin_Benzamidine_System,
                                            selection_map=selection_map,
                                            selection_types=selection_types)
@@ -423,7 +423,7 @@ running simulations of complex systems accessible to even non-experts.
 
 ** Profiling interactions from a multi-molecule system
 
-One of the main motivations for the creation of MAST was the need to
+One of the main motivations for the creation of MASTIC was the need to
 profile intermolecular interactions such as hydrogen bonds and pi-pi
 interactions in drug-protein simulation data.
 
@@ -436,7 +436,7 @@ interactions to look for.
 Here we will profile the ligand with the whole protein.
 
 #+BEGIN_SRC python
-  from mast.interactions.hydrogen_bond import HydrogenBondType
+  from mastic.interactions.hydrogen_bond import HydrogenBondType
 
   # substantiate the system with the new association
   system = Trypsin_Benzamidine_System.to_system(member_coords)
@@ -469,7 +469,7 @@ then. These FeatureTypes are made of selections of atoms in the
 molecule and correspond to things like h-bond acceptors and h-bond
 donors as well as more complicated things like aromatic rings or amino
 and hydroxyl groups. RDKit assigns them strings based on what it
-considers them and MAST assigns each distinct FeatureType an
+considers them and MASTIC assigns each distinct FeatureType an
 object and an index in the MoleculeType.
 
 When profile_interactions is called it looks through all the features
@@ -482,7 +482,7 @@ the donor and acceptor and the angle between the donor, acceptor, and
 the hydrogen atom. In other InteractionType subclasses these tests
 will be different and will have different numbers of features possibly.
 
-The aim of MASTic (an extension to the core MAST functionality) is to
+The aim of MASTICic (an extension to the core MASTIC functionality) is to
 provide a set of common interaction types relevant to computational
 biology. But it is important to note that anyone could invent any
 InteractionType subclass to profile for any kind of "interaction" they
@@ -650,7 +650,7 @@ is no full-proof way of doing, so we will just rely on what RDKit
 gives us from it's feature detection. RDKit uses a simple 4N + 2 rule,
 however if your so inclined you can always come up with your own way
 of defining aromatic rings if your domain specificity requires it,
-MAST is agnostic to such decisions.
+MASTIC is agnostic to such decisions.
 
 In the interactions module is a submodule, pi_stacking, modelled after
 the way the program PLIP [Salentin,S. et al. 2015 doi:
@@ -665,10 +665,10 @@ pi-pi interactions as well as internal pi-pi interactions.
 First, however lets go through and create an interaction space like
 before. We can use the same assoc_terms as before but that would be
 redundant as there is no difference between involved aromatic rings in
-pi_stacking, i.e. in MAST nomenclature it is a commutative interaction.
+pi_stacking, i.e. in MASTIC nomenclature it is a commutative interaction.
 
 #+BEGIN_SRC python
-  from mast.interactions.pi_stacking import PiStackingType, PiStackingInx
+  from mastic.interactions.pi_stacking import PiStackingType, PiStackingInx
 
   pistack_assoc_terms = Trypsin_Benzamidine_System.association_polynomial(
       interaction_degree=PiStackingType.degree,
@@ -701,7 +701,7 @@ interactions. First we will look at protein-ligand interactions.
   import os.path as osp
 
   from rdkit import Chem
-  import mast.tests.data as mastdata
+  import mastic.tests.data as masticdata
 
   BEN_MOL_path = osp.join(".", "benzamidine.mol")
   BEN_MOL_rdkit = Chem.MolFromMolFile(BEN_MOL_path, sanitize=True)
@@ -710,11 +710,11 @@ interactions. First we will look at protein-ligand interactions.
   trypsin_PDB_path = osp.join(".", "trypsin+Hs_3ptb.pdb")
   trypsin_rdkit = Chem.MolFromPDBFile(trypsin_PDB_path, removeHs=False, sanitize=False)
 
-  from mast.interfaces.rdkit import AssignBondOrdersFromTemplate
+  from mastic.interfaces.rdkit import AssignBondOrdersFromTemplate
 
   BEN_rdkit = AssignBondOrdersFromTemplate(BEN_MOL_rdkit, BEN_PDB_rdkit)
 
-  from mast.interfaces.rdkit import RDKitMoleculeWrapper
+  from mastic.interfaces.rdkit import RDKitMoleculeWrapper
 
   BEN_rdkit_wrapper = RDKitMoleculeWrapper(BEN_rdkit, mol_name="BEN")
   trypsin_rdkit_wrapper = RDKitMoleculeWrapper(trypsin_rdkit, mol_name="Trypsin")
@@ -733,11 +733,11 @@ interactions. First we will look at protein-ligand interactions.
   with open(trypsin_pkl_path, 'wb') as wf:
       pickle.dump(Trypsin_Molecule, wf)
 
-  import mast.system as mastsys
+  import mastic.system as masticsys
 
   member_types = [BEN_Molecule, Trypsin_Molecule]
   system_attrs = {'molecule_source' : 'rdkit'}
-  Trypsin_Benzamidine_System = mastsys.SystemType("Trypsin_Benzamidine_System",
+  Trypsin_Benzamidine_System = masticsys.SystemType("Trypsin_Benzamidine_System",
                                                   member_types=member_types,
                                                   ,**system_attrs)
 
@@ -753,7 +753,7 @@ interactions. First we will look at protein-ligand interactions.
 
   rec_lig_attrs = {'info' : 'receptor-ligand'}
   Trypsin_Benzamidine_Association = \
-              mastsys.AssociationType("Trypsin_Benzamidine_Association",
+              masticsys.AssociationType("Trypsin_Benzamidine_Association",
                                       system_type=Trypsin_Benzamidine_System,
                                       selection_map=selection_map_BA,
                                       selection_types=selection_types,
@@ -764,7 +764,7 @@ interactions. First we will look at protein-ligand interactions.
   selection_map_AB = selection_map_BA[::-1]
   lig_rec_attrs = {'info' : 'ligand-receptor'}
   Benzamidine_Trypsin_Association = \
-              mastsys.AssociationType("Benzamidine_Trypsin_Association",
+              masticsys.AssociationType("Benzamidine_Trypsin_Association",
                                       system_type=Trypsin_Benzamidine_System,
                                       selection_map=selection_map_AB,
                                       selection_types=selection_types,
@@ -777,7 +777,7 @@ interactions. First we will look at protein-ligand interactions.
 
   rec_lig_attrs = {'info' : 'intraprotein'}
   Trypsin_Trypsin_Association = \
-              mastsys.AssociationType("Trypsin_Trypsin_Association",
+              masticsys.AssociationType("Trypsin_Trypsin_Association",
                                       system_type=Trypsin_Benzamidine_System,
                                       selection_map=selection_map_BB,
                                       selection_types=selection_types,
@@ -807,7 +807,7 @@ interactions. First we will look at protein-ligand interactions.
   binding_site_atom_serials = [atom.atom_type.pdb_serial_number for atom
                                in binding_site_atoms]
 
-  import mast.molecule as mastmol
+  import mastic.molecule as masticmol
 
   # the selection map tells the association the index of the member and
   # the indices of the atoms to include as one component of the
@@ -821,10 +821,10 @@ interactions. First we will look at protein-ligand interactions.
   # also had no indices selected and it should use the whole system
   # member. The MoleculeAtomSelection allows for selection of atoms in a
   # Molecule or MoelculeType.
-  selection_types = [mastmol.MoleculeAtomSelection, None]
+  selection_types = [masticmol.MoleculeAtomSelection, None]
 
   # instantiate the association
-  TrypsinBS_Benzamidine_assoc = mastsys.AssociationType("TrypsinBS-Benzamidine",
+  TrypsinBS_Benzamidine_assoc = masticsys.AssociationType("TrypsinBS-Benzamidine",
                                            system_type=Trypsin_Benzamidine_System,
                                            selection_map=selection_map,
                                            selection_types=selection_types)
@@ -856,7 +856,7 @@ interactions. First we will look at protein-ligand interactions.
       Trypsin_Benzamidine_System = pickle.load(rf)
 
   from rdkit import Chem
-  import mast.tests.data as mastdata
+  import mastic.tests.data as masticdata
 
   BEN_MOL_path = osp.join(".", "benzamidine.mol")
   BEN_MOL_rdkit = Chem.MolFromMolFile(BEN_MOL_path, sanitize=True)
@@ -865,11 +865,11 @@ interactions. First we will look at protein-ligand interactions.
   trypsin_PDB_path = osp.join(".", "trypsin+Hs_3ptb.pdb")
   trypsin_rdkit = Chem.MolFromPDBFile(trypsin_PDB_path, removeHs=False, sanitize=False)
 
-  from mast.interfaces.rdkit import AssignBondOrdersFromTemplate
+  from mastic.interfaces.rdkit import AssignBondOrdersFromTemplate
 
   BEN_rdkit = AssignBondOrdersFromTemplate(BEN_MOL_rdkit, BEN_PDB_rdkit)
 
-  from mast.interfaces.rdkit import RDKitMoleculeWrapper
+  from mastic.interfaces.rdkit import RDKitMoleculeWrapper
 
   BEN_rdkit_wrapper = RDKitMoleculeWrapper(BEN_rdkit, mol_name="BEN")
   trypsin_rdkit_wrapper = RDKitMoleculeWrapper(trypsin_rdkit, mol_name="Trypsin")
@@ -895,7 +895,7 @@ interactions. First we will look at protein-ligand interactions.
   import os.path as osp
   import pickle
 
-  from mast.interactions.hydrogen_bond import HydrogenBondType
+  from mastic.interactions.hydrogen_bond import HydrogenBondType
 
   system_cryst_pkl_path = osp.join(".", "Trypsin_Benzamidine_System_cryst.pkl")
   with open(system_cryst_pkl_path, 'rb') as pkl_rf:
@@ -912,8 +912,8 @@ interactions. First we will look at protein-ligand interactions.
   import pickle
   import itertools as it
 
-  from mast.interactions.hydrogen_bond import HydrogenBondType
-  from mast.interactions.pi_stacking import PiStackingType
+  from mastic.interactions.hydrogen_bond import HydrogenBondType
+  from mastic.interactions.pi_stacking import PiStackingType
 
   import sys
   sys.recursion_depth
@@ -1000,8 +1000,8 @@ by default.
   import mdtraj as mdj
   import pandas as pd
 
-  from mast.interactions.hydrogen_bond import HydrogenBondType
-  from mast.interactions.pi_stacking import PiStackingType
+  from mastic.interactions.hydrogen_bond import HydrogenBondType
+  from mastic.interactions.pi_stacking import PiStackingType
 
   import sys
   sys.setrecursionlimit(100000)

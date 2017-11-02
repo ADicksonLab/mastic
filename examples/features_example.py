@@ -2,13 +2,13 @@ from rdkit import Chem
 from rdkit.Chem import AllChem
 import os.path as osp
 
-import mast.selection as mastsel
-import mast.molecule as mastmol
-import mast.features as mastfeat
+import mastic.selection as masticsel
+import mastic.molecule as masticmol
+import mastic.features as masticfeat
 
-from mast.interfaces.rdkit import RDKitMoleculeWrapper
+from mastic.interfaces.rdkit import RDKitMoleculeWrapper
 
-import mast.config.interactions as mastinxconfig
+import mastic.config.interactions as masticinxconfig
 
 from rdkit import Chem
 
@@ -26,7 +26,7 @@ feature1_attrs = {}
 feature1_attrs['rdkit_family'] = feature1['family']
 feature1_attrs['rdkit_type'] = feature1['type']
 feature1_attrs['rdkit_position'] = feature1['position']
-MyPKAFeature1Type = mastfeat.FeatureType("MyPKAFeature1Type",
+MyPKAFeature1Type = masticfeat.FeatureType("MyPKAFeature1Type",
                                                molecule_type=PKAType,
                                                atom_idxs=atom_idxs,
                                                **feature1_attrs)

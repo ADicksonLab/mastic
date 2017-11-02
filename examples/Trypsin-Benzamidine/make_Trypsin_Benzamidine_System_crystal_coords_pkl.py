@@ -10,7 +10,7 @@ with open(system_pkl_path, 'rb') as rf:
     Trypsin_Benzamidine_System = pickle.load(rf)
 
 from rdkit import Chem
-import mast.tests.data as mastdata
+import mastic.tests.data as masticdata
 
 BEN_MOL_path = osp.join(".", "benzamidine.mol")
 BEN_MOL_rdkit = Chem.MolFromMolFile(BEN_MOL_path, sanitize=True)
@@ -19,11 +19,11 @@ BEN_PDB_rdkit = Chem.MolFromPDBFile(BEN_PDB_path, removeHs=False, sanitize=False
 trypsin_PDB_path = osp.join(".", "trypsin+Hs_3ptb.pdb")
 trypsin_rdkit = Chem.MolFromPDBFile(trypsin_PDB_path, removeHs=False, sanitize=False)
 
-from mast.interfaces.rdkit import AssignBondOrdersFromTemplate
+from mastic.interfaces.rdkit import AssignBondOrdersFromTemplate
 
 BEN_rdkit = AssignBondOrdersFromTemplate(BEN_MOL_rdkit, BEN_PDB_rdkit)
 
-from mast.interfaces.rdkit import RDKitMoleculeWrapper
+from mastic.interfaces.rdkit import RDKitMoleculeWrapper
 
 BEN_rdkit_wrapper = RDKitMoleculeWrapper(BEN_rdkit, mol_name="BEN")
 trypsin_rdkit_wrapper = RDKitMoleculeWrapper(trypsin_rdkit, mol_name="Trypsin")

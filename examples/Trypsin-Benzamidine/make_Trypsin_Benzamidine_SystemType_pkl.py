@@ -1,7 +1,7 @@
 import os.path as osp
 
 from rdkit import Chem
-import mast.tests.data as mastdata
+import mastic.tests.data as masticdata
 
 BEN_MOL_path = osp.join(".", "benzamidine.mol")
 BEN_MOL_rdkit = Chem.MolFromMolFile(BEN_MOL_path, sanitize=True)
@@ -10,11 +10,11 @@ BEN_PDB_rdkit = Chem.MolFromPDBFile(BEN_PDB_path, removeHs=False, sanitize=False
 trypsin_PDB_path = osp.join(".", "trypsin+Hs_3ptb.pdb")
 trypsin_rdkit = Chem.MolFromPDBFile(trypsin_PDB_path, removeHs=False, sanitize=False)
 
-from mast.interfaces.rdkit import AssignBondOrdersFromTemplate
+from mastic.interfaces.rdkit import AssignBondOrdersFromTemplate
 
 BEN_rdkit = AssignBondOrdersFromTemplate(BEN_MOL_rdkit, BEN_PDB_rdkit)
 
-from mast.interfaces.rdkit import RDKitMoleculeWrapper
+from mastic.interfaces.rdkit import RDKitMoleculeWrapper
 
 BEN_rdkit_wrapper = RDKitMoleculeWrapper(BEN_rdkit, mol_name="BEN")
 trypsin_rdkit_wrapper = RDKitMoleculeWrapper(trypsin_rdkit, mol_name="Trypsin")
@@ -33,11 +33,11 @@ trypsin_pkl_path = osp.join(".", "TrypsinMoleculeType.pkl")
 with open(trypsin_pkl_path, 'wb') as wf:
     pickle.dump(Trypsin_Molecule, wf)
 
-import mast.system as mastsys
+import mastic.system as masticsys
 
 member_types = [BEN_Molecule, Trypsin_Molecule]
 system_attrs = {'molecule_source' : 'rdkit'}
-Trypsin_Benzamidine_System = mastsys.SystemType("Trypsin_Benzamidine_System",
+Trypsin_Benzamidine_System = masticsys.SystemType("Trypsin_Benzamidine_System",
                                                 member_types=member_types,
                                                 **system_attrs)
 
@@ -53,7 +53,7 @@ selection_types = [None, None]
 
 rec_lig_attrs = {'info' : 'receptor-ligand'}
 Trypsin_Benzamidine_Association = \
-            mastsys.AssociationType("Trypsin_Benzamidine_Association",
+            masticsys.AssociationType("Trypsin_Benzamidine_Association",
                                     system_type=Trypsin_Benzamidine_System,
                                     selection_map=selection_map_BA,
                                     selection_types=selection_types,
@@ -64,7 +64,7 @@ Trypsin_Benzamidine_System.add_association_type(Trypsin_Benzamidine_Association)
 selection_map_AB = selection_map_BA[::-1]
 lig_rec_attrs = {'info' : 'ligand-receptor'}
 Benzamidine_Trypsin_Association = \
-            mastsys.AssociationType("Benzamidine_Trypsin_Association",
+            masticsys.AssociationType("Benzamidine_Trypsin_Association",
                                     system_type=Trypsin_Benzamidine_System,
                                     selection_map=selection_map_AB,
                                     selection_types=selection_types,
@@ -77,7 +77,7 @@ selection_types = [None, None]
 
 rec_lig_attrs = {'info' : 'intraprotein'}
 Trypsin_Trypsin_Association = \
-            mastsys.AssociationType("Trypsin_Trypsin_Association",
+            masticsys.AssociationType("Trypsin_Trypsin_Association",
                                     system_type=Trypsin_Benzamidine_System,
                                     selection_map=selection_map_BB,
                                     selection_types=selection_types,
@@ -107,7 +107,7 @@ binding_site_atom_idxs = [system.molecules[1].atoms.index(atom) for
 binding_site_atom_serials = [atom.atom_type.pdb_serial_number for atom
                              in binding_site_atoms]
 
-import mast.molecule as mastmol
+import mastic.molecule as masticmol
 
 # the selection map tells the association the index of the member and
 # the indices of the atoms to include as one component of the
@@ -121,10 +121,10 @@ selection_map = [(1, binding_site_atom_idxs), (0, None)]
 # also had no indices selected and it should use the whole system
 # member. The MoleculeAtomSelection allows for selection of atoms in a
 # Molecule or MoelculeType.
-selection_types = [mastmol.MoleculeAtomSelection, None]
+selection_types = [masticmol.MoleculeAtomSelection, None]
 
 # instantiate the association
-TrypsinBS_Benzamidine_assoc = mastsys.AssociationType("TrypsinBS-Benzamidine",
+TrypsinBS_Benzamidine_assoc = masticsys.AssociationType("TrypsinBS-Benzamidine",
                                          system_type=Trypsin_Benzamidine_System,
                                          selection_map=selection_map,
                                          selection_types=selection_types)

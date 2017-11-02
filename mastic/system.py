@@ -2,11 +2,11 @@
 import collections as col
 import itertools as it
 
-from mast.molecule import Atom, Bond, Molecule, AtomType, BondType, MoleculeType
-import mast.selection as mastsel
-import mast.profile as mastprof
+from mastic.molecule import Atom, Bond, Molecule, AtomType, BondType, MoleculeType
+import mastic.selection as masticsel
+import mastic.profile as masticprof
 
-import mast.config.system as mastsysconfig
+import mastic.config.system as masticsysconfig
 
 
 __all__ = ['overlaps', 'SystemType', 'System']
@@ -65,7 +65,7 @@ class SystemType(object):
     >>> COSystemType = SystemType.factory("COSystemType", member_types=[COMoleculeType], **system_attrs)
 
     """
-    attributes = mastsysconfig.SYSTEM_ATTRIBUTES
+    attributes = masticsysconfig.SYSTEM_ATTRIBUTES
 
     def __init__(self, system_type_name, member_types=None,
                 **system_attrs):
@@ -73,7 +73,7 @@ class SystemType(object):
         name (which will be the class name) and a domain specific dictionary
         of system attributes.
 
-        See mast.config.molecule for standard SystemType attributes.
+        See mastic.config.molecule for standard SystemType attributes.
         See class docstring for examples.
         """
 
@@ -313,7 +313,7 @@ class SystemType(object):
         # check to make sure that it's selection types are in this
         # SystemType
         assert isinstance(association_type, AssociationType), \
-            "association_type must be a instance of mast.interactions.Association,"\
+            "association_type must be a instance of mastic.interactions.Association,"\
             " not {}".format(association_type)
 
         # check that it is an AssociationType of this SystemType
@@ -344,7 +344,7 @@ class SystemType(object):
 _system_type_record_fields = ['SystemType']
 SystemTypeRecord = col.namedtuple('SystemTypeRecord', _system_type_record_fields)
 
-class System(mastsel.SelectionsList):
+class System(masticsel.SelectionsList):
 
     """System that contains non-overlapping molecules, assumed to be in
         the same coordinate system.
@@ -373,7 +373,7 @@ class System(mastsel.SelectionsList):
 
     Substantiate a system from those:
     >>> COSystemType.to_system(member_coords)
-    <class 'mast.system.System'>
+    <class 'mastic.system.System'>
 
     """
 
@@ -462,7 +462,7 @@ class System(mastsel.SelectionsList):
 
         """
         mol_indices = [i for i, member in enumerate(self) if issubclass(type(member), Molecule)]
-        return mastsel.IndexedSelection(self, mol_indices)
+        return masticsel.IndexedSelection(self, mol_indices)
 
     # YAGNI?
     def atoms_sel(self):
@@ -471,7 +471,7 @@ class System(mastsel.SelectionsList):
 
         """
         atom_indices = [i for i, member in enumerate(self) if issubclass(type(member), Atom)]
-        return mastsel.IndexedSelection(self, atom_indices)
+        return masticsel.IndexedSelection(self, atom_indices)
 
     @property
     def associations(self):
@@ -545,9 +545,9 @@ class AssociationType(object):
     creating a mapping for which system member has what selection:
 
     >>> selection_map = {0 : ..., 1 : ...}
-    >>> selection_types = [mastsel.Selection, mastsel.Selection]
+    >>> selection_types = [masticsel.Selection, masticsel.Selection]
 
-    So for system members 0 and 1 we will make a mast.Selection of the
+    So for system members 0 and 1 we will make a mastic.Selection of the
     whole member (...) when the AssociationType is substantiated.
 
     We can also store metadata about an AssociationType if you would
@@ -555,10 +555,10 @@ class AssociationType(object):
 
     >>> association_attrs = {'name' : 'carbon-monoxide-carbon-monoxide-association'}
 
-    >>> COCOAssociationType = mastsys.AssociationType.factory("COCOAssociationType", system_type=COSystemType, selection_map=selection_map, selection_types=selection_types, **association_attrs)
+    >>> COCOAssociationType = masticsys.AssociationType.factory("COCOAssociationType", system_type=COSystemType, selection_map=selection_map, selection_types=selection_types, **association_attrs)
 
     """
-    attributes = mastsysconfig.ASSOCIATION_ATTRIBUTES
+    attributes = masticsysconfig.ASSOCIATION_ATTRIBUTES
 
     def __init__(self, association_type_name,
                  system_type=None,
@@ -571,10 +571,10 @@ class AssociationType(object):
         association_type_name :: name for the generated class
         system_type :: SystemType
         selection_map :: {system_member_idx : member_selection_ids}
-        selection_types :: list of classes inheriting from mast.selection.GenericSelection
+        selection_types :: list of classes inheriting from mastic.selection.GenericSelection
         association_attrs :: domain specific metadata dictionary
 
-        See mast.config.interactions for standard AssociationType attributes.
+        See mastic.config.interactions for standard AssociationType attributes.
         See class docstring for examples.
         """
 
@@ -601,9 +601,9 @@ class AssociationType(object):
 
         # validate the selection_types
         # for selection_type in selection_types:
-        #     assert issubclass(selection_type, mastsel.GenericSelection), \
+        #     assert issubclass(selection_type, masticsel.GenericSelection), \
         #         "The selection_type must be a subclass of" \
-        #         " mast.selection.GenericSelection, not {}".format(
+        #         " mastic.selection.GenericSelection, not {}".format(
         #             selection_type)
 
         # keep track of which attributes the input did not provide
@@ -708,7 +708,7 @@ _association_type_record_fields = ['AssociationType', 'SystemType', 'member_type
 AssociationTypeRecord = col.namedtuple('AssociationTypeRecord', _association_type_record_fields)
 
 
-class Association(mastsel.SelectionsList):
+class Association(masticsel.SelectionsList):
 
     def __init__(self, system=None, association_type=None, association_name=None):
         # TODO check to make sure that all the atoms are in the same system
@@ -755,7 +755,7 @@ class Association(mastsel.SelectionsList):
                 selection = member
 
             # otherwise we will make a selection with the type
-            elif issubclass(association_type.selection_types[i], mastsel.GenericSelection):
+            elif issubclass(association_type.selection_types[i], masticsel.GenericSelection):
                 selection = association_type.selection_types[i](member, sel_ids)
             else:
                 raise TypeError("No handler for this type in making an Association selection")
@@ -857,7 +857,7 @@ class Association(mastsel.SelectionsList):
         --------
 
         """
-        from mast.interactions.interactions import InteractionType
+        from mastic.interactions.interactions import InteractionType
 
         assert all([issubclass(itype, InteractionType) for itype in interaction_types]), \
                    "All interaction_types must be a subclass of InteractionType"

@@ -1,7 +1,7 @@
 import os.path as osp
 import pickle
 
-from mast.interactions.hydrogen_bond import HydrogenBondType
+from mastic.interactions.hydrogen_bond import HydrogenBondType
 
 system_cryst_pkl_path = osp.join(".", "Trypsin_Benzamidine_System_cryst.pkl")
 with open(system_cryst_pkl_path, 'rb') as pkl_rf:

@@ -9,9 +9,9 @@ import numpy as np
 import numpy.linalg as la
 from scipy.spatial.distance import cdist
 
-import mast.config.interactions as mastinxconfig
-import mast.config.features as mastfeatconfig
-from mast.interactions.interactions import InteractionType, Interaction, InteractionError
+import mastic.config.interactions as masticinxconfig
+import mastic.config.features as masticfeatconfig
+from mastic.interactions.interactions import InteractionType, Interaction, InteractionError
 
 
 class HalogenBondType(InteractionType):
@@ -23,19 +23,19 @@ class HalogenBondType(InteractionType):
     ## class attributes that need to exist
     attributes = {}
     interaction_name = "HalogenBond"
-    feature_keys = mastinxconfig.HALOGEN_BOND_FEATURE_KEYS
-    feature_classifiers = mastinxconfig.HALOGEN_BOND_FEATURES
+    feature_keys = masticinxconfig.HALOGEN_BOND_FEATURE_KEYS
+    feature_classifiers = masticinxconfig.HALOGEN_BOND_FEATURES
     # order is the number of features that participate in an interaction
-    degree = mastinxconfig.HALOGEN_BOND_DEGREE
-    commutative = mastinxconfig.HALOGEN_BOND_COMMUTATIVITY
-    interaction_param_keys = mastinxconfig.HALOGEN_BOND_PARAM_KEYS
+    degree = masticinxconfig.HALOGEN_BOND_DEGREE
+    commutative = masticinxconfig.HALOGEN_BOND_COMMUTATIVITY
+    interaction_param_keys = masticinxconfig.HALOGEN_BOND_PARAM_KEYS
 
     ## specific to this class parameters but make defaults easier and
     ## for writing other similar InteractionTypes
-    distance_cutoff = mastinxconfig.HALOGEN_BOND_DIST_MAX
-    donor_angle = mastinxconfig.HALOGEN_BOND_DON_ANGLE
-    acceptor_angle = mastinxconfig.HALOGEN_BOND_ACC_ANGLE
-    angle_dev = mastinxconfig.HALOGEN_BOND_ANGLE_DEV
+    distance_cutoff = masticinxconfig.HALOGEN_BOND_DIST_MAX
+    donor_angle = masticinxconfig.HALOGEN_BOND_DON_ANGLE
+    acceptor_angle = masticinxconfig.HALOGEN_BOND_ACC_ANGLE
+    angle_dev = masticinxconfig.HALOGEN_BOND_ANGLE_DEV
 
     ## convenience class attributes particular to this class
     halogen_key = feature_keys[0]

@@ -11,8 +11,8 @@ import numpy as np
 import numpy.linalg as la
 from scipy.spatial.distance import cdist
 
-import mast.config.interactions as mastinxconfig
-from mast.interactions.interactions import InteractionType, Interaction, InteractionError
+import mastic.config.interactions as masticinxconfig
+from mastic.interactions.interactions import InteractionType, Interaction, InteractionError
 
 class PiStackingType(InteractionType):
     """Defines an InteractionType class for hydrogen bonds between members
@@ -22,17 +22,17 @@ class PiStackingType(InteractionType):
 
     attributes = {}
     interaction_name = "PiStacking"
-    feature_keys = mastinxconfig.PISTACKING_FEATURE_KEYS
-    feature_classifiers = mastinxconfig.PISTACKING_FEATURES
+    feature_keys = masticinxconfig.PISTACKING_FEATURE_KEYS
+    feature_classifiers = masticinxconfig.PISTACKING_FEATURES
     degree = 2
     commutative = True
-    interaction_param_keys = mastinxconfig.PISTACKING_PARAM_KEYS
+    interaction_param_keys = masticinxconfig.PISTACKING_PARAM_KEYS
 
     # parameters set from the config file
-    centroid_max_distance = mastinxconfig.PISTACKING_CENTROID_DIST_MAX
-    ring_normal_angle_deviation = mastinxconfig.PISTACKING_ANGLE_DEVIATION
-    centroid_offset_max = mastinxconfig.PISTACKING_OFFSET_MAX
-    heavy_atoms = mastinxconfig.PISTACKING_HEAVY_ATOMS_ELEMENT_SYMBOLS
+    centroid_max_distance = masticinxconfig.PISTACKING_CENTROID_DIST_MAX
+    ring_normal_angle_deviation = masticinxconfig.PISTACKING_ANGLE_DEVIATION
+    centroid_offset_max = masticinxconfig.PISTACKING_OFFSET_MAX
+    heavy_atoms = masticinxconfig.PISTACKING_HEAVY_ATOMS_ELEMENT_SYMBOLS
 
     def __init__(self, pi_stacking_type_name,
                  feature_types=None,
@@ -324,7 +324,7 @@ def calc_arom_normal_angle(arom_a_coords, arom_b_coords):
 
     #     """
 
-    #     if distance > mastinxconfig.PISTACK_T_DIST:
+    #     if distance > masticinxconfig.PISTACK_T_DIST:
     #         return True
     #     else:
     #         return False
@@ -565,7 +565,7 @@ PiStackingInxRecord = namedtuple('PiStackingInxRecord', _pi_stacking_inx_record_
 
     #     """
 
-    #     if angle > mastinxconfig.HBOND_DON_ANGLE_MIN:
+    #     if angle > masticinxconfig.HBOND_DON_ANGLE_MIN:
     #         return True
     #     else:
     #         return False

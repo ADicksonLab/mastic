@@ -9,10 +9,10 @@ method for dynamic generation.
 """
 import collections as col
 
-import mast.config.features as mastfeatconfig
+import mastic.config.features as masticfeatconfig
 
-import mast.molecule as mastmol
-import mast.selection as mastsel
+import mastic.molecule as masticmol
+import mastic.selection as masticsel
 
 class FeatureType(object):
     """Class for generating specific system type classes with the factory
@@ -24,7 +24,7 @@ class FeatureType(object):
 
     """
 
-    attributes = mastfeatconfig.FEATURE_ATTRIBUTES
+    attributes = masticfeatconfig.FEATURE_ATTRIBUTES
 
     def __init__(self, feature_type_name,
                 molecule_type=None,
@@ -34,13 +34,13 @@ class FeatureType(object):
         name (which will be the class name) and a domain specific dictionary
         of feature attributes.
 
-        See mast.config.features for standard FeatureType attributes.
+        See mastic.config.features for standard FeatureType attributes.
         See class docstring for examples.
         """
 
         # validate input
         assert molecule_type, "molecule_type must be given"
-        assert isinstance(molecule_type, mastmol.MoleculeType), \
+        assert isinstance(molecule_type, masticmol.MoleculeType), \
             "molecule_type must be a subclass of MoleculeType, not {}".format(
                 molecule_type)
 
@@ -148,7 +148,7 @@ _feature_type_record_fields = ['FeatureType', 'MoleculeType',
 
 FeatureTypeRecord = col.namedtuple('FeatureTypeRecord', _feature_type_record_fields)
 
-class Feature(mastsel.SelectionsDict):
+class Feature(masticsel.SelectionsDict):
     """Feature, which is a collection of Atoms and Bonds selected from a
     single Molecule and are described by a domain specific set of
     attributes.
@@ -159,8 +159,8 @@ class Feature(mastsel.SelectionsDict):
     """
     def __init__(self, molecule=None, feature_type=None):
 
-        assert isinstance(molecule, mastmol.Molecule), \
-            "molecule must be a mast.molecule.Molecule instance, not {}".format(
+        assert isinstance(molecule, masticmol.Molecule), \
+            "molecule must be a mastic.molecule.Molecule instance, not {}".format(
                 type(molecule))
 
         assert isinstance(feature_type, FeatureType), \

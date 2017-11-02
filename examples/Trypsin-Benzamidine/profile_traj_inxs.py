@@ -4,8 +4,8 @@ import itertools as it
 import mdtraj as mdj
 import pandas as pd
 
-from mast.interactions.hydrogen_bond import HydrogenBondType
-from mast.interactions.pi_stacking import PiStackingType
+from mastic.interactions.hydrogen_bond import HydrogenBondType
+from mastic.interactions.pi_stacking import PiStackingType
 
 import sys
 sys.setrecursionlimit(100000)

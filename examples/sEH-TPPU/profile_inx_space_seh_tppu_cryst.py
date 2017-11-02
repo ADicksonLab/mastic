@@ -2,9 +2,9 @@ import os.path as osp
 import pickle
 import numpy as np
 
-from mast.interactions.hydrogen_bond import HydrogenBondType
-import mast.profile as mastprof
-from mast.interaction_space import InteractionSpace
+from mastic.interactions.hydrogen_bond import HydrogenBondType
+import mastic.profile as masticprof
+from mastic.interaction_space import InteractionSpace
 
 # load the system type pickle in
 system_pkl_path = osp.join(".", "sEH_TPPU_SystemType.pkl")
@@ -35,7 +35,7 @@ for assoc_term in assoc_terms:
     inx_space.add_association_subspace(association_type, HydrogenBondType)
 
 # make a Profiler for the inx space
-profiler = mastprof.InxSpaceProfiler(inx_space)
+profiler = masticprof.InxSpaceProfiler(inx_space)
 
 
 # load the coordinates for the members
