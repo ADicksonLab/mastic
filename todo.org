@@ -1,0 +1,202 @@
+** TODO evaluate the subspace map method in interaction spaces
+
+We need it internally for getting things by their association
+and interaction type efficiently.
+
+
+
+** TODO finish dataframe exporters using records
+** TODO write unit tests
+*** DONE selection.py
+**** DONE selection classes
+*** DONE molecule.py
+**** DONE AtomType, BondType, MoleculeType
+**** DONE Atom, Bond, Molecule
+*** DONE interfaces.rdkit
+*** DONE system.py
+*** TODO features.py
+started
+*** TODO interactions.py
+started
+**** TODO AssociationType
+**** TODO Association
+**** TODO InteractionType
+**** TODO Interaction
+**** TODO HydrogenBondType
+**** TODO NoHHydrogenBondType
+**** TODO HydrogenBondInx
+**** TODO NoHHydrogenBondInx
+
+** TODO write doc strings with tests
+*** DONE selection.py
+*** DONE molecule.py
+**** DONE AtomType, BondType, MoleculeType
+**** DONE Atom, Bond, Molecule
+*** DONE interfaces.rdkit
+*** DONE system.py
+*** TODO features.py
+started
+*** TODO interactions.py
+started
+**** TODO AssociationType
+**** TODO Association
+**** TODO InteractionType
+**** TODO Interaction
+**** TODO HydrogenBondType
+**** TODO NoHHydrogenBondType
+**** TODO HydrogenBondInx
+**** TODO NoHHydrogenBondInx
+
+
+** TODO write logging
+*** TODO selection.py
+*** TODO molecule.py
+**** TODO AtomType, BondType, MoleculeType
+**** TODO Atom, Bond, Molecule
+*** TODO interfaces.rdkit
+*** TODO system.py
+*** TODO interactions.py
+**** TODO AssociationType
+**** TODO Association
+**** TODO InteractionType
+**** TODO Interaction
+**** TODO HydrogenBondType
+**** TODO NoHHydrogenBondType
+**** TODO HydrogenBondInx
+**** TODO NoHHydrogenBondInx
+
+
+** TODO tests for None selection id
+
+** DONE only find interactions between the association selections
+Right now it finds all of interactions between members and just takes
+out the intramember interactions.
+** TODO implement slice inputs for selection ids
+** TODO SystemMemberType class may be needed
+Currently I have multiple Type members allowed in a system which are
+not identified by anything except their index in the system. Perhaps a
+SystemMember class would alleviate this and give consistency to the
+different kind of members.
+
+Of course you can just always make you MoleculeTypes and AtomTypes etc
+named to reflect that they are indeed different things in the system.
+i.e. a protein dimer.
+** TODO migrate Association and AssociationTYpe to system.py
+** DONE consolidate SystemAssociation and Association to just Association
+** DONE unittests with finding features functions
+I was reluctant to use these because rdkit gives me trouble sometimes.
+** TODO Type.substantiate function
+A general function for use every Type class instead of specific
+to_molecule and to_atom methods which need to be handled individually,
+e.g. in to_system.
+
+** TODO Type class for things to inherit from.
+Would at least provide an interface to implement and override. Need
+not be too picky.
+** TODO coord_array and array_idx constructor options for Molecule constructor
+** DONE finish system and molecule getters for atom, bond, molecule etc classes
+** DONE automatically set the in_molecule and in_system flags when the registry of elements are changed
+** DONE type constructor and to_molecule, to_atom, to_bond
+** TODO BondType and MoleculeType methods for getting adjacent AtomTypes
+** DONE make the AtomType class declaration like BondType and MoleculeType
+** DONE AtomType, BondType, MoleculeType
+** TODO AngleType implementation 
+** TODO Atom.__getitem__ should retrieve something more meaningful
+Like say the dimension component.
+
+** TODO Docstring for register_selection
+
+SHould have an example of a GenericSelection subclass using this.
+
+** TODO Container class implementation
+A class for this would reduce redundancy in checking whether each
+element is a SelectionMember.
+
+Should allow for insertion of bare containers, like lists, and have
+them internally cast to Container classes.
+
+And then the user has the option of declaring them beforehand or not.
+
+** TODO cast elements of containers to SelectionMembers if not specified
+Should make it possibly to simply make a Selection from
+#+BEGIN_SRC python
+  idxsel = IndexedSelection([1,2,3,4], sel=[0,2])
+  idxsel[0]
+
+  # returns SelectionMember(1)
+#+END_SRC
+
+** DONE Selection class
+
+Right now it makes a dictionary with the keys being the indices from
+the sel key-word argument passed in.
+
+Maybe this can stay the same but this leads to obnoxious behavior in
+which you don't have a simple list to iterate through but dictionary
+records.
+
+Thus I want just a Selection class that simply puts them into a list
+and you access them with all the typical list methods.
+
+The IndexedSelection will just be a dictionary with keys enforced to
+be >= 0 ints.
+
+*** DONE class
+
+*** DONE docstring
+*** DONE tests
+
+** DONE CoordArraySelection refactor inheritance
+
+Do I want it to be a dictionary style or Selection inheritance.
+FIgure this out and change in code.
+
+It now just behaves like a list with a manually added data attribute
+and a __getitem__ method.
+
+** DONE SelectionType factory
+
+It seems that there should be something for defining a class of
+SelectionTypes such that they must have certain attributes.
+#+BEGIN_SRC python
+  mol_attrs = ['name', 'pdb_symbol', 'atom_types']
+  MoleculeType = SelectionTypeFactory(mol_attrs)
+
+  water_type = MoleculeType(name="water",
+               pdb_symbol="H2O",
+               atom_types=['H', 'H', 'O'])
+
+  coords = np.array([[0,0,1], [1,0,0], [0,1,0]])
+
+  water_type.to_molecule(coords)
+#+END_SRC
+
+
+This pattern more or less is implemented for AtomType, BondType, and
+MoleculeType see those for reference.
+
+** DONE refactor RDKitMoleculeType class into reader and MoleculeType class
+
+Most of what is in RDKitMoleculeType should be in MoleculeType and
+RDKitMoleculeType just needs to be a thin wrapper of MoleculeType with
+the to_molecule_from_conformer(conf_idx) function and a get conformer
+function.
+
+That way we can read in an RDKitMoleculeType and use that to cast to
+the mast agnostic MoleculeType for production.
+
+** DONE make the SystemType and AssociationType classes mean something
+
+Currently they are just stubs. They should have their own libraries.
+
+** TODO make the SystemMember class
+
+This will handle the functions for being a part of a system.
+
+I want to implement a function that recursively searches the registry
+for something that is in a system for this.
+
+** TODO handle and create angles in MoleculeType
+** TODO allow for parametrized overlap tolerances in Molecule.overlaps
+** DONE handle intramember_interactions in Association.profile_interactions
+eliminated the need for handling

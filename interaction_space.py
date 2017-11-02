@@ -29,19 +29,20 @@ class InteractionSpace(col.UserList):
 
     def add_association_subspace(self, association_type, interaction_type, return_idxs=False):
         inx_classes = interaction_type.interaction_classes(association_type)
-        new_idxs = self._add_inx_classes(inx_classes)
+        new_idxs = self.add_inx_classes(inx_classes)
 
+        # TODO do we really need this??
         self._subspace_map[(association_type, interaction_type)] = new_idxs
 
         if return_idxs:
             return new_idxs
 
-    def _add_inx_classes(self, inx_classes):
+    def add_inx_classes(self, inx_classes):
         # get the index of the next would-be addition to the list
         inx_idx = len(self)
 
         new_idxs = []
-        # add them and get the indices thwy would be in this space
+        # add them and get the indices they would be in this space
         for i, inx_class in enumerate(inx_classes):
             self.append(inx_class)
             new_idxs.append(inx_idx + i)
@@ -66,6 +67,9 @@ class InteractionSpace(col.UserList):
                 return_idxs.extend(idxs)
 
         return return_idxs
+
+    def by_idxs(self, idxs):
+        return [self[idx] for idx in idxs]
 
 
 if __name__ == "__main__":

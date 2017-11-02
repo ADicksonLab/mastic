@@ -366,50 +366,50 @@ def AssignBondOrdersFromTemplate(refmol, mol):
     'COc1cc(-c2ccc3c(c2)Nc2ccc(CC(=O)N(C)C)cc2NC3=O)ccc1[N+](=O)[O-]'
 
   """
-  refmol2 = Chem.Mol(refmol)
-  mol2 = Chem.Mol(mol)
-  # do the molecules match already?
-  matching = mol2.GetSubstructMatch(refmol2)
-  if not matching: # no, they don't match
-    # check if bonds of mol are SINGLE
-    for b in mol2.GetBonds():
-      if b.GetBondType() != Chem.BondType.SINGLE:
+    refmol2 = Chem.Mol(refmol)
+    mol2 = Chem.Mol(mol)
+    # do the molecules match already?
+    matching = mol2.GetSubstructMatch(refmol2)
+    if not matching: # no, they don't match
+      # check if bonds of mol are SINGLE
+      for b in mol2.GetBonds():
+        if b.GetBondType() != Chem.BondType.SINGLE:
+          b.SetBondType(Chem.BondType.SINGLE)
+          b.SetIsAromatic(False)
+      # set the bonds of mol to SINGLE
+      for b in refmol2.GetBonds():
         b.SetBondType(Chem.BondType.SINGLE)
         b.SetIsAromatic(False)
-    # set the bonds of mol to SINGLE
-    for b in refmol2.GetBonds():
-      b.SetBondType(Chem.BondType.SINGLE)
-      b.SetIsAromatic(False)
-    # set atom charges to zero;
-    for a in refmol2.GetAtoms():
-      a.SetFormalCharge(0)
-    for a in mol2.GetAtoms():
-      a.SetFormalCharge(0)
+      # set atom charges to zero;
+      for a in refmol2.GetAtoms():
+        a.SetFormalCharge(0)
+      for a in mol2.GetAtoms():
+        a.SetFormalCharge(0)
 
-    matching = mol2.GetSubstructMatches(refmol2, uniquify=False)
-    # do the molecules match now?
-    if matching:
-      if len(matching) > 1:
-          pass
-          # print("More than one matching pattern found - picking one")
-      matching = matching[0]
-      # apply matching: set bond properties
-      for b in refmol.GetBonds():
-        atom1 = matching[b.GetBeginAtomIdx()]
-        atom2 = matching[b.GetEndAtomIdx()]
-        b2 = mol2.GetBondBetweenAtoms(atom1, atom2)
-        b2.SetBondType(b.GetBondType())
-        b2.SetIsAromatic(b.GetIsAromatic())
-      # apply matching: set atom properties
-      for a in refmol.GetAtoms():
-        a2 = mol2.GetAtomWithIdx(matching[a.GetIdx()])
-        a2.SetHybridization(a.GetHybridization())
-        a2.SetIsAromatic(a.GetIsAromatic())
-        a2.SetNumExplicitHs(a.GetNumExplicitHs())
-        a2.SetFormalCharge(a.GetFormalCharge())
-      # SanitizeMol(mol2)
-      if hasattr(mol2, '__sssAtoms'):
-        mol2.__sssAtoms = None # we don't want all bonds highlighted
-    else:
-      raise ValueError("No matching found")
-  return mol2
+      matching = mol2.GetSubstructMatches(refmol2, uniquify=False)
+      # do the molecules match now?
+      if matching:
+        if len(matching) > 1:
+            pass
+            # print("More than one matching pattern found - picking one")
+        matching = matching[0]
+        # apply matching: set bond properties
+        for b in refmol.GetBonds():
+          atom1 = matching[b.GetBeginAtomIdx()]
+          atom2 = matching[b.GetEndAtomIdx()]
+          b2 = mol2.GetBondBetweenAtoms(atom1, atom2)
+          b2.SetBondType(b.GetBondType())
+          b2.SetIsAromatic(b.GetIsAromatic())
+        # apply matching: set atom properties
+        for a in refmol.GetAtoms():
+          a2 = mol2.GetAtomWithIdx(matching[a.GetIdx()])
+          a2.SetHybridization(a.GetHybridization())
+          a2.SetIsAromatic(a.GetIsAromatic())
+          a2.SetNumExplicitHs(a.GetNumExplicitHs())
+          a2.SetFormalCharge(a.GetFormalCharge())
+        # SanitizeMol(mol2)
+        if hasattr(mol2, '__sssAtoms'):
+          mol2.__sssAtoms = None # we don't want all bonds highlighted
+      else:
+        raise ValueError("No matching found")
+    return mol2
