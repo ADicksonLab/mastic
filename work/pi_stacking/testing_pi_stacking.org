@@ -4,11 +4,11 @@ Make a reference structure including hydrogens
 #+BEGIN_SRC python :tangle make_benzene_pdb.py
   import os.path as osp
 
-  from mast.tests.hexagons import hexagon3d, write_hexagon_pdb, \
+  from mastic.tests.hexagons import hexagon3d, write_hexagon_pdb, \
       pdb_row, end_row, benzene_bond_length, benzene_H_bond_length, \
       benzene3d, write_benzene_pdb
 
-  work_dir = "/home/salotz/Dropbox/devel/mast/work/pi_stacking"
+  work_dir = "/home/salotz/Dropbox/devel/mastic/work/pi_stacking"
   write_benzene_pdb(benzene3d(), osp.join(work_dir, "ref_benzene.pdb"))
 
 #+END_SRC
@@ -22,11 +22,11 @@ Make a reference structure including hydrogens
   import numpy as np
   import math
 
-  from mast.tests.hexagons import hexagon3d, write_hexagon_pdb, \
+  from mastic.tests.hexagons import hexagon3d, write_hexagon_pdb, \
       pdb_row, end_row, benzene_bond_length
-  import mast.config.interactions as mastinxconfig
+  import mastic.config.interactions as masticinxconfig
 
-  work_dir = "/home/salotz/Dropbox/devel/mast/work/pi_stacking"
+  work_dir = "/home/salotz/Dropbox/devel/mastic/work/pi_stacking"
 
   # unit stuff
   with open(osp.join(work_dir, "origin.pdb"), 'w') as wf:
@@ -55,47 +55,47 @@ Make a reference structure including hydrogens
                     osp.join(work_dir, "unit_zrot-90.pdb"))
 
   # give a parallel example at the maximum centroid distance
-  pll_max = hexagon3d(centroid=[0.0, 0.0, mastinxconfig.PISTACK_CENTROID_DIST_MAX])
+  pll_max = hexagon3d(centroid=[0.0, 0.0, masticinxconfig.PISTACK_CENTROID_DIST_MAX])
   write_hexagon_pdb(pll_max, osp.join(work_dir, "pll_max.pdb"))
 
   # give a parallel example at maximum angular deviation
-  pll_ang = hexagon3d(centroid=[0.0, 0.0, mastinxconfig.PISTACK_CENTROID_DIST_MAX],
-                      x_theta=np.radians(mastinxconfig.PISTACK_ANGLE_DEVIATION))
+  pll_ang = hexagon3d(centroid=[0.0, 0.0, masticinxconfig.PISTACK_CENTROID_DIST_MAX],
+                      x_theta=np.radians(masticinxconfig.PISTACK_ANGLE_DEVIATION))
   write_hexagon_pdb(pll_ang, osp.join(work_dir, "pll_ang.pdb"))
   # give a parallel example for different yaw categories
   # give an optimal parallel displaced example
-  pll_x_disp = hexagon3d(centroid=[1.0, 0.0, mastinxconfig.PISTACK_CENTROID_DIST_MAX])
+  pll_x_disp = hexagon3d(centroid=[1.0, 0.0, masticinxconfig.PISTACK_CENTROID_DIST_MAX])
   write_hexagon_pdb(pll_x_disp, osp.join(work_dir, "pll_x_disp.pdb"))
-  pll_y_disp = hexagon3d(centroid=[0.0, 1.0, mastinxconfig.PISTACK_CENTROID_DIST_MAX])
+  pll_y_disp = hexagon3d(centroid=[0.0, 1.0, masticinxconfig.PISTACK_CENTROID_DIST_MAX])
   write_hexagon_pdb(pll_y_disp, osp.join(work_dir, "pll_y_disp.pdb"))
-  pll_xy_disp = hexagon3d(centroid=[1.0, 1.0, mastinxconfig.PISTACK_CENTROID_DIST_MAX])
+  pll_xy_disp = hexagon3d(centroid=[1.0, 1.0, masticinxconfig.PISTACK_CENTROID_DIST_MAX])
   write_hexagon_pdb(pll_xy_disp, osp.join(work_dir, "pll_xy_disp.pdb"))
 
   # give a perpendicular example with centroid at maximum distance
-  perp_max = hexagon3d(centroid=[0.0, 0.0, mastinxconfig.PISTACK_CENTROID_DIST_MAX],
+  perp_max = hexagon3d(centroid=[0.0, 0.0, masticinxconfig.PISTACK_CENTROID_DIST_MAX],
                        y_theta=math.pi*0.5)
   write_hexagon_pdb(perp_max, osp.join(work_dir, "perp_max.pdb"))
 
   # give a perpendicular example with closest bisecting atom near just
   # under the maximum distance
   perp_close_max = hexagon3d(centroid=[0.0, 0.0,
-                                       mastinxconfig.PISTACK_CENTROID_DIST_MAX -
+                                       masticinxconfig.PISTACK_CENTROID_DIST_MAX -
                                        benzene_bond_length],
                              y_theta=math.pi*0.5)
   write_hexagon_pdb(perp_close_max, osp.join(work_dir, "perp_close_max.pdb"))
 
   # give a perpendicular example at maximum angular deviation
   perp_close_max_dev = hexagon3d(centroid=[0.0, 0.0,
-                                           mastinxconfig.PISTACK_CENTROID_DIST_MAX
+                                           masticinxconfig.PISTACK_CENTROID_DIST_MAX
                                            - benzene_bond_length],
                                  y_theta=math.pi*0.5 +
-                                 np.radians(mastinxconfig.PISTACK_ANGLE_DEVIATION))
+                                 np.radians(masticinxconfig.PISTACK_ANGLE_DEVIATION))
 
   write_hexagon_pdb(perp_close_max_dev, osp.join(work_dir, "perp_close_max_dev.pdb"))
 
   # give a perpendicular example for different twist categories
   perp_close_max_twist = hexagon3d(centroid=[0.0, 0.0,
-                                             mastinxconfig.PISTACK_CENTROID_DIST_MAX -
+                                             masticinxconfig.PISTACK_CENTROID_DIST_MAX -
                                              benzene_bond_length],
                                    y_theta=math.pi*0.5,
                                    z_theta=math.pi*0.5)
@@ -107,7 +107,7 @@ Make a reference structure including hydrogens
                                        0.0, 5.0])
   write_hexagon_pdb(pll_displaced, osp.join(work_dir, "pll_displaced.pdb"))
 
-  pll_off_center = hexagon3d(centroid=[benzene_bond_length + mastinxconfig.PISTACK_OFFSET_MAX,
+  pll_off_center = hexagon3d(centroid=[benzene_bond_length + masticinxconfig.PISTACK_OFFSET_MAX,
                                        0.0, 5.0])
   write_hexagon_pdb(pll_off_center, osp.join(work_dir, "pll_off_center.pdb"))
 
@@ -121,7 +121,7 @@ Load the reference structure and do feature identification
 #+BEGIN_SRC python :tangle make_benzenebenzene_systemtype_pkl.py
   import os.path as osp
 
-  work_dir = "/home/salotz/Dropbox/devel/mast/work/pi_stacking"
+  work_dir = "/home/salotz/Dropbox/devel/mastic/work/pi_stacking"
 
   ref_benzene_PDB_path = osp.join(work_dir, "ref_benzene.pdb")
   ref_benzene_MOL_path = osp.join(work_dir, "benzene.mol")
@@ -131,11 +131,11 @@ Load the reference structure and do feature identification
   ref_benzene_PDB_rdkit = Chem.MolFromPDBFile(ref_benzene_PDB_path, removeHs=False, sanitize=False)
   ref_benzene_MOL_rdkit = Chem.MolFromMolFile(ref_benzene_MOL_path, sanitize=True)
 
-  from mast.interfaces.rdkit import AssignBondOrdersFromTemplate
+  from mastic.interfaces.rdkit import AssignBondOrdersFromTemplate
 
   ref_benzene_rdkit = AssignBondOrdersFromTemplate(ref_benzene_MOL_rdkit, ref_benzene_PDB_rdkit)
 
-  from mast.interfaces.rdkit import RDKitMoleculeWrapper
+  from mastic.interfaces.rdkit import RDKitMoleculeWrapper
 
   benzene_rdkit_wrapper = RDKitMoleculeWrapper(ref_benzene_rdkit, mol_name="benzene")
 
@@ -150,11 +150,11 @@ Make a SystemType with a duplicate of the benzene
 #+BEGIN_SRC python :tangle make_benzenebenzene_systemtype_pkl.py
   import os.path as osp
 
-  import mast.system as mastsys
+  import mastic.system as masticsys
 
   member_types = [Benzene_Molecule, Benzene_Molecule]
   system_attrs = {'molecule_source' : 'rdkit'}
-  Benzene_Benzene_System = mastsys.SystemType("Benzene_Benzene_System",
+  Benzene_Benzene_System = masticsys.SystemType("Benzene_Benzene_System",
                                                   member_types=member_types,
                                                   ,,**system_attrs)
 
@@ -168,7 +168,7 @@ Make a SystemType with a duplicate of the benzene
   selection_types = [None, None]
   assoc1_attrs = {'info' : 'benzene1-benzene2'}
   Benzene1_Benzene2_Association = \
-              mastsys.AssociationType("Benzene1_Benzene2_Association",
+              masticsys.AssociationType("Benzene1_Benzene2_Association",
                                       system_type=Benzene_Benzene_System,
                                       selection_map=selection_map_AB,
                                       selection_types=selection_types,
@@ -178,7 +178,7 @@ Make a SystemType with a duplicate of the benzene
   selection_map_BA = selection_map_AB[::-1]
   assoc2_attrs = {'info' : 'benzene2-benzene1'}
   Benzene2_Benzene1_Association = \
-              mastsys.AssociationType("Benzene2_Benzene1_Association",
+              masticsys.AssociationType("Benzene2_Benzene1_Association",
                                       system_type=Benzene_Benzene_System,
                                       selection_map=selection_map_BA,
                                       selection_types=selection_types,
@@ -209,16 +209,16 @@ Make the test case coordinates
   import numpy as np
   import math
 
-  import mast.config.interactions as mastinxconfig
+  import mastic.config.interactions as masticinxconfig
 
-  from mast.tests.hexagons import benzene3d, write_benzene_pdb, \
+  from mastic.tests.hexagons import benzene3d, write_benzene_pdb, \
       pdb_row, end_row, benzene_bond_length
 
   test_benzenes = {}
 
   # test directly stacked benzenes
   stacked_centroid = [0.0, 0.0, 3.0]
-  max_stacked_centroid = [0.0, 0.0, mastinxconfig.PISTACKING_CENTROID_DIST_MAX]
+  max_stacked_centroid = [0.0, 0.0, masticinxconfig.PISTACKING_CENTROID_DIST_MAX]
   test_benzenes['stacked'] = benzene3d(centroid=stacked_centroid)
   # with a 90 degree turn
   test_benzenes['stacked_90'] = benzene3d(centroid=stacked_centroid, z_theta=0.5*math.pi)
@@ -228,35 +228,35 @@ Make the test case coordinates
 
   # give a parallel example at maximum angular deviation
   test_benzenes['pll_ang'] = benzene3d(centroid=max_stacked_centroid,
-                      x_theta=np.radians(mastinxconfig.PISTACKING_ANGLE_DEVIATION))
+                      x_theta=np.radians(masticinxconfig.PISTACKING_ANGLE_DEVIATION))
 
 
   # give an optimal parallel displaced example
-  test_benzenes['pll_x_disp'] = benzene3d(centroid=[1.0, 0.0, mastinxconfig.PISTACKING_CENTROID_DIST_MAX])
-  test_benzenes['pll_y_disp'] = benzene3d(centroid=[0.0, 1.0, mastinxconfig.PISTACKING_CENTROID_DIST_MAX])
-  test_benzenes['pll_xy_disp'] = benzene3d(centroid=[1.0, 1.0, mastinxconfig.PISTACKING_CENTROID_DIST_MAX])
+  test_benzenes['pll_x_disp'] = benzene3d(centroid=[1.0, 0.0, masticinxconfig.PISTACKING_CENTROID_DIST_MAX])
+  test_benzenes['pll_y_disp'] = benzene3d(centroid=[0.0, 1.0, masticinxconfig.PISTACKING_CENTROID_DIST_MAX])
+  test_benzenes['pll_xy_disp'] = benzene3d(centroid=[1.0, 1.0, masticinxconfig.PISTACKING_CENTROID_DIST_MAX])
 
   # give a perpendicular example with centroid at maximum distance
-  test_benzenes['perp_max'] = benzene3d(centroid=[0.0, 0.0, mastinxconfig.PISTACKING_CENTROID_DIST_MAX],
+  test_benzenes['perp_max'] = benzene3d(centroid=[0.0, 0.0, masticinxconfig.PISTACKING_CENTROID_DIST_MAX],
                        y_theta=math.pi*0.5)
 
   # give a perpendicular example with closest bisecting atom near just
   # under the maximum distance
   test_benzenes['perp_close_max'] = benzene3d(centroid=[0.0, 0.0,
-                                       mastinxconfig.PISTACKING_CENTROID_DIST_MAX -
+                                       masticinxconfig.PISTACKING_CENTROID_DIST_MAX -
                                        benzene_bond_length],
                              y_theta=math.pi*0.5)
 
   # give a perpendicular example at maximum angular deviation
   test_benzenes['perp_close_max_dev'] = benzene3d(centroid=[0.0, 0.0,
-                                           mastinxconfig.PISTACKING_CENTROID_DIST_MAX
+                                           masticinxconfig.PISTACKING_CENTROID_DIST_MAX
                                            - benzene_bond_length],
                                  y_theta=math.pi*0.5 +
-                                 np.radians(mastinxconfig.PISTACKING_ANGLE_DEVIATION))
+                                 np.radians(masticinxconfig.PISTACKING_ANGLE_DEVIATION))
 
   # give a perpendicular example for different twist categories
   test_benzenes['perp_close_max_twist'] = benzene3d(centroid=[0.0, 0.0,
-                                             mastinxconfig.PISTACKING_CENTROID_DIST_MAX -
+                                             masticinxconfig.PISTACKING_CENTROID_DIST_MAX -
                                              benzene_bond_length],
                                                     y_theta=math.pi*0.5,
                                                     z_theta=math.pi*0.5)
@@ -266,7 +266,7 @@ Make the test case coordinates
                                                        0.0, 5.0])
 
   test_benzenes['pll_off_center'] = benzene3d(centroid=[benzene_bond_length +
-                                                        mastinxconfig.PISTACKING_OFFSET_MAX,
+                                                        masticinxconfig.PISTACKING_OFFSET_MAX,
                                                         0.0, 5.0])
 
 #+END_SRC
@@ -288,10 +288,10 @@ First substantiate the systems.
   import os.path as osp
   import pickle
 
-  import mast.interactions.pi_stacking as pinx
-  import mast.interactions.hydrogen_bond as hinx
+  import mastic.interactions.pi_stacking as pinx
+  import mastic.interactions.hydrogen_bond as hinx
 
-  work_dir = "/home/salotz/Dropbox/devel/mast/work/pi_stacking"
+  work_dir = "/home/salotz/Dropbox/devel/mastic/work/pi_stacking"
 
   # load the SystemType
   benzene_system_pkl_path = osp.join(work_dir, "Benzene_Benzene_SystemType.pkl")
@@ -305,13 +305,13 @@ First substantiate the systems.
 
   ref_benzene_rdkit = Chem.MolFromPDBFile(ref_benzene_PDB_path, removeHs=False, sanitize=False)
 
-  from mast.interfaces.rdkit import RDKitMoleculeWrapper
+  from mastic.interfaces.rdkit import RDKitMoleculeWrapper
 
   benzene_rdkit_wrapper = RDKitMoleculeWrapper(ref_benzene_rdkit, mol_name="benzene")
 
   ref_benzene_coords = benzene_rdkit_wrapper.get_conformer_coords(0)
 
-  from mast.interactions.pi_stacking import PiStackingType
+  from mastic.interactions.pi_stacking import PiStackingType
 
   # get the interaction space for pi-stacking
   pistack_inx_classes = Benzene_Benzene_SystemType.interaction_space([(0,1)], PiStackingType)[(0,1)]
@@ -348,7 +348,7 @@ First substantiate the systems.
 
 
 #+BEGIN_SRC python :tangle debug_rings.py
-  import mast.interactions.pi_stacking as pinx
+  import mastic.interactions.pi_stacking as pinx
 
   ref = ref_benzene_coords[0:6]
 

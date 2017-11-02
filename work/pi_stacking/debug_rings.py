@@ -1,4 +1,4 @@
-import mast.interactions.pi_stacking as pinx
+import mastic.interactions.pi_stacking as pinx
 
 ref = ref_benzene_coords[0:6]
 

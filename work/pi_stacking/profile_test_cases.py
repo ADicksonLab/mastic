@@ -1,10 +1,10 @@
 import os.path as osp
 import pickle
 
-import mast.interactions.pi_stacking as pinx
-import mast.interactions.hydrogen_bond as hinx
+import mastic.interactions.pi_stacking as pinx
+import mastic.interactions.hydrogen_bond as hinx
 
-work_dir = "/home/salotz/Dropbox/devel/mast/work/pi_stacking"
+work_dir = "/home/salotz/Dropbox/devel/mastic/work/pi_stacking"
 
 # load the SystemType
 benzene_system_pkl_path = osp.join(work_dir, "Benzene_Benzene_SystemType.pkl")
@@ -18,13 +18,13 @@ from rdkit import Chem
 
 ref_benzene_rdkit = Chem.MolFromPDBFile(ref_benzene_PDB_path, removeHs=False, sanitize=False)
 
-from mast.interfaces.rdkit import RDKitMoleculeWrapper
+from mastic.interfaces.rdkit import RDKitMoleculeWrapper
 
 benzene_rdkit_wrapper = RDKitMoleculeWrapper(ref_benzene_rdkit, mol_name="benzene")
 
 ref_benzene_coords = benzene_rdkit_wrapper.get_conformer_coords(0)
 
-from mast.interactions.pi_stacking import PiStackingType
+from mastic.interactions.pi_stacking import PiStackingType
 
 # get the interaction space for pi-stacking
 pistack_inx_classes = Benzene_Benzene_SystemType.interaction_space([(0,1)], PiStackingType)[(0,1)]

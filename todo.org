@@ -183,7 +183,7 @@ the to_molecule_from_conformer(conf_idx) function and a get conformer
 function.
 
 That way we can read in an RDKitMoleculeType and use that to cast to
-the mast agnostic MoleculeType for production.
+the mastic agnostic MoleculeType for production.
 
 ** DONE make the SystemType and AssociationType classes mean something
 
