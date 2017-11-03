@@ -12,6 +12,7 @@ import mastic.config.system as masticsysconfig
 __all__ = ['overlaps', 'SystemType', 'System']
 
 
+# TODO something is fishy about this function
 def overlaps(members):
     """Check to see if any iterable of substantiated members' coordinates
     overlap.
@@ -131,7 +132,7 @@ class SystemType(object):
     def __hash__(self):
         return self.name.__hash__()
 
-    def to_system(self, members_coords):
+    def to_system(self, members_coords, check_overlaps=False):
         """Substantiate a System using input coordinates in the order of the
         members in the system.
 
@@ -146,7 +147,7 @@ class SystemType(object):
             elif isinstance(member_type, MoleculeType):
                 members.append(member_type.to_molecule(member_coords))
 
-        system = System(members, system_type=self)
+        system = System(members, system_type=self, check_overlaps=check_overlaps)
 
         return system
 
@@ -377,7 +378,7 @@ class System(masticsel.SelectionsList):
 
     """
 
-    def __init__(self, members=None, system_type=None):
+    def __init__(self, members=None, system_type=None, check_overlaps=False):
 
         assert issubclass(type(members), col.Sequence), \
             "members must be a subclass of collections.Sequence, not {}".format(
@@ -389,14 +390,16 @@ class System(masticsel.SelectionsList):
                     "all elements must be a subclass of type Atom or Molecule, not {}".format(
                         type(member))
 
-        # check to make sure none of the atoms are overlapping
-        assert not overlaps(members), \
-            "molecule system members cannot be overlapping"
 
         if system_type:
             assert isinstance(system_type, SystemType), \
                 "system_type must be a instance of SystemType, not {}".format(
                     type(system_type))
+
+        # check to make sure none of the atoms are overlapping
+        if check_overlaps:
+            assert not overlaps(members), \
+                "molecule system members cannot be overlapping"
 
         super().__init__(selection_list=members, flags=['system'])
         self._system_type = system_type
