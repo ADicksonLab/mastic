@@ -5,6 +5,13 @@ https://zenodo.org/badge/latestdoi/18884/salotz/mast
 
 Mastic is currently in beta.
 
+
+* Community
+
+Discussion takes place on riot.im (#mastic:matrix.org) which is a slack-like app that works
+on the Matrix protocol:
+[[https://riot.im/app/#/room/#mastic:matrix.org]]
+
 * Installation
 Currently there is no package available for mastic, but you can clone
 one of the releases and manually install it.
