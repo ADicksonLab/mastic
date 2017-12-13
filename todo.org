@@ -1,3 +1,187 @@
+
+* New stuff
+
+** TODO [#B] write goals/milestones for mast                      :lab:mastic:
+** TODO [#B] test pistacking on real pdb structure       :lab:mastic:analysis:
+RDKit is causing me issues with not recognizing aromatic rings on
+proteins.
+
+Writing the Polymer and Protein submodules should fix that.
+
+** TODO [#B] HydrophobicContacts interaction type class      :lab:mastic:code:
+** TODO [#B] PiCation interaction type class                 :lab:mastic:code:
+
+Mostly done, however some issues need to be resolved:
+**** TODO implement special case for tertiary amines
+**** TODO figure out how to find cation features with RDKit
+** TODO [#B] persistent (not-pickled) datastructure for a system-type :lab:mastic:code:
+
+** TODO [#B] docstrings and doctest for mast                 :lab:mastic:code:
+** TODO [#B] unit tests for mast                             :lab:mastic:code:
+** TODO [#B] logging for mast                                :lab:mastic:code:
+** TODO [#B] write all major interaction classes for mast    :lab:mastic:code:
+** TODO [#B] Write Protein submodule                         :lab:mastic:code:
+**** TODO [#B] Write protein feature finder                   :lab:mastic:code:
+Thinking about the architecture of this.
+
+I want this to make it quick to find features for polymers with
+possibly different subunits like proteins. So it what it should do is
+need to receive a sequence of polymer subunit labels or types (say
+amino acid codes) and return all the FeatureTypes in the overall
+molecule.
+
+This requires that there be subunit definitions somewhere. That is if
+I say GlycineType as one of the subunits it should look somewhere for
+a list of indexed FeatureTypes that have been identified by some other
+feature finding software. 
+
+So, what I need to write is a class that can be instantiated with
+featuretypes without intrinsically numbered names that is used as a
+template for enumerating the features of a polymer.
+
+I guess this is more basic than protein things and requires a polymer
+module with PolymerType, Polymer, PolymerSubunitType, and
+PolymerSubunit classes. Which I have talked about before.
+
+**** TODO [#B] write polymer submodule                        :lab:mastic:code:
+
+**** TODO [#B] PolymerType                                    :lab:mastic:code:
+**** TODO [#B] Polymer                                         :lab:matic:code:
+**** TODO [#B] PolymerSubunitType                             :lab:mastic:code:
+**** TODO [#B] PolymerSubunit                                 :lab:mastic:code:
+**** TODO [#B] Amino acid PolymerSubunitType classes          :lab:mastic:code:
+****** TODO alanine
+****** TODO cysteine
+****** TODO Aspartate
+****** TODO Aspartic acid
+****** TODO glutamate
+****** TODO glutamic acid
+****** TODO phenylalanine
+****** TODO glycine
+****** TODO histidine
+****** TODO idoleucine
+****** TODO lysine
+****** TODO leucine
+****** TODO methionine
+****** TODO asparagine
+****** TODO pyrrolysine
+****** TODO proline
+****** TODO glutamine
+****** TODO arginine
+****** TODO serine
+****** TODO threonine
+****** TODO selenocysteine
+****** TODO valine
+****** TODO tryptophan
+****** TODO tyrosine
+****** TODO N-terminal
+****** TODO C-terminal
+
+** TODO [#B] SystemTypeProfiles dataset results object       :lab:mastic:code:
+
+May not need this in the end, not sure yet.
+** TODO [#B] make FeatureTypes dict in MoleculeType into a list :lab:mastic:code:
+
+
+Will need to change a lot of baked in code from values() or items() to
+just slicing or whatever.
+** TODO [#B] interaction stats module                        :lab:mastic:code:
+
+#+BEGIN_EXAMPLE
+  def make_hbond_df(hbond_metrics, frame_sel=None):
+      """Given a dictionary of hbond_record -> [metrics_record, ... ]
+  produce a DataFrame from interaction stats across all metrics records."""
+
+      # get statistics on each interaction
+      HydrogenBondStatsRecord = namedtuple('StatsRecord',
+                               field_names=['HydrogenBondRecord', 'interaction_id',
+                                            'distance_mean', 'distance_std',
+                                            'distance_min', 'distance_max',
+                                            'angle_mean', 'angle_std',
+                                            'angle_min', 'angle_max',
+                                            'frames',
+                                            'freq', ]) # 'norm_freq'
+
+      hbonds = []
+      for hbond_idx, item in enumerate(hbond_metrics.items()):
+          inx_record = item[0]
+          metrics_records = item[1]
+
+          # make a dataframe from the records for only the selections in
+          # the frames if given
+          if frame_sel is None:
+              metrics_df = pd.DataFrame(metrics_records)
+          else:
+              # assert frame_sel list of int
+              # get a list of the records part of this selection
+              sel_records = [metric_record for metric_record in metrics_records
+                             if metric_record.frame_id in frame_sel]
+              # make the df from the selected records only if there were any
+              if len(sel_records) == 0:
+                  metrics_df = pd.DataFrame({'distance':[],
+                                             'angle' : [],
+                                             'frame_id' : []})
+              else:
+                  metrics_df = pd.DataFrame(sel_records)
+
+          # a new dict for stats on a particular non-metric hbond
+          hbond = {'HydrogenBondRecord' : inx_record}
+          # get stats on things
+          hbond['distance_mean'] = metrics_df[['distance']].mean()[0]
+          hbond['distance_std'] = metrics_df[['distance']].std()[0]
+          hbond['distance_min'] = metrics_df[['distance']].min()[0]
+          hbond['distance_max'] = metrics_df[['distance']].max()[0]
+          hbond['angle_mean'] = metrics_df[['angle']].mean()[0]
+          hbond['angle_std'] = metrics_df[['angle']].std()[0]
+          hbond['angle_min'] = metrics_df[['angle']].min()[0]
+          hbond['angle_max'] = metrics_df[['angle']].max()[0]
+          # add the frames it is a part of
+          hbond['frames'] = list(metrics_df['frame_id'])
+          hbond['freq'] = len(hbond['frames'])
+          hbond['interaction_id'] = hbond_idx
+          # make that into a record
+          hbond_record = HydrogenBondStatsRecord(****hbond)
+          # add it to the list
+          hbonds.append(hbond)
+
+      # set those stats in the hbond_df
+      hbond_df = pd.DataFrame(hbonds)
+
+      # calculate the normalized frequencies based on the number of
+      # total hbonds in the collection
+      hbond_df['norm_freq'] = hbond_df['freq'].divide(hbond_df[hbond_df['freq'] > 0].shape[0],
+                                                      fill_value=0.0)
+
+      return hbond_df
+
+  # analyze total interaction instances
+  inx_instances = []
+  for inx_class, instances in hbond_metrics.items():
+      num_instances = len(instances)
+      inx_instances.append((inx_class, num_instances))
+  # make a df of the instance counts
+  inx_instances_df = pd.DataFrame(inx_instances, columns=['HydrogenBondRecord', 'num_instances'])
+  inx_instances_total = inx_instances_df['num_instances'].sum()
+  inx_instances_mean = inx_instances_df['num_instances'].mean()
+
+  print("total number of unique interaction classes: {}".format(inx_instances_df.shape[0]))
+  print("total number of interaction instances: {}".format(inx_instances_total))
+  print("mean number of interaction instances per interaction class: {}".format(inx_instances_mean))
+
+  # make the df for all the nodes
+  hbond_df = make_hbond_df(hbond_metrics)
+  # write table
+  tryp_dir = "/home/salotz/Dropbox/lab/trypsin/tryp_net"
+  interaction_stats_dir = osp.join(tryp_dir, "interaction_stats")
+  freqs_path = osp.join(interaction_stats_dir, "interactions.csv")
+  hbond_df.to_csv(freqs_path)
+
+#+END_EXAMPLE
+
+** TODO [#C] NoHHydrogenBond classes                        :lab:mastic:code:
+
+
+* Old stuff
 ** TODO evaluate the subspace map method in interaction spaces
 
 We need it internally for getting things by their association
@@ -200,3 +384,8 @@ for something that is in a system for this.
 ** TODO allow for parametrized overlap tolerances in Molecule.overlaps
 ** DONE handle intramember_interactions in Association.profile_interactions
 eliminated the need for handling
+
+
+* COMMENT Local variables # Local Variables: # mode: org #
+org-todo-keyword-faces: (("TODO" . org-warning) ("WAIT" . "orange")
+("DONE" . org-done)) # org-log-done: t # End:
