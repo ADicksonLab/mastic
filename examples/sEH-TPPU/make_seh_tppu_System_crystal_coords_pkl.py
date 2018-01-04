@@ -10,7 +10,6 @@ with open(system_pkl_path, 'rb') as rf:
     seh_tppu_System = pickle.load(rf)
 
 from rdkit import Chem
-import mastic.tests.data as masticdata
 
 TPPU_MOL_path = osp.join(".", "TPPU.mol")
 TPPU_MOL_rdkit = Chem.MolFromMolFile(TPPU_MOL_path, sanitize=True)

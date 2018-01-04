@@ -5,7 +5,6 @@ from rdkit import Chem
 from mastic.interfaces.rdkit import AssignBondOrdersFromTemplate
 from mastic.interfaces.rdkit import RDKitMoleculeWrapper
 
-import mastic.tests.data as masticdata
 import mastic.system as masticsys
 
 
