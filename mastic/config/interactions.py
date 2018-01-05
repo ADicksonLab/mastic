@@ -108,9 +108,12 @@ METAL_FEATURE_TYPES = []
 # Hydrogen Bond -D-H ~ A-
 # parameters taken from (Hubbard & Haider, 2001)
 # Max. distance between hydrogen bond donor and acceptor  + 0.6 A
-HYDROGEN_BOND_DIST_MAX = 4.1 # /AA
+#HYDROGEN_BOND_DIST_MAX = 4.1 # /AA
+HYDROGEN_BOND_DIST_MAX = 6.1 # /AA (loose criteria, to find lots and scale them down)
 # Min. angle at the hydrogen bond donor + 10
-HYDROGEN_BOND_DON_ANGLE_MIN = 100 # /AA
+#HYDROGEN_BOND_DON_ANGLE_MIN = 100 # /AA
+HYDROGEN_BOND_DON_ANGLE_MIN = 0 # /AA (again, loose criteria)
+
 
 
 
