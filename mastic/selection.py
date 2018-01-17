@@ -40,18 +40,19 @@ class SelectionMember(object):
 
     """
 
-    def __init__(self, member, flags=None):
+    def __init__(self, flags=None):
 
         if flags is not None:
             assert (issubclass(type(flags), colabc.Set) or \
                 issubclass(type(flags), colabc.Sequence)) and \
                 not isinstance(flags, str), \
-                "flags must be a container and not a string"
+                "flags must be a container and not a string, {} was given".format(
+                    type(flags))
             assert all([isinstance(flag, str) for flag in list(flags)]), \
                 "all flags must be strings, given{}".format(flags)
 
         super().__init__()
-        self.member = member
+        #self.member = member
 
         # list of selections
         self._registry = []
@@ -284,7 +285,8 @@ class GenericSelection(SelectionMember):
     """
     def __init__(self, container, flags=None):
 
-        super().__init__(self, flags=flags)
+        super().__init__(flags=flags)
+
         assert '__getitem__' in dir(container), \
             "container must implement `__getitem__`, {} does not".format(
                 type(container))
@@ -437,25 +439,26 @@ class CoordArray(SelectionMember):
             "array must be a numpy.ndarray, not {}".format(
                 type(array))
 
-        super().__init__(array)
+        super().__init__()
+        self.data = array
 
     def __getitem__(self, idx):
-        return self.member[idx]
+        return self.data[idx]
 
     @property
     def coords(self):
-        return self.member
+        return self.data
 
     @coords.setter
     def coords(self, new_coords):
         assert isinstance(new_coords, np.ndarray), \
             "array must be a numpy.ndarray, not {}".format(
                 type(new_coords))
-        self.member = new_coords
+        self.data = new_coords
 
     @property
     def shape(self):
-        return self.coords.shape
+        return self.data.shape
 
     def add_coord(self, new_coord):
         """Adds 1-D coordinate array and returns the index of the new
@@ -655,7 +658,7 @@ e.g. {'strings' : [StringSelection, StringSelection] 'ints' :
         if not selection_dict:
             self.data = {}
 
-        super().__init__(selection_dict, flags=flags)
+        super().__init__(flags=flags)
 
         # add the selection_dict to the data
         if selection_dict:
@@ -704,7 +707,7 @@ class SelectionsList(SelectionMember, col.UserList):
         if not selection_list:
             self.data = []
 
-        super().__init__(selection_list, flags=flags)
+        super().__init__(flags=flags)
 
         if selection_list:
             assert issubclass(type(selection_list), col.Sequence), \
