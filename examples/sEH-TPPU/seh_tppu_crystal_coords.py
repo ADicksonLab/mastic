@@ -1,8 +1,11 @@
+"""Simple script to retrieve the coordinates for the molecules and to
+save to simpler numpy array files, for easy access later.
+
+"""
 import os.path as osp
 import numpy as np
 
 from rdkit import Chem
-import mastic.tests.data as masticdata
 from mastic.interfaces.rdkit import AssignBondOrdersFromTemplate
 from mastic.interfaces.rdkit import RDKitMoleculeWrapper
 

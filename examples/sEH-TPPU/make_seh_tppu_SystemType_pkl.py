@@ -1,3 +1,11 @@
+"""The starting point for doing anything with mastic. We first need to
+load into mastic datastructures and use a feature identifier (here we
+use rdkit and is currently the only implementation for feature
+identification) to find the relevant features for doing profiling
+on. Then we use these to create templates for molecules and systems
+which will then be filled with coordinate data and profiled.
+
+"""
 import os.path as osp
 import pickle
 
@@ -5,7 +13,7 @@ from rdkit import Chem
 from mastic.interfaces.rdkit import AssignBondOrdersFromTemplate
 from mastic.interfaces.rdkit import RDKitMoleculeWrapper
 
-import mastic.system as masticsys
+from mastic.system import SystemType
 
 
 TPPU_MOL_path = osp.join(".", "TPPU.mol")
@@ -32,10 +40,12 @@ with open(seh_pkl_path, 'wb') as wf:
     pickle.dump(seh_Molecule, wf)
 
 member_types = [TPPU_Molecule, seh_Molecule]
+# just some extra metadata so we know where the features come from in
+# the future
 system_attrs = {'molecule_source' : 'rdkit'}
-sEH_TPPU_SystemType = masticsys.SystemType("sEH_TPPU_System",
-                                         member_types=member_types,
-                                         **system_attrs)
+sEH_TPPU_SystemType = SystemType("sEH_TPPU_System",
+                                     member_types=member_types,
+                                     **system_attrs)
 
 system_pkl_path = osp.join(".", "sEH_TPPU_SystemType.pkl")
 with open(system_pkl_path, 'wb') as wf:

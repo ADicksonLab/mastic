@@ -1,7 +1,12 @@
 import os.path as osp
+import pickle
 
 from rdkit import Chem
-import mastic.tests.data as masticdata
+
+from mastic.interfaces.rdkit import AssignBondOrdersFromTemplate
+from mastic.interfaces.rdkit import RDKitMoleculeWrapper
+
+from mastic.system import AssociationType, SystemType
 
 BEN_MOL_path = osp.join(".", "benzamidine.mol")
 BEN_MOL_rdkit = Chem.MolFromMolFile(BEN_MOL_path, sanitize=True)
@@ -10,11 +15,7 @@ BEN_PDB_rdkit = Chem.MolFromPDBFile(BEN_PDB_path, removeHs=False, sanitize=False
 trypsin_PDB_path = osp.join(".", "trypsin+Hs_3ptb.pdb")
 trypsin_rdkit = Chem.MolFromPDBFile(trypsin_PDB_path, removeHs=False, sanitize=False)
 
-from mastic.interfaces.rdkit import AssignBondOrdersFromTemplate
-
 BEN_rdkit = AssignBondOrdersFromTemplate(BEN_MOL_rdkit, BEN_PDB_rdkit)
-
-from mastic.interfaces.rdkit import RDKitMoleculeWrapper
 
 BEN_rdkit_wrapper = RDKitMoleculeWrapper(BEN_rdkit, mol_name="BEN")
 trypsin_rdkit_wrapper = RDKitMoleculeWrapper(trypsin_rdkit, mol_name="Trypsin")
@@ -26,18 +27,14 @@ BEN_Molecule = BEN_rdkit_wrapper.make_molecule_type(find_features=True)
 
 Trypsin_Molecule = trypsin_rdkit_wrapper.make_molecule_type(find_features=True)
 
-import os.path as osp
-import pickle
 
 trypsin_pkl_path = osp.join(".", "TrypsinMoleculeType.pkl")
 with open(trypsin_pkl_path, 'wb') as wf:
     pickle.dump(Trypsin_Molecule, wf)
 
-import mastic.system as masticsys
-
 member_types = [BEN_Molecule, Trypsin_Molecule]
 system_attrs = {'molecule_source' : 'rdkit'}
-Trypsin_Benzamidine_System = masticsys.SystemType("Trypsin_Benzamidine_System",
+Trypsin_Benzamidine_System = SystemType("Trypsin_Benzamidine_System",
                                                 member_types=member_types,
                                                 **system_attrs)
 
@@ -64,7 +61,7 @@ Trypsin_Benzamidine_System.add_association_type(Trypsin_Benzamidine_Association)
 selection_map_AB = selection_map_BA[::-1]
 lig_rec_attrs = {'info' : 'ligand-receptor'}
 Benzamidine_Trypsin_Association = \
-            masticsys.AssociationType("Benzamidine_Trypsin_Association",
+            AssociationType("Benzamidine_Trypsin_Association",
                                     system_type=Trypsin_Benzamidine_System,
                                     selection_map=selection_map_AB,
                                     selection_types=selection_types,
@@ -77,7 +74,7 @@ selection_types = [None, None]
 
 rec_lig_attrs = {'info' : 'intraprotein'}
 Trypsin_Trypsin_Association = \
-            masticsys.AssociationType("Trypsin_Trypsin_Association",
+            AssociationType("Trypsin_Trypsin_Association",
                                     system_type=Trypsin_Benzamidine_System,
                                     selection_map=selection_map_BB,
                                     selection_types=selection_types,
@@ -107,7 +104,7 @@ binding_site_atom_idxs = [system.molecules[1].atoms.index(atom) for
 binding_site_atom_serials = [atom.atom_type.pdb_serial_number for atom
                              in binding_site_atoms]
 
-import mastic.molecule as masticmol
+
 
 # the selection map tells the association the index of the member and
 # the indices of the atoms to include as one component of the
@@ -131,9 +128,6 @@ TrypsinBS_Benzamidine_assoc = masticsys.AssociationType("TrypsinBS-Benzamidine",
 
 # add it to the system
 Trypsin_Benzamidine_System.add_association_type(TrypsinBS_Benzamidine_assoc)
-
-import os.path as osp
-import pickle
 
 system_pkl_path = osp.join(".", "Trypsin_Benzamidine_SystemType.pkl")
 with open(system_pkl_path, 'wb') as wf:

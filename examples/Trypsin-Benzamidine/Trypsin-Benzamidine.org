@@ -421,7 +421,7 @@ Furthermore, coupling of these systems to force fields could make
 running simulations of complex systems accessible to even non-experts.
 
 
-** Profiling interactions from a multi-molecule system
+** COMMENT Profiling interactions from a multi-molecule system
 
 One of the main motivations for the creation of MASTIC was the need to
 profile intermolecular interactions such as hydrogen bonds and pi-pi
@@ -456,7 +456,7 @@ we already defined that association.
 Hopefully you think that all that trouble making the system at the
 beginning was worth it now.
 
-*** More details on the profile_interactions method
+*** COMMENT More details on the profile_interactions method
 There is a lot hidden under the covers here having to do
 with FeatureType, Feature, InteractionType, and Interaction classes.
 
@@ -489,7 +489,7 @@ InteractionType subclass to profile for any kind of "interaction" they
 could want to profile. There will likely be separate instructions on
 how to create your own interactions in the future.
 
-*** Profiling interactions in *interaction space*
+*** COMMENT Profiling interactions in *interaction space*
 
 There is one problem with using the above method for profiling
 interactions and that is comparing profiling results for different
@@ -633,7 +633,7 @@ associated with the proper interaction classes.
                                                         interaction_classes=hbond_inx_classes)
 #+END_SRC
 
-*** Different kinds of InteractionTypes
+*** COMMENT Different kinds of InteractionTypes
 
 Of course the point of these elaborate constructions is not just to
 look at simple hydrogen bonds. We want to profile more complicated
@@ -667,31 +667,7 @@ before. We can use the same assoc_terms as before but that would be
 redundant as there is no difference between involved aromatic rings in
 pi_stacking, i.e. in MASTIC nomenclature it is a commutative interaction.
 
-#+BEGIN_SRC python
-  from mastic.interactions.pi_stacking import PiStackingType, PiStackingInx
-
-  pistack_assoc_terms = Trypsin_Benzamidine_System.association_polynomial(
-      interaction_degree=PiStackingType.degree,
-      return_idxs=True,
-      commutative=True)
-
-  pistack_inx_classes = Trypsin_Benzamidine_System.interaction_space(
-      pistack_assoc_terms, PiStackingType)
-
-#+END_SRC
-
-Now that we have the interaction classes we want to profile them for
-interactions. First we will look at protein-ligand interactions.
-
-#+BEGIN_SRC python
-  pistack_inxs = Trypsin_Benzamidine_System.profile_interactions([PiStackingType],
-                                              interaction_classes=pistack_inx_classes)
-#+END_SRC
-
-
-*** Analyzing profiling results
-
-
+TODO
 
 * Scripts
 
@@ -886,209 +862,4 @@ interactions. First we will look at protein-ligand interactions.
   with open(system_cryst_pkl_path, 'wb') as wf:
       pickle.dump(cryst_system, wf)
 
-#+END_SRC
-
-
-** profiling interactions without interaction space of the crystal structure
-
-#+BEGIN_SRC python :tangle profile_simple_Trypsin_Benzamidine_cryst.py
-  import os.path as osp
-  import pickle
-
-  from mastic.interactions.hydrogen_bond import HydrogenBondType
-
-  system_cryst_pkl_path = osp.join(".", "Trypsin_Benzamidine_System_cryst.pkl")
-  with open(system_cryst_pkl_path, 'rb') as pkl_rf:
-      Trypsin_Benzamidine_System_cryst = pickle.load(pkl_rf)
-
-  tryp_ben_prof_results_0 = Trypsin_Benzamidine_System_cryst.associations[0].profile_interactions([HydrogenBondType])
-  tryp_ben_prof_results_1 = Trypsin_Benzamidine_System_cryst.associations[1].profile_interactions([HydrogenBondType])
-#+END_SRC
-
-** profiling interactions with interaction space of the crystal structure
-
-#+BEGIN_SRC python :tangle profile_inx_space_Trypsin_Benzamidine_cryst.py
-  import os.path as osp
-  import pickle
-  import itertools as it
-
-  from mastic.interactions.hydrogen_bond import HydrogenBondType
-  from mastic.interactions.pi_stacking import PiStackingType
-
-  import sys
-  sys.recursion_depth
-
-  # load the system type pickle in
-  system_pkl_path = osp.join(".", "Trypsin_Benzamidine_SystemType.pkl")
-  with open(system_pkl_path, 'rb') as rf:
-      Trypsin_Benzamidine_SystemType = pickle.load(rf)
-
-  # load the crystal structure substantiated system
-  system_cryst_pkl_path = osp.join(".", "Trypsin_Benzamidine_System_cryst.pkl")
-  with open(system_cryst_pkl_path, 'rb') as pkl_rf:
-      Trypsin_Benzamidine_System_cryst = pickle.load(pkl_rf)
-
-  # use the association polynomial function of the system
-  assoc_terms = Trypsin_Benzamidine_SystemType.association_polynomial(
-      # input the degree of the interaction
-      interaction_degree=HydrogenBondType.degree,
-      # return the indices of the system members instead of the members
-      # themselves
-      return_idxs=True,
-      # whether or not the interaction is symmetric or not
-      commutative=False)
-
-  # this gives them to you organized by which association they fall under
-  hbond_inx_classes_assocs = Trypsin_Benzamidine_SystemType.interaction_space(
-                                       assoc_terms, HydrogenBondType)
-
-  # if you want the whole collection of interaction classes in one list
-  hbond_inx_classes = list(it.chain(*[inx_classes for inx_classes in
-                                   hbond_inx_classes_assocs.values()]))
-
-  # however we are only interested in one association
-  rec_lig_association = Trypsin_Benzamidine_System_cryst.associations[1]
-  rec_lig_association_type = rec_lig_association.association_type
-  rec_lig_member_idxs = rec_lig_association_type.member_idxs
-  rec_lig_inx_classes = hbond_inx_classes_assocs[rec_lig_member_idxs]
-
-  # profile that association
-  rec_lig_inxs = rec_lig_association.profile_interactions(
-      [HydrogenBondType],
-      interaction_classes=rec_lig_inx_classes)[HydrogenBondType]
-
-  import ipdb; ipdb.set_trace()
-  # now for pi-stacking, we only want intraprotein and ligand-protein
-  # interactions, and it is commutative so we only need one inter- term
-  pistack_inx_classes_assocs = Trypsin_Benzamidine_SystemType.interaction_space(
-                                       [(1,1), (0,1)], PiStackingType)
-
-  intraprotein_pistack_inxs = Trypsin_Benzamidine_System_cryst.associations[2].profile_interactions(
-      [PiStackingType],
-      interaction_classes=pistack_inx_classes_assocs[(1,1)])
-
-  PL_pistack_inxs = Trypsin_Benzamidine_System_cryst.associations[2].profile_interactions(
-      [PiStackingType],
-      interaction_classes=pistack_inx_classes_assocs[(1,1)])
-#+END_SRC
-
-
-** profiling a trajectory of coordinates
-
-We showcase how to profile interactions in parallel for many sets of
-coordinates.
-
-We make use of the excellent mdtraj library for storing and accessing
-trajectory data.
-
-We also use the SCOOP library for running jobs in parallel on any
-hardware for the simplicity and flexibility of it.
-
-Simply run the following script like this on the command line to
-execute on a specified number of cores, or as many as SCOOP can detect
-by default.
-
-#+BEGIN_SRC bash
-  python -m scoop -n 8 profile_traj_inxs.py
-#+END_SRC
-
-
-#+BEGIN_SRC python :tangle profile_traj_inxs.py
-  import os.path as osp
-  import pickle
-  import itertools as it
-  import mdtraj as mdj
-  import pandas as pd
-
-  from mastic.interactions.hydrogen_bond import HydrogenBondType
-  from mastic.interactions.pi_stacking import PiStackingType
-
-  import sys
-  sys.setrecursionlimit(100000)
-
-
-  def profile_frame_inxs(frame_xyz, lig_idxs, receptor_idxs, system_type, inx_type, inx_classes):
-      # get the coords for each member and convert to Angstroms
-      lig_coords = frame_xyz[lig_idxs,:]
-      receptor_coords = frame_xyz[receptor_idxs,:]
-      member_coords = [lig_coords, receptor_coords]
-
-      # substantiate the system with these coordinates
-      system = system_type.to_system(member_coords)
-
-      # profile the interactions
-      inxs = []
-      rec_lig_inxs = system.associations[0].profile_interactions(
-          [inx_type],
-          interaction_classes=inx_classes)[inx_type]
-      inxs.extend(rec_lig_inxs)
-
-      print(len(inxs))
-      records = [inx.record for inx in inxs]
-      return records
-
-
-  if __name__ == "__main__":
-      # load the system type pickle in
-      system_pkl_path = osp.join(".", "Trypsin_Benzamidine_SystemType.pkl")
-      with open(system_pkl_path, 'rb') as rf:
-          Trypsin_Benzamidine_SystemType = pickle.load(rf)
-
-      # use the association polynomial function of the system
-      assoc_terms = Trypsin_Benzamidine_SystemType.association_polynomial(
-          # input the degree of the interaction
-          interaction_degree=HydrogenBondType.degree,
-          # return the indices of the system members instead of the members
-          # themselves
-          return_idxs=True,
-          # whether or not the interaction is symmetric or not
-          commutative=False)
-
-      # for pi-stacking we only want ligand-protein interactions, and it is
-      # commutative so we only need one inter- term
-      pistack_inx_classes = Trypsin_Benzamidine_SystemType.interaction_space(
-          [(0,1)], PiStackingType)[(0,1)]
-
-      # paths for the trajectory
-      # get the coordinates from the trajectory
-      traj_path = osp.join(".", "frames.dcd")
-      top_path = osp.join(".", "topology.pdb")
-      traj =mdj.load_dcd(traj_path, top=top_path)
-      n_frames = traj.n_frames
-
-      # indices for the ligand and receptor
-      top_df = traj.top.to_dataframe()[0]
-      lig_idxs = list(top_df[top_df['segmentID'] == 'SML'].index)
-      receptor_idxs = list(top_df[top_df['segmentID'] == 'PROA'].index)
-
-      # for input to mapping function
-      # inputs to the mapping function
-      # separate frames individually
-      traj_xyzs = [frame.xyz[0,:,:] for frame in traj]
-      lig_idxs_inputs = [lig_idxs for i in range(n_frames)]
-      receptor_idxs_inputs = [receptor_idxs for i in range(n_frames)]
-      system_type_inputs = [Trypsin_Benzamidine_SystemType for i in range(n_frames)]
-      inx_type_inputs = [PiStackingType for i in range(n_frames)]
-      inx_classes_inputs = [pistack_inx_classes for i in range(n_frames)]
-
-      inputs = [traj_xyzs, lig_idxs_inputs, receptor_idxs_inputs,
-                system_type_inputs, inx_type_inputs, inx_classes_inputs]
-
-      print("Done with set up")
-      # this is what actually runs the function on the inputs
-      cluster_records = list(futures.map(profile_frame_inxs, *inputs))
-
-      # make records out of these and make a dataframe
-      dfs = []
-      for clust_idx, records in enumerate(cluster_records):
-          # make a dataframe from the records
-          df = pd.DataFrame(records)
-          df['cluster_idx'] = clust_idx
-          df.append(df)
-
-      # concatenate the smaller dfs and reset the index
-      hbond_inxs_df = pd.concat(dfs)
-
-      hbond_inx_path = osp.join(tppu_dir, 'hbond_cluster_inxs.csv')
-      hbond_inxs_df.to_csv(hbond_inx_path)
 #+END_SRC
