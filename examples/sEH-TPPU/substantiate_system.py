@@ -11,10 +11,6 @@ import pickle
 import sys
 import numpy as np
 
-import mastic.profile as masticprof
-
-sys.setrecursionlimit(100000)
-
 # load the system type pickle in
 system_pkl_path = osp.join(".", "sEH_TPPU_SystemType.pkl")
 with open(system_pkl_path, 'rb') as rf:
@@ -25,6 +21,3 @@ member_coords = [np.load('TPPU_coords.npy'), np.load("sEH_coords.npy")]
 
 # substantiate the system
 system = sEH_TPPU_SystemType.to_system(member_coords)
-
-with open("sEH_TPPU_System_cryst.pkl", 'wb') as wf:
-    pickle.dump(system, wf)
