@@ -29,7 +29,7 @@ import pickle
 import numpy as np
 
 from mastic.system import AssociationType
-from mastic.molecule import MoleculeAtomSelection
+from mastic.molecule import MoleculeTypeAtomSelection
 from mastic.interaction_space import InteractionSpace
 from mastic.interactions.hydrogen_bond import HydrogenBondType
 from mastic.profile import InxSpaceProfiler
@@ -40,9 +40,11 @@ with open(system_type_pkl_path, 'rb') as rf:
     sEH_TPPU_SystemType = pickle.load(rf)
 
 # load a system we can find what the binding site indices are from
-system_pkl_path = osp.join(".", "sEH_TPPU_System_cryst.pkl")
-with open(system_pkl_path, 'rb') as rf:
-    cryst_system = pickle.load(rf)
+# load the coordinates for the members
+member_coords = [np.load('TPPU_coords.npy'), np.load("sEH_coords.npy")]
+
+# substantiate the system
+cryst_system = sEH_TPPU_SystemType.to_system(member_coords)
 
 # find atoms in the binding site using a cutoff distance from the
 # ligand
@@ -71,9 +73,9 @@ selection_map = [(1, binding_site_atom_idxs), (0, None)]
 # and tell the AssociationType what kind of selection to make on the
 # molecule. Setting one of them to None should mean the selection map
 # also had no indices selected and it should use the whole system
-# member. The MoleculeAtomSelection allows for selection of atoms in a
+# member. The MoleculeTypeAtomSelection allows for selection of atoms in a
 # Molecule or MoelculeType.
-selection_types = [MoleculeAtomSelection, None]
+selection_types = [MoleculeTypeAtomSelection, None]
 
 
 # make the actual association between the selections
