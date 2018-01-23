@@ -110,9 +110,17 @@ class InxSpaceProfile(object):
     def hit_inx_records(self):
         return [inx.record for inx in self.hit_inxs]
 
+    def hit_inx_dict(self):
+        profile_dict = col.defaultdict(list)
+        for inx in self.hit_inxs:
+            for field, value in inx.record_dict.items():
+                profile_dict[field].append(value)
+
+        return profile_dict
+
     def hit_inx_df(self):
         import pandas as pd
-        hit_df = pd.DataFrame(self.hit_inx_records())
+        hit_df = pd.DataFrame(self.hit_inx_dict())
         hit_df['hit_idx'] = self.hit_idxs
         return hit_df
 

@@ -13,6 +13,9 @@ import mastic.config.interactions as masticinxconfig
 import mastic.config.features as masticfeatconfig
 from mastic.interactions.interactions import InteractionType, Interaction, InteractionError
 
+# fields expected for writing data out as results, this method will be
+# improved in the future
+_pdb_fields = ['pdb_name', 'pdb_residue_name', 'pdb_residue_number', 'pdb_serial_number']
 
 class HydrogenBondType(InteractionType):
     """Defines an InteractionType class for hydrogen bonds between members
@@ -38,6 +41,9 @@ class HydrogenBondType(InteractionType):
     ## convenience class attributes particular to this class
     donor_key = feature_keys[0]
     acceptor_key = feature_keys[1]
+    donor_idx = 0
+    acceptor_idx = 1
+    feature_type_ordering = {feature_key : i for i, feature_key in enumerate(feature_keys)}
     donor_feature_classifiers = feature_classifiers[donor_key]
     acceptor_feature_classifiers = feature_classifiers[acceptor_key]
 
@@ -197,15 +203,53 @@ class HydrogenBondType(InteractionType):
         return np.degrees(np.arccos(np.dot(v1, v2)/(la.norm(v1) * la.norm(v2))))
 
     @property
-    def record(self):
-        record_attr = {'interaction_class' : self.name}
-        record_attr['interaction_type'] = self.interaction_name
-        record_attr['association_type'] = self.association_type.name
-        record_attr['assoc_member_pair_idxs'] = self.assoc_member_pair_idxs
-        record_attr['donor_feature_type'] = self.feature_types[0].name
-        record_attr['acceptor_feature_type'] = self.feature_types[1].name
+    def atom_idxs(self):
+        # go through the features and return a list of the atom
+        # indices for each feature
+        inxclass_atom_idxs = []
+        for feature_type in self.feature_types:
+            inxclass_atom_idxs.append(feature_type.atom_idxs)
 
-        return HydrogenBondTypeRecord(**record_attr)
+        return inxclass_atom_idxs
+
+    @property
+    def feature_atom_types(self, feat_idx):
+        return self.feature_types[feat_idx].atom_types
+
+    def feature_atoms_pdb_data(self, feat_idx):
+        fields_data = {}
+        for field in _pdb_fields:
+            atoms_field = []
+            for atom_idx, atom_type in enumerate(self.feature_types[feat_idx].atom_types):
+                atoms_field.append(atom_type.attributes_data[field])
+            fields_data[field] = atoms_field
+
+        return fields_data
+
+    @property
+    def record_dict(self):
+        record_attr = {}
+        #record_attr = {'interaction_class' : self.name}
+        #record_attr['interaction_type'] = self.interaction_name
+        #record_attr['association_type'] = self.association_type.name
+        #record_attr['donor_feature_type'] = self.feature_types[0].name
+        #record_attr['acceptor_feature_type'] = self.feature_types[1].name
+
+        record_attr['assoc_member_pair_idxs'] = self.assoc_member_pair_idxs
+        record_attr['donor_member_idx'] = self.assoc_member_pair_idxs[self.donor_idx]
+        record_attr['acceptor_member_idx'] = self.assoc_member_pair_idxs[self.acceptor_idx]
+        record_attr['donor_atom_idxs'] = self.atom_idxs[self.donor_idx]
+        record_attr['acceptor_atom_idxs'] = self.atom_idxs[self.acceptor_idx]
+        for feature_key in self.feature_keys:
+            feat_idx = self.feature_type_ordering[feature_key]
+            for field_name, atom_values in self.feature_atoms_pdb_data(feat_idx).items():
+                record_attr["{}_{}".format(feature_key, field_name)] = tuple(atom_values)
+
+        return record_attr
+
+    @property
+    def record(self):
+        return HydrogenBondTypeRecord(self.record_dict)
 
     def pdb_serial_output(self, inxs, path, delim=","):
         """Output the pdb serial numbers (index in pdb) of the donor and
@@ -226,9 +270,17 @@ class HydrogenBondType(InteractionType):
                                               inx.acceptor.atom_type.pdb_serial_number))
 
 # HydrogenBondTypeRecord
-_hydrogen_bond_type_record_fields = ['interaction_class', 'interaction_type',
-                                     'association_type', 'assoc_member_pair_idxs',
-                                     'donor_feature_type', 'acceptor_feature_type']
+
+_hydrogen_bond_type_record_fields =['assoc_member_pair_idxs',
+                                    'donor_member_idx', 'acceptor_member_idx',
+                                    'donor_atom_idxs', 'acceptor_atom_idxs'] + \
+                            ["{}_{}".format('donor', field_name) for field_name in _pdb_fields] +\
+                            ["{}_{}".format('acceptor', field_name) for field_name in _pdb_fields]
+
+
+# _hydrogen_bond_type_record_fields = ['interaction_class', 'interaction_type',
+#                                      'association_type', 'assoc_member_pair_idxs',
+#                                      'donor_feature_type', 'acceptor_feature_type']
 HydrogenBondTypeRecord = namedtuple('HydrogenBondTypeRecord', _hydrogen_bond_type_record_fields)
 
 class HydrogenBondInx(Interaction):
@@ -279,18 +331,23 @@ class HydrogenBondInx(Interaction):
         return self._acceptor
 
     @property
-    def record(self):
-        record_attr = {'interaction_class' : self.interaction_class.name}
-        record_attr['donor_coords'] = self.donor.atoms[0].coords
-        record_attr['acceptor_coords'] = self.acceptor.atoms[0].coords
+    def record_dict(self):
+        record_attr = {}
+        record_attr['donor_coords'] = tuple(self.donor.atoms[0].coords)
+        record_attr['acceptor_coords'] = tuple(self.acceptor.atoms[0].coords)
         # TODO because the H might be ambiguous, see the H property
         # record_attr['H_coords'] = self.H.coords
+        record_attr.update(self.interaction_params)
+        record_attr.update(self.interaction_class.record_dict)
 
-        return HydrogenBondInxRecord(**record_attr, **self.interaction_params)
+        return record_attr
+
+    @property
+    def record(self):
+        return HydrogenBondInxRecord(self.record_dict)
 
 # HydrogenBondInxRecord
-_hydrogen_bond_inx_record_fields = ['interaction_class',
-                                    'donor_coords', 'acceptor_coords'] + \
+_hydrogen_bond_inx_record_fields = ['donor_coords', 'acceptor_coords'] + \
                                     HydrogenBondType.interaction_param_keys
                                     #'H_coords']
 HydrogenBondInxRecord = namedtuple('HydrogenBondInxRecord', _hydrogen_bond_inx_record_fields)

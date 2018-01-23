@@ -134,7 +134,7 @@ hits_df = profile.hit_inx_df()
 
 # or you can get just the records themselves (which are used to make
 # the dataframe anyhow)
-hit_records = profile.hit_inx_records()
+#hit_records = profile.hit_inx_records()
 
 # there are some other methods and attributes though that may be
 # useful including getting just a list of the hit indices for this

@@ -89,3 +89,4 @@ seh_seh_assoc = AssociationType("sEH-sEH",
 
 # make inxclasses from this
 self_inxclasses = HydrogenBondType.interaction_classes(seh_seh_assoc)
+g
