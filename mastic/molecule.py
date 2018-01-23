@@ -6,13 +6,13 @@ from itertools import product
 
 from mastic.selection import CoordArray, CoordArraySelection, \
     Point, IndexedSelection, SelectionsDict, SelectionsList, \
-    Selection
+    Selection, SelectionMember
 
 import mastic.config.molecule as masticmolconfig
 
 __all__ = ['AtomType', 'BondType', 'MoleculeType',]
 
-class AtomType(object):
+class AtomType(SelectionMember):
     """Class for generating specific atom type classes with the factory
     method.
 
@@ -26,6 +26,8 @@ class AtomType(object):
     attributes = masticmolconfig.ATOM_ATTRIBUTES
 
     def __init__(self, atom_type_name, **atom_attrs):
+
+        super().__init__()
         # keep track of which attributes the input did not provide
         for attr in AtomType.attributes:
             try:
@@ -92,7 +94,7 @@ class AtomType(object):
 _atom_type_record_fields = ['AtomType']
 AtomTypeRecord = col.namedtuple('AtomTypeRecord', _atom_type_record_fields)
 
-class BondType(object):
+class BondType(SelectionMember):
     """Class for generating specific bond type classes with the factory
     method.
 
@@ -133,6 +135,7 @@ class BondType(object):
                     for i in atom_types]), \
             "atom_types must be a length 2 tuple of AtomType subclasses"
 
+        super().__init__()
         # log keep track of which attributes the input did not provide
         for attr in BondType.attributes:
             try:
@@ -204,7 +207,7 @@ class BondType(object):
 _bond_type_record_fields = ['BondType', 'AtomAType', 'AtomBType']
 BondTypeRecord = col.namedtuple('BondTypeRecord', _bond_type_record_fields)
 
-class MoleculeType(object):
+class MoleculeType(SelectionMember):
     """Class for generating specific bond type classes with the factory
     method.
 
@@ -264,6 +267,7 @@ class MoleculeType(object):
                     for i in bond_types]), \
             "bond_types must contain only BondType subclasses"
 
+        super().__init__()
         # check that the bond_map is valid
         for bond_idx, atom_idxs in bond_map.items():
             assert bond_idx < len(bond_types), \
@@ -1130,44 +1134,75 @@ _molecule_record_fields = ['MoleculeType']
 MoleculeRecord = col.namedtuple('BondRecord', _molecule_record_fields)
 
 class MoleculeAtomSelection(IndexedSelection):
-    def __init__(self, molecule, sel, flags=None):
+    def __init__(self, molecule, sel,
+                 partial_feats=False, partial_bonds=False,
+                 flags=None):
 
-        # if it is a molecule make a selection of the atoms
-        if isinstance(molecule, Molecule):
-            super().__init__(molecule.atoms, sel=sel, flags=flags)
-            # we need access to the molecule attributes
-            # atoms
-            self.atoms = list(self.data.values())
-            # bonds
-            self.bonds = []
-            for bond in molecule.bonds:
-                if all([(atom in self) for atom in bond.atoms]):
+        assert isinstance(molecule, Molecule), "Must be a Molecule object"
+
+        super().__init__(molecule.atoms, sel=sel, flags=flags)
+        # we need access to the molecule attributes
+        # atoms
+        self.atoms = list(self.data.values())
+
+        # bonds
+        self.bonds = []
+        for bond in molecule.bonds:
+            atoms_in_bond_bool = [(atom in self) for atom in bond.atoms]
+            if partial_bonds:
+                if any(atoms_in_bond_bool):
                     self.bonds.append(bond)
-            # features completely represented by the remaining atoms
-            self.features = {}
-            for feature_id, feature in molecule.features.items():
-                if all([(atom in self.atoms) for atom in feature.atoms]):
+            else:
+                if all(atoms_in_bond_bool):
+                    self.bonds.append(bond)
+
+        # get the features to include
+        self.features = {}
+        for feature_id, feature in molecule.features.items():
+            atoms_in_feature_bool = [(atom in self.atoms) for atom in feature.atoms]
+            if partial_feats:
+                if any(atoms_in_feature_bool):
+                    self.features[feature_id] = feature
+            else:
+                if all(atoms_in_feature_bool):
                     self.features[feature_id] = feature
 
-        elif isinstance(molecule, MoleculeType):
-            super().__init__(molecule.atom_types, sel=sel, flags=flags)
-            # we need access to the molecule attributes
-            # atoms
-            self.atoms = list(self.data.values())
-            # bonds
-            self.bonds = []
-            for bond in molecule.bond_types:
-                if all([(atom in self) for atom in bond.atom_types]):
-                    self.bonds.append(bond)
-            # features completely represented by the remaining atoms
-            self.features = {}
-            for feature_id, feature in molecule.feature_types.items():
-                if all([(atom in self.atoms) for atom in feature.atom_types]):
-                    self.features[feature_id] = feature
+class MoleculeTypeAtomSelection(IndexedSelection):
+    def __init__(self, molecule_type, sel,
+                 partial_feats=False, partial_bonds=False,
+                 flags=None):
 
-        else:
-            assert False, "molecule must be either a Molecule or MoleculeType"
+        assert isinstance(molecule_type, MoleculeType), "must be a MoelculeType object"
 
+        super().__init__(molecule_type.atom_types, sel=sel, flags=flags)
+
+        # atom_types, selected from the superclass init, because the
+        # atoms are the main container being selected on
+        self.atom_types = list(self.data.values())
+
+        # bonds
+        self.bond_types = []
+        for bond_type in molecule_type.bond_types:
+            atoms_in_bond_bool = [(atom_type in self) for atom_type in bond_type.atom_types]
+            if partial_bonds:
+                if any(atoms_in_bond_bool):
+                    self.bond_types.append(bond_type)
+            else:
+                if all(atoms_in_bond_bool):
+                    self.bond_types.append(bond_type)
+
+
+        # features completely represented by the remaining atom_types
+        self.feature_types = {}
+        for feature_id, feature_type in molecule_type.feature_types.items():
+            atoms_in_feature_bool = [(atom_type in self.atom_types)
+                                       for atom_type in feature_type.atom_types]
+            if partial_feats:
+                if any(atoms_in_feature_bool):
+                    self.feature_types[feature_id] = feature_type
+            else:
+                if all(atoms_in_feature_bool):
+                    self.feature_types[feature_id] = feature_type
 
 if __name__ == "__main__":
     pass

@@ -3,7 +3,7 @@ import itertools as it
 import collections as col
 
 from mastic.selection import SelectionsList
-import mastic.features as masticfeat
+from mastic.features import FeatureType
 
 # from mastic.system import System
 # import mastic.selection as masticsel
@@ -53,7 +53,7 @@ class InteractionType(object):
 
         assert feature_types, "feature_types must be given."
         for feature_type in feature_types:
-            assert isinstance(feature_type, masticfeat.FeatureType), \
+            assert isinstance(feature_type, FeatureType), \
                 "All feature_type members must be a subclass of FeatureType, " \
                 "not, {}".format(feature_type)
         # keep track of which attributes the input did not provide
@@ -103,8 +103,7 @@ class InteractionType(object):
         return self._feature_types
 
     @classmethod
-    def interaction_classes(cls, association_type,
-                            inx_class_name_template=None):
+    def interaction_classes(cls, association_type, inx_class_name_template=None):
         """Receives an association and creates all of the possible interaction
         classes in the association. Interaction classes are simply
         instantiations of this InteractionType corresponding to
@@ -119,9 +118,14 @@ class InteractionType(object):
         inx_class_name_template variable. Otherwise you can pass in an
         iterable
 
+        When the `partial_feats` flag is False (default) features that
+        are partially in the selection will not be considered in the
+        creation of interaction classes. When it is set to True
+        features with at least one atom in the selection will be
+        considered for interaction class creation.
+
         """
 
-        ###
         inx_class_name_template = cls.inx_class_name_template
 
 
@@ -129,9 +133,14 @@ class InteractionType(object):
         # interaction type, in the feature_order, so initialize an
         # empty list for each
         members_features = [[] for feature_key in cls.feature_keys]
-        # and go through each member_type
-        for member_idx, member_type in enumerate(association_type.member_types):
+
+        # and go through each member_type and save the features from
+        # the selections
+        for member_idx, member_type in enumerate(association_type):
+
+            # get the features from the member if they are also in the selection
             for feature_type in member_type.feature_types.values():
+
                 # get the classifiers for this feature (based on the
                 # feature identification algorithms applied)
                 # feature_classifiers = cls.feature_inx_attributes(feature_type)
@@ -139,6 +148,7 @@ class InteractionType(object):
 
                 # if the feature has one of the classifiers for this member of the interaction
                 inx_member_classifiers = cls.feature_classifiers[cls.feature_keys[member_idx]]
+
                 if not set(feature_classifiers).isdisjoint(inx_member_classifiers):
                     # and add it to the appropriate list
                     members_features[member_idx].append(feature_type)

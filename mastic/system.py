@@ -3,8 +3,7 @@ import collections as col
 import itertools as it
 
 from mastic.molecule import Atom, Bond, Molecule, AtomType, BondType, MoleculeType
-import mastic.selection as masticsel
-import mastic.profile as masticprof
+from mastic.selection import SelectionMember, SelectionsList, IndexedSelection
 
 import mastic.config.system as masticsysconfig
 
@@ -38,7 +37,7 @@ def overlaps(members):
                 flag = False
     return False
 
-class SystemType(object):
+class SystemType(SelectionMember):
     """Class for generating specific system type classes with the factory
     method.
 
@@ -345,7 +344,7 @@ class SystemType(object):
 _system_type_record_fields = ['SystemType']
 SystemTypeRecord = col.namedtuple('SystemTypeRecord', _system_type_record_fields)
 
-class System(masticsel.SelectionsList):
+class System(SelectionsList):
 
     """System that contains non-overlapping molecules, assumed to be in
         the same coordinate system.
@@ -465,7 +464,7 @@ class System(masticsel.SelectionsList):
 
         """
         mol_indices = [i for i, member in enumerate(self) if issubclass(type(member), Molecule)]
-        return masticsel.IndexedSelection(self, mol_indices)
+        return IndexedSelection(self, mol_indices)
 
     # YAGNI?
     def atoms_sel(self):
@@ -474,7 +473,7 @@ class System(masticsel.SelectionsList):
 
         """
         atom_indices = [i for i, member in enumerate(self) if issubclass(type(member), Atom)]
-        return masticsel.IndexedSelection(self, atom_indices)
+        return IndexedSelection(self, atom_indices)
 
     @property
     def associations(self):
@@ -519,7 +518,7 @@ SystemRecord = col.namedtuple('SystemRecord', _system_record_fields)
 # with some methods
 
 
-class AssociationType(object):
+class AssociationType(SelectionsList):
     """Class for defining a relationship between two selections in a
     SystemType allowing for convenient introspection and calculations
     on only the selections. Usually contained within the SystemType
@@ -548,7 +547,7 @@ class AssociationType(object):
     creating a mapping for which system member has what selection:
 
     >>> selection_map = {0 : ..., 1 : ...}
-    >>> selection_types = [masticsel.Selection, masticsel.Selection]
+    >>> selection_types = [Selection, Selection]
 
     So for system members 0 and 1 we will make a mastic.Selection of the
     whole member (...) when the AssociationType is substantiated.
@@ -566,6 +565,7 @@ class AssociationType(object):
     def __init__(self, association_type_name,
                  system_type=None,
                  selection_map=None, selection_types=None,
+                 selection_kwargs={},
                  **association_attrs):
         """Static method for generating association types dynamically given a type
         name (which will be the class name) and a domain specific dictionary
@@ -604,7 +604,7 @@ class AssociationType(object):
 
         # validate the selection_types
         # for selection_type in selection_types:
-        #     assert issubclass(selection_type, masticsel.GenericSelection), \
+        #     assert issubclass(selection_type, GenericSelection), \
         #         "The selection_type must be a subclass of" \
         #         " mastic.selection.GenericSelection, not {}".format(
         #             selection_type)
@@ -640,6 +640,14 @@ class AssociationType(object):
         self.system_type = system_type
         self.selection_map = selection_map
         self.selection_types = selection_types
+        self.selection_kwargs = selection_kwargs
+
+        # create the selection_types
+        self.selections = self._member_type_selections()
+
+        # call the superclass (SelectionsList) so that the selections
+        # are set as the data and we have __getitem__ etc implemented
+        super().__init__(self.selections, flags=[self.name])
 
 
     def __eq__(self, other):
@@ -681,15 +689,15 @@ class AssociationType(object):
     def member_types(self):
         return [self.system_type.member_types[i] for i in self.member_idxs]
 
-    @property
-    def member_type_selections(self):
+    def _member_type_selections(self):
         selections = []
         for i, member_type in enumerate(self.member_types):
             if self.selection_types[i] is None:
                 selections.append(member_type)
             else:
                 selection = self.selection_types[i](member_type,
-                                                    self.member_selection_idxs[i])
+                                                    self.member_selection_idxs[i],
+                                                    **self.selection_kwargs)
                 selections.append(selection)
         return selections
 
@@ -711,7 +719,7 @@ _association_type_record_fields = ['AssociationType', 'SystemType', 'member_type
 AssociationTypeRecord = col.namedtuple('AssociationTypeRecord', _association_type_record_fields)
 
 
-class Association(masticsel.SelectionsList):
+class Association(SelectionsList):
 
     def __init__(self, system=None, association_type=None, association_name=None):
         # TODO check to make sure that all the atoms are in the same system
@@ -758,7 +766,7 @@ class Association(masticsel.SelectionsList):
                 selection = member
 
             # otherwise we will make a selection with the type
-            elif issubclass(association_type.selection_types[i], masticsel.GenericSelection):
+            elif issubclass(association_type.selection_types[i], GenericSelection):
                 selection = association_type.selection_types[i](member, sel_ids)
             else:
                 raise TypeError("No handler for this type in making an Association selection")
