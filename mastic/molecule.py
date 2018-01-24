@@ -1172,7 +1172,8 @@ class MoleculeTypeAtomSelection(IndexedSelection):
                  partial_feats=False, partial_bonds=False,
                  flags=None):
 
-        assert isinstance(molecule_type, MoleculeType), "must be a MoelculeType object"
+        assert isinstance(molecule_type, MoleculeType), \
+            "must be a MoleculeType object, not {}".format(type(molecule_type))
 
         super().__init__(molecule_type.atom_types, sel=sel, flags=flags)
 

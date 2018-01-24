@@ -4,7 +4,7 @@ import pickle
 import numpy as np
 
 from mastic.system import AssociationType
-from mastic.molecule import MoleculeAtomSelection
+from mastic.molecule import MoleculeTypeAtomSelection
 
 # load the SystemType we will add associations to
 system_type_pkl_path = osp.join(".", "sEH_TPPU_SystemType.pkl")
@@ -47,9 +47,9 @@ selection_map = [(1, binding_site_atom_idxs), (0, None)]
 # and tell the AssociationType what kind of selection to make on the
 # molecule. Setting one of them to None should mean the selection map
 # also had no indices selected and it should use the whole system
-# member. The MoleculeAtomSelection allows for selection of atoms in a
+# member. The MoleculeTypeAtomSelection allows for selection of atoms in a
 # Molecule or MoelculeType.
-selection_types = [MoleculeAtomSelection, None]
+selection_types = [MoleculeTypeAtomSelection, None]
 
 
 # make the actual association
@@ -68,7 +68,7 @@ sEH_TPPU_SystemType.add_association_type(sehBS_tppu_assoc)
 # then if our interaction is assymetric (which is the case for
 # HydrogenBondType) we need to do it the other way around.
 selection_map = [(0, None), (1, binding_site_atom_idxs)]
-selection_types = [None, MoleculeAtomSelection]
+selection_types = [None, MoleculeTypeAtomSelection]
 tppu_sehBS_assoc = AssociationType("TPPU-sEHBS",
                                    system_type=sEH_TPPU_SystemType,
                                    selection_map=selection_map,

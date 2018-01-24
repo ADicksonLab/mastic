@@ -3,7 +3,7 @@ import collections as col
 import itertools as it
 
 from mastic.molecule import Atom, Bond, Molecule, AtomType, BondType, MoleculeType
-from mastic.selection import SelectionMember, SelectionsList, IndexedSelection
+from mastic.selection import SelectionMember, SelectionsList, IndexedSelection, GenericSelection
 
 import mastic.config.system as masticsysconfig
 
@@ -402,13 +402,14 @@ class System(SelectionsList):
 
         super().__init__(selection_list=members, flags=['system'])
         self._system_type = system_type
+
         # substantiate the Associations in this System
-        self._associations = []
-        for i, association_type in enumerate(self._system_type.association_types):
-            association_class_name = "Association{}".format(i)
-            self._associations.append(
-                association_type.to_association(self,
-                                                association_name=association_class_name))
+        # self._associations = []
+        # for i, association_type in enumerate(self._system_type.association_types):
+        #     association_class_name = "Association{}".format(i)
+        #     self._associations.append(
+        #         association_type.to_association(self,
+        #                                         association_name=association_class_name))
 
     @property
     def system_type(self):
