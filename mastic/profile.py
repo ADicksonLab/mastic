@@ -69,6 +69,27 @@ def profile_inx_classes(inx_classes, system):
 
     return hit_idxs, inxs
 
+
+def profiles_df(profiles, profile_ids=None):
+    import pandas as pd
+    hits_dfs = []
+    for prof_idx, profile in profiles:
+        hits_df = profile.hit_inx_df()
+        if profile_ids is not None:
+            prof_ids_col = [profile_ids[prof_idx]] * hits_df.shape[0]
+        else:
+            prof_ids_col = [prof_idx] * hits_df.shape[0]
+
+        hits_df['profile_id'] = prof_ids_col
+
+        hits_dfs.append(hits_df)
+
+    master_df = pd.concat(hits_dfs)
+
+    return master_df
+
+
+
 class InxSpaceProfiler(object):
 
     def __init__(self, interaction_space):

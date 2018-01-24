@@ -8,6 +8,7 @@ from collections import namedtuple, defaultdict
 import numpy as np
 import numpy.linalg as la
 from scipy.spatial.distance import cdist
+#import pandas as pd
 
 import mastic.config.interactions as masticinxconfig
 import mastic.config.features as masticfeatconfig
@@ -16,6 +17,53 @@ from mastic.interactions.interactions import InteractionType, Interaction, Inter
 # fields expected for writing data out as results, this method will be
 # improved in the future
 _pdb_fields = ['pdb_name', 'pdb_residue_name', 'pdb_residue_number', 'pdb_serial_number']
+
+def hbond_profiles_df_stats(profiles_df):
+    """Given a master dataframe from multiple profilings this will give
+    another dataframe of the statistics for thos frames.
+
+    """
+
+
+    import pandas as pd
+    # group the hits by hbond interaction class
+    hit_gb = profiles_df.groupby('hit_idx')
+
+    # define the fields for the table
+    hbond_stats_fields = ['interaction_id', 'hit_idx',
+                          'distance_mean', 'distance_std',
+                          'distance_min', 'distance_max',
+                          'angle_mean', 'angle_std',
+                          'angle_min', 'angle_max',
+                          'frames',
+                          'freq' ]
+    hbond_stats_cols = {field : [] for field in hbond_stats_fields}
+
+    # distance
+    for hit_idx, hit_df in hit_gb:
+        hbond_stats_cols['distance_mean'].append(hit_df['distance'].mean())
+        hbond_stats_cols['distance_std'].append(hit_df['distance'].std())
+        hbond_stats_cols['distance_min'].append(hit_df['distance'].min())
+        hbond_stats_cols['distance_max'].append(hit_df['distance'].max())
+        # angle
+        hbond_stats_cols['angle_mean'].append(hit_df['angle'].mean())
+        hbond_stats_cols['angle_std'].append(hit_df['angle'].std())
+        hbond_stats_cols['angle_min'].append(hit_df['angle'].min())
+        hbond_stats_cols['angle_max'].append(hit_df['angle'].max())
+        # add the frames it is a part of
+        hbond_stats_cols['hit_idx'].append(int(hit_idx))
+        hbond_stats_cols['frames'].append(list(hit_df['profile_id']))
+        hbond_stats_cols['freq'].append(hit_df.shape[0])
+        hbond_stats_cols['interaction_id'].append(hit_df['interaction_class'].values[0])
+
+    hbond_stats_df = pd.DataFrame(hbond_stats_cols, index=hbond_stats_cols['hit_idx'])
+    # calculate the normalized frequencies based on the number of
+    # total hbonds in the collection
+    hbond_stats_df['norm_freq'] = hbond_stats_df['freq'].divide(
+        hbond_stats_df[hbond_stats_df['freq'] > 0].shape[0], fill_value=0.0)
+
+    return hbond_stats_df
+
 
 class HydrogenBondType(InteractionType):
     """Defines an InteractionType class for hydrogen bonds between members
